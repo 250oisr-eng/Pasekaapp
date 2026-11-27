@@ -1352,7 +1352,7 @@ function renderQueenRegistry(){
    const date=e.date||'дата не указана',label=eventLabels[e.type]||'Событие';
    return '<div class="queen-event"><b>'+safe(label)+'</b><span class="muted"> · '+safe(date)+'</span>'+(previous?'<div class="muted">Предыдущая матка: '+safe(previous.code||'Без номера')+'</div>':'')+(e.notes?'<div class="muted">'+safe(e.notes)+'</div>':'')+'</div>';
   }).join('')+'</div>':'<div class="muted">События по этой матке ещё не записаны.</div>';
-  return '<div class="queen-registry-item"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 0"><div><b>'+safe(q.code||'Без номера')+'</b><div class="muted">'+safe(f?.name||'Семья не найдена')+' · '+safe(f?hname(f.hive):'')+' · '+status+(q.year?' · вывод '+q.year:'')+'</div><div class="muted">'+safe(q.source||'Происхождение не указано')+'</div></div>'+(f&&f.currentQueenId===q.id?'<button type="button" onclick="openQueenForm(\''+f.id+'\')">Изменить / заменить</button>':'<span class="pill">История</span>')+'</div><div class="queen-event-heading">История матки</div>'+history+'</div>';
+  return '<div class="queen-registry-item" id="queen-registry-'+safe(q.id)+'" tabindex="-1"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 0"><div><b>'+safe(q.code||'Без номера')+'</b><div class="muted">'+safe(f?.name||'Семья не найдена')+' · '+safe(f?hname(f.hive):'')+' · '+status+(q.year?' · вывод '+q.year:'')+'</div><div class="muted">'+safe(q.source||'Происхождение не указано')+'</div></div>'+(f&&f.currentQueenId===q.id?'<button type="button" onclick="openQueenForm(\''+f.id+'\')">Изменить / заменить</button>':'<span class="pill">История</span>')+'</div><div class="queen-event-heading">История матки</div>'+history+'</div>';
  }).join('');
 }
 function openQueenForm(familyId){
@@ -1580,7 +1580,8 @@ function renderGlobalSearch(){
  const exact=typeof PasekaReconciliationVoice!=='undefined'?PasekaReconciliationVoice.parseMarkingLookup?.(query):null;
  if(exact&&typeof PasekaLabels!=='undefined'&&typeof PasekaLabels.lookupMarking==='function'){
   const answer=PasekaLabels.lookupMarking(S,exact.kind,exact.code);
-  host.innerHTML='<div class="global-search-empty"><b>'+safe(answer.title||'Маркировка')+'</b><p>'+safe(answer.detail||answer.message)+'</p><small>По данным локального учёта</small></div>';
+  const content='<span><b>'+safe(answer.title||'Маркировка')+'</b><small>'+safe(answer.detail||answer.message)+'</small></span>';
+  host.innerHTML=answer.status==='found'&&answer.target?'<button type="button" class="global-search-result" data-kind="marking" data-mark-type="'+safe(exact.kind)+'" data-id="'+safe(exact.code)+'" onclick="openGlobalSearchResult(this)">'+content+'<span aria-hidden="true">↗</span></button>':'<div class="global-search-empty">'+content+'<small>По данным локального учёта</small></div>';
   if(status)status.textContent=answer.status==='found'?'Найден точный номер.':answer.message;return;
  }
  const results=[];
@@ -1612,6 +1613,17 @@ document.addEventListener('keydown',event=>{
 });
 function openGlobalSearchResult(button){
  const kind=button.dataset.kind,hiveId=button.dataset.hive,box=button.dataset.box,index=Number(button.dataset.index);
+ if(kind==='marking'){
+  const answer=PasekaLabels.lookupMarking(S,button.dataset.markType,button.dataset.id),target=answer.target;
+  if(answer.status!=='found'||!target){renderGlobalSearch();alert('Объект больше не найден однозначно. Проверь реестр.');return;}
+  if(target.kind==='hive'){openHive(target.id);return;}
+  if(target.kind==='family'){openFamilyHistory(target.id,target.hiveId);return;}
+  if(target.kind==='body'){openEquipmentInventory(target.id);return;}
+  if(target.kind==='frame'){
+   openEquipmentInventory();const field=$('frameRegistrySearch');if(field){field.value=PasekaLabels.formatLabelCode('frame',target.code);filterFrameRegistry();field.focus();}return;
+  }
+  if(target.kind==='queen'){showTab('hives');const row=$('queen-registry-'+target.id);if(row){row.focus();row.scrollIntoView({block:'center'});}return;}
+ }
  if(kind==='hive'){openHive(hiveId);return}
  if(kind==='family'){openFamilyHistory(button.dataset.id,hiveId);return}
  if(kind==='frame'){openHive(hiveId);openFrameFromDiagram(box,index);return}
@@ -1684,7 +1696,8 @@ function clearEquipmentInventoryFilters(){
 let frameRegistryFilterText='';
 function filterFrameRegistry(){
  const query=String($('frameRegistrySearch')?.value??frameRegistryFilterText).trim().toLocaleLowerCase('ru-RU');frameRegistryFilterText=query;
- let visible=0,total=0;document.querySelectorAll('[data-frame-registry-row]').forEach(row=>{total++;const show=!query||String(row.dataset.search||'').toLocaleLowerCase('ru-RU').includes(query);row.hidden=!show;if(show)visible++});
+ const exact=/^р[-‐‑‒–—―−]/u.test(query)?PasekaLabels.normalizeCode(query,'frame'):null;
+ let visible=0,total=0;document.querySelectorAll('[data-frame-registry-row]').forEach(row=>{total++;const show=!query||(exact?row.dataset.labelCode===exact:String(row.dataset.search||'').toLocaleLowerCase('ru-RU').includes(query));row.hidden=!show;if(show)visible++});
  const result=$('frameRegistryFilterResult');if(result)result.textContent='Показано: '+visible+' из '+total;
 }
 function frameRegistryEventText(ev){
@@ -1727,7 +1740,7 @@ function renderEquipmentInventory(){
   const history=frame.history.slice(-1)[0],last=history?(history.date||'')+' · '+frameRegistryEventText(history):'История перемещений не записана',historyRows=frame.history.slice().reverse().map(ev=>'<p class="muted">'+safe(ev.date||'Дата неизвестна')+' · '+safe(frameRegistryEventText(ev))+'</p>').join('');
   const code=PasekaLabels.formatLabelCode('frame',frame.labelCode)||'Некорректный код: '+frame.labelCode;
   const search=[frame.labelCode,code,frame.frameUid,frame.frameId,place,last,frame.status,frame.frameStatus].filter(Boolean).join(' ');
-  return '<article class="card" data-frame-registry-row="1" data-search="'+safe(search)+'"><div class="row"><b>'+safe(code)+'</b><span class="pill">'+(frame.status==='retired'?'Списана':frame.status==='active'?'В учёте':safe(frame.status))+'</span></div><p class="muted">'+safe(place)+'</p><p class="muted">Технический ID: '+safe(frame.frameId||'не задан')+(frame.frameUid?' · UID: '+safe(frame.frameUid.slice(-8)):'')+'</p><p class="muted">'+safe(last)+'</p><details><summary>История рамки ('+frame.history.length+')</summary>'+(historyRows||'<p class="muted">История пока пуста.</p>')+'</details>'+(frame.status!=='retired'?'<button type="button" data-code="'+safe(frame.labelCode)+'" onclick="retireInventoryFrame(this.dataset.code)">Списать рамку</button>':'<p class="muted">Рамка списана '+safe(frame.retiredAt||'')+'. Код сохранён и повторно не используется.</p>')+'</article>';
+  return '<article class="card" data-frame-registry-row="1" data-label-code="'+safe(frame.labelCode)+'" data-search="'+safe(search)+'"><div class="row"><b>'+safe(code)+'</b><span class="pill">'+(frame.status==='retired'?'Списана':frame.status==='active'?'В учёте':safe(frame.status))+'</span></div><p class="muted">'+safe(place)+'</p><p class="muted">Технический ID: '+safe(frame.frameId||'не задан')+(frame.frameUid?' · UID: '+safe(frame.frameUid.slice(-8)):'')+'</p><p class="muted">'+safe(last)+'</p><details><summary>История рамки ('+frame.history.length+')</summary>'+(historyRows||'<p class="muted">История пока пуста.</p>')+'</details>'+(frame.status!=='retired'?'<button type="button" data-code="'+safe(frame.labelCode)+'" onclick="retireInventoryFrame(this.dataset.code)">Списать рамку</button>':'<p class="muted">Рамка списана '+safe(frame.retiredAt||'')+'. Код сохранён и повторно не используется.</p>')+'</article>';
  }).join('');
  host.innerHTML+='<section><h3>Проверка целостности реестра</h3><p>Маркированных рамок: <b>'+registryAudit.summary.labelled+'</b> · в ульях: '+registryAudit.summary.active+' · на складе: '+registryAudit.summary.stored+' · списано: '+registryAudit.summary.retired+'</p><p>Записей без постоянного кода: '+registryAudit.summary.withoutPermanentCode+' <span class="muted">(включают незаполненные шаблонные позиции; не считаются подтверждёнными физическими рамками)</span></p><p><b>Ошибок: '+registryAudit.summary.errors+' · предупреждений: '+registryAudit.summary.warnings+'</b></p>'+(auditRows?'<ul>'+auditRows+'</ul>':'<p class="muted">Внутренние проверки не обнаружили конфликтов кодов, UID и истории местоположений.</p>')+'<p class="muted">Сверка с пасекой выполняется вручную: сравни количество и коды реально осмотренных рамок с этим реестром. Приложение не может подтвердить физическое наличие рамки без осмотра.</p></section><section><h3>Реестр маркированных рамок ('+labelledFrames.length+')</h3><p class="muted">Здесь отображаются только рамки с постоянным кодом. Незамаркированные пустые позиции и шаблонные записи не выдаются за реальные рамки.</p><label for="frameRegistrySearch">Поиск рамки по коду, ID или местоположению</label><input id="frameRegistrySearch" type="search" maxlength="120" placeholder="Например, Р-137" value="'+safe(frameRegistryFilterText)+'" oninput="filterFrameRegistry()"><p id="frameRegistryFilterResult" class="muted" aria-live="polite"></p>'+(frameRows||'<p class="muted">Пока нет рамок с постоянными кодами.</p>')+'</section>';
  filterEquipmentInventory();filterFrameRegistry();

@@ -111,7 +111,9 @@ function parseMarkingLookup(raw){
  const prefix=value.match(/^([рксм])[\u2010-\u2015\u2212-]([1-9]\d{0,5}|[а-я0-9]{3})$/u);
  if(!request&&!prefix)return null;
  const kind=prefix?({р:'frame',к:'body',с:'family',м:'queen'})[prefix[1]]:request[1].startsWith('ул')?'hive':request[1].startsWith('сем')?'family':request[1].startsWith('мат')?'queen':request[1].startsWith('кор')?'body':'frame';
- const tail=prefix?prefix[2]:request[2].trim();
+ let tail=prefix?prefix[2]:request[2].trim();
+ const own=({frame:'р',body:'к',family:'с',queen:'м'})[kind];
+ if(own)tail=tail.replace(new RegExp('^'+own+'[\\s\\u2010-\\u2015\\u2212-]+','u'),'');
  let code=parseSpokenNumber(tail);
  if(!code&&['frame','body'].includes(kind)&&/^[а-я0-9]{3}$/u.test(tail)&&[...tail.toUpperCase()].every(c=>ALPHABET.includes(c)))code=tail.toUpperCase();
  if(!code&&!/^(?:где(?: находится)?|найди|покажи местоположение)\s/u.test(value))return null;

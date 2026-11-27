@@ -103,3 +103,13 @@ test('lookup includes retired/stored frames and refuses duplicate physical codes
  assert.match(L.lookupMarking(s,'frame','137').message,/Стеллаж 2/);assert.match(L.lookupMarking(s,'frame','138').message,/списана/);
  s.equipmentInventory.bodies.b.frames.push({frameId:'other',labelCode:'137'});assert.equal(L.lookupMarking(s,'frame','137').status,'ambiguous');
 });
+
+test('lookup navigation targets are stable identities, not stale array positions',()=>{
+ const s={hives:[{id:'h',number:3}],families:[{id:'f',name:'С-12',hive:'h',box:6}],layouts:{h:{boxes:{1:{family:'f',frames:[{frameId:'x',labelCode:'137'}]}}}}};
+ assert.deepEqual(L.lookupMarking(s,'family','12').target,{kind:'family',id:'f',hiveId:'h'});
+ assert.match(L.lookupMarking(s,'family','12').message,/позиция корпуса 1/);
+ assert.deepEqual(L.lookupMarking(s,'frame','137').target,{kind:'frame',code:'137'});
+ assert.deepEqual(V.parseMarkingLookup('где корпус К-24'),{kind:'body',code:'24'});
+ s.layouts.h.boxes[2]={family:'f',frames:[]};
+ assert.equal(L.lookupMarking(s,'family','12').status,'ambiguous');
+});

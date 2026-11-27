@@ -95,7 +95,7 @@ function lookupMarking(state,type,code){
  const typeName=({hive:'Улей',family:'Семья',queen:'Матка',frame:'Рамка',body:'Корпус'})[type],title=typeName+' '+display;
  const unique=(rows,id)=>rows.filter(x=>x?.id===id);
  const hiveName=id=>{const h=unique(s.hives||[],id);return h.length===1?'улей '+h[0].number:'улей не определён';};
- const result=(status,detail)=>({status,title,detail,message:title+'. '+detail});
+ const result=(status,detail,target=null)=>({status,title,detail,message:title+'. '+detail,target});
  const one=rows=>rows.length===1?rows[0]:null;
  const bodyPlace=id=>{
   const positions=[];
@@ -117,40 +117,43 @@ function lookupMarking(state,type,code){
  };
  if(type==='hive'){
   const rows=(s.hives||[]).filter(h=>Number(h?.number)===n);
-  return rows.length===1?result('found','зарегистрирован в учёте'):result(rows.length?'ambiguous':'missing',rows.length?'номер неоднозначен, проверь реестр':'не найден');
+  return rows.length===1?result('found','зарегистрирован в учёте',{kind:'hive',id:rows[0].id}):result(rows.length?'ambiguous':'missing',rows.length?'номер неоднозначен, проверь реестр':'не найден');
  }
  if(type==='family'){
   const rows=(s.families||[]).filter(f=>f?.name===display||f?.code===display),family=one(rows);
   if(!family)return result(rows.length?'ambiguous':'missing',rows.length?'номер неоднозначен, проверь реестр':'не найдена');
-  if(family.recordStatus==='historical')return result('found','историческая семья, текущего назначения нет');
+  if(family.recordStatus==='historical')return result('found','историческая семья, текущего назначения нет',unique(s.hives||[],family.hive).length===1?{kind:'family',id:family.id,hiveId:family.hive}:null);
   const sections=[];
   for(const l of Array.isArray(s.sectionalLayouts)?s.sectionalLayouts:[])for(const section of l?.sections||[])if(section?.familyId===family.id)sections.push({hiveId:l.hiveId,position:section.position,mode:l.mode});
-  if(sections.length>1||sections.some(x=>x.hiveId!==family.hive))return result('ambiguous','конфликт размещения, проверь реестр');
-  return result('found',hiveName(family.hive)+(sections.length?', '+sectionLabel(sections[0].position,sections[0].mode):family.box!=null?', позиция '+family.box:''));
+  const boxes=[];
+  for(const [hiveId,layout] of Object.entries(s.layouts||{}))for(const [box,entry] of Object.entries(layout?.boxes||{}))if(entry?.family===family.id)boxes.push({hiveId,box});
+  if(sections.length+boxes.length>1||[...sections,...boxes].some(x=>x.hiveId!==family.hive))return result('ambiguous','конфликт размещения, проверь реестр');
+  return result('found',hiveName(family.hive)+(sections.length?', '+sectionLabel(sections[0].position,sections[0].mode):boxes.length?', позиция корпуса '+boxes[0].box:', корпус не подтверждён'),unique(s.hives||[],family.hive).length===1?{kind:'family',id:family.id,hiveId:family.hive}:null);
  }
  if(type==='queen'){
   const rows=(s.queens||[]).filter(q=>q?.code===display),q=one(rows);
   if(!q)return result(rows.length?'ambiguous':'missing',rows.length?'номер неоднозначен, проверь реестр':'не найдена');
   const family=one(unique(s.families||[],q.familyId));
-  if(q.status==='current'&&family?.currentQueenId===q.id&&family.recordStatus!=='historical')return result('found','семья '+(family.name||family.code||'без номера')+', '+hiveName(family.hive));
-  return result('found',({replaced:'заменена',dead:'погибла',removed:'выведена из семьи'})[q.status]||'текущая принадлежность не подтверждена');
+  if(q.status==='current'&&family?.currentQueenId===q.id&&family.recordStatus!=='historical')return result('found','семья '+(family.name||family.code||'без номера')+', '+hiveName(family.hive),{kind:'queen',id:q.id});
+  return result('found',({replaced:'заменена',dead:'погибла',removed:'выведена из семьи'})[q.status]||'текущая принадлежность не подтверждена',{kind:'queen',id:q.id});
  }
  if(type==='frame'){
   const rows=listLabelledFrames(s).filter(f=>f.labelCode===normalizeCode(code,'frame')),frame=one(rows);
   if(!frame)return result(rows.length?'ambiguous':'missing',rows.length?'повторяющийся код, проверь реестр':'не найдена');
-  if(frame.locationType==='retired')return result('found','списана; номер сохраняется');
+  const target={kind:'frame',code:frame.labelCode};
+  if(frame.locationType==='retired')return result('found','списана; номер сохраняется',target);
   if(frame.bodyId){
    const place=bodyPlace(frame.bodyId);if(place.conflict)return result('ambiguous','конфликт размещения корпуса');
    const bodyCode=formatLabelCode('body',s.equipmentLabels?.bodies?.[frame.bodyId]);
-   return result('found',place.detail+(bodyCode?', корпус '+bodyCode:'')+', позиция '+frame.position);
+   return result('found',place.detail+(bodyCode?', корпус '+bodyCode:'')+', позиция '+frame.position,target);
   }
   const bodyCode=formatLabelCode('body',s.layouts?.[frame.hiveId]?.corpusIds?.[frame.box]?s.equipmentLabels?.bodies?.[s.layouts[frame.hiveId].corpusIds[frame.box]]:null);
-  return result('found',hiveName(frame.hiveId)+', '+(bodyCode?'корпус '+bodyCode:'позиция корпуса '+frame.box)+', рамка на месте '+frame.position);
+  return result('found',hiveName(frame.hiveId)+', '+(bodyCode?'корпус '+bodyCode:'позиция корпуса '+frame.box)+', рамка на месте '+frame.position,target);
  }
  if(type==='body'){
   const rows=Object.entries(s.equipmentLabels?.bodies||{}).filter(([,value])=>normalizeCode(value,'body')===normalizeCode(code,'body'));
   if(rows.length!==1)return result(rows.length?'ambiguous':'missing',rows.length?'повторяющийся код, проверь реестр':'не найден');
-  const place=bodyPlace(rows[0][0]);return result(place.conflict?'ambiguous':'found',place.conflict?'конфликт размещения, проверь реестр':place.detail);
+  const place=bodyPlace(rows[0][0]);return result(place.conflict?'ambiguous':'found',place.conflict?'конфликт размещения, проверь реестр':place.detail,!place.conflict&&s.equipmentInventory?.bodies?.[rows[0][0]]?{kind:'body',id:rows[0][0]}:null);
  }
  return {status:'invalid',message:'Неизвестный тип маркировки.'};
 }

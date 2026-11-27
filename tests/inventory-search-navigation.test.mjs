@@ -43,3 +43,11 @@ test('a stale journal result cannot open an archived, moved or missing entry',()
  assert.deepEqual(opened,['one'],'ambiguous ID must not open another editor');
  assert.equal(alerts.length,5,'ambiguous ID must fail closed');
 });
+
+test('exact marking search routes via live identity and refuses a disappeared or duplicate record',()=>{
+ const code=html.slice(html.indexOf('function openGlobalSearchResult('),html.indexOf('function inventoryConditionLabel('));
+ const calls=[],button={dataset:{kind:'marking',markType:'family',id:'12'}},S={};
+ let answer={status:'found',target:{kind:'family',id:'f',hiveId:'h'}};
+ const fn=new Function('S','PasekaLabels','openFamilyHistory','renderGlobalSearch','alert',code+';return openGlobalSearchResult')(S,{lookupMarking:()=>answer},(...args)=>calls.push(args),()=>calls.push('refresh'),msg=>calls.push(msg));
+ fn(button);assert.deepEqual(calls,[['f','h']]);answer={status:'ambiguous'};fn(button);assert.equal(calls[1],'refresh');assert.match(calls[2],/однозначно/);
+});
