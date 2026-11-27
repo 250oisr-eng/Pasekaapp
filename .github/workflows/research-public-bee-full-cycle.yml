@@ -1,0 +1,60 @@
+name: Research full public bee cycle
+on:
+  pull_request:
+    paths:
+      - 'tools/run_public_bee_full_cycle.py'
+      - 'tests/test_public_bee_full_cycle.py'
+      - '.github/workflows/research-public-bee-full-cycle.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  public-cycle:
+    if: github.head_ref == 'research/video-public-model-pilot-20261128'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      OMP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-bee-center-research
+          run-id: 46074461207
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/initial
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-bee-grouped-research
+          run-id: 46075148819
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/grouped
+      - name: Install pinned CPU dependencies
+        run: |
+          python -m pip install --disable-pip-version-check torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check Pillow==12.0.0 numpy==2.2.6 scipy==1.15.3 onnx==1.18.0 onnxruntime==1.22.1
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            test -r /etc/apt/sources.list.d/ubuntu.sources
+            opts=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-)
+            sudo apt-get "${opts[@]}" update -qq
+            sudo apt-get "${opts[@]}" install -y --no-install-recommends ffmpeg
+          fi
+      - name: Localization, tracking and matching tests
+        run: python -m unittest discover -s tests -p 'test_public_bee_full_cycle.py' -v
+      - name: Execute full public research cycle
+        run: python -u tools/run_public_bee_full_cycle.py "${RUNNER_TEMP}/initial/experimental_bee_center.onnx" "${RUNNER_TEMP}/grouped/experimental_bee_center.onnx" "${RUNNER_TEMP}/bee-full-cycle"
+      - name: Preserve only public experimental ONNX and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-bee-full-cycle-research
+          path: |
+            ${{ runner.temp }}/bee-full-cycle/report.json
+            ${{ runner.temp }}/bee-full-cycle/experimental_bee_center.onnx
+          retention-days: 7
+          if-no-files-found: warn
