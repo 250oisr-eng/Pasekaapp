@@ -1357,6 +1357,8 @@ function journalCsvFilename(hiveId,date,tick){
 }
 function downloadFilteredJournalCsv(){
  if(!activeJournalHive){alert('Сначала выбери улей для экспорта журнала.');return;}
+ const date=$('journalDateFilter')?.value||'',endDate=$('journalEndDateFilter')?.value||'';
+ if(date&&endDate&&date>endDate){alert('Конец периода раньше начала. Исправь даты перед экспортом CSV.');return;}
  const rows=filteredJournalRows();
  if(!rows.length){alert('По выбранным фильтрам нет записей для CSV.');return;}
  try{
