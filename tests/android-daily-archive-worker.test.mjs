@@ -8,6 +8,9 @@ test('native archive worker uses actual bundled validation and never bootstraps 
  assert.doesNotMatch(html,/<script\b[^>]*\bsrc\s*=/i);
  assert.doesNotMatch(html,/<link\b/i);
  assert.match(html,/connect-src 'none'/);
+ assert.match(html,/<script>window\.__pasekaProbeInline=true;<\/script>/);
+ assert.ok(html.indexOf('window.__pasekaProbeInline=true')<html.indexOf('window.__pasekaWorkerStarted=true'));
+ assert.match(html,/window\.__pasekaWorkerStarted=true/);
  assert.match(html,/bridge\.finish\(outcome\)/);
  assert.match(html,/req\.onupgradeneeded=\(\)=>\{try\{req\.transaction\.abort\(\)/);
  assert.doesNotMatch(html,/const databaseCreatedDuringOpen=await openDB\(\)/);
@@ -23,6 +26,13 @@ test('native scheduler uses one persisted periodic job, disallows network and fi
  for(const token of ['getPendingJob(JOB_ID)','setPeriodic(PERIOD_MS, FLEX_MS)','setPersisted(true)','setRequiresStorageNotLow(true)','setBlockNetworkLoads(true)','setAllowFileAccess(false)','setAllowContentAccess(false)','loadDataWithBaseURL("https://localhost/"','jobFinished(parameters, retry)'])assert.ok(java.includes(token),token);
  assert.doesNotMatch(java,/setRequiredNetworkType|setOverrideDeadline|deleteDatabase|clearCache/);
  assert.match(java,/WATCHDOG_TIMEOUT phase=/);
+ for(const category of ['NO_INLINE','NO_DB','NO_RUNNER','NO_BRIDGE','NO_METHOD','READY','UNKNOWN','DISPATCH_FAILED'])
+  assert.match(java,new RegExp('JS_PROBE_'+category));
+ assert.match(java,/JS_CONSOLE_ERROR/);
+ assert.match(java,/onPageFinished\(WebView view, String url\)/);
+ assert.match(java,/view\.evaluateJavascript\(probe, value ->/);
+ assert.match(java,/if \(active != parameters\) return;/);
+ assert.doesNotMatch(java,/message\.message\(\)|message\.sourceId\(\)|Log\.[a-z]+\(TAG,.*\+ value\)/);
  assert.match(java,/MAIN_FRAME_ERROR code=/);
  assert.match(java,/BRIDGE_FINISH/);
  assert.match(java,/JOB_FINISHED retry=/);
@@ -38,6 +48,13 @@ test('native patch is idempotent and preserves distinct package/origin',()=>{
  assert.equal(diag.appId,'ru.paseka.journal.qa.daily.diag');
  assert.equal(assertDailyConfig(diag),diag.appId);
  assert.notEqual(diag.appId,qa.appId);
+ const probe=dailyQaConfig(config,{probe:true});
+ assert.equal(probe.appId,'ru.paseka.journal.qa.daily.probe');
+ assert.equal(assertDailyConfig(probe),probe.appId);
+ assert.notEqual(probe.appId,qa.appId);
+ assert.notEqual(probe.appId,diag.appId);
+ assert.throws(()=>dailyQaConfig(config,{probe:true,diagnostic:true}),/unexpected/);
+ assert.throws(()=>assertDailyConfig({...probe,server:{url:'https://remote.test'}}),/origin/);
  assert.throws(()=>assertDailyConfig({...diag,server:{url:'https://remote.test'}}),/origin/);
  assert.throws(()=>assertDailyConfig({...config,server:{androidScheme:'http'}}),/origin/);
  assert.throws(()=>assertDailyConfig({...config,server:{url:'https://example.test'}}),/origin/);
@@ -59,5 +76,15 @@ test('diagnostic APK workflow isolates package, signer and output from existing 
  assert.match(yaml,/PASEKA-DAILY-DIAGNOSTIC-QA-ONLY\.apk/);
  assert.match(yaml,/signers\.length!==1/);
  assert.match(yaml,/ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+ assert.doesNotMatch(yaml,/deploy-pages|wrangler deploy|adb install|--install-qa/);
+});
+
+test('additive JS-probe workflow builds signed distinct package and never overwrites older QA',async()=>{
+ const yaml=await read('.github/workflows/android-qa-daily-probe.yml');
+ assert.match(yaml,/node scripts\/prepare-android-daily-archives\.mjs probe-config/);
+ assert.match(yaml,/packageName!=='ru\.paseka\.journal\.qa\.daily\.probe'/);
+ assert.match(yaml,/PASEKA-DAILY-PROBE-QA-ONLY\.apk/);
+ assert.match(yaml,/signers\.length!==1/);
+ assert.match(yaml,/QA-PROVENANCE\.json/);
  assert.doesNotMatch(yaml,/deploy-pages|wrangler deploy|adb install|--install-qa/);
 });
