@@ -179,7 +179,7 @@ async function archiveJourney(browser,origin){
   errors.push('Unexpected dialog: '+dialog.message());await dialog.dismiss();
  });
  const setDay=day=>page.clock.setFixedTime(new Date(day+'T12:00:00Z'));
- const ready=()=>page.waitForFunction(()=>startupWriteGate.ready===true);
+ const ready=()=>page.waitForFunction(()=>{try{return startupWriteGate.ready===true}catch{return false}});
  const archived=day=>page.waitForFunction(day=>dailyArchiveCheckedDay===day&&!dailyArchiveBusy,day);
  const addHive=async()=>{
   await page.locator('button[data-tab="hives"]').click();
@@ -222,7 +222,7 @@ async function archiveJourney(browser,origin){
   assert.match(await page.locator('#dailyArchiveLatest').textContent(),/повреждён/);
   const navigated=page.waitForEvent('framenavigated',{predicate:frame=>frame===page.mainFrame()});
   await page.locator('#dailyRestoreConfirm').click();
-  await navigated;await ready();
+  await navigated;await page.waitForLoadState('domcontentloaded');await ready();
   assert.deepEqual(await page.evaluate(()=>S.hives.map(h=>h.id)),[firstHive]);
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({scenario:'daily-two-zip-corrupt-latest-restore-previous-reopen',status:'PASS',source:'Chromium real IndexedDB with synthetic clock and data',device:'NOT_TESTED'}));

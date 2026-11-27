@@ -224,3 +224,13 @@ test('daily restore refuses an old snapshot that omits a current original',async
   assert.equal((await archive.verifyRestoredArchive(f.db,before)).verified,true);
  }finally{f.close();}
 });
+
+test('daily export rejects oversized snapshots before encoding and preserves source',async()=>{
+ const f=await fixture();try{
+  await f.state('r1',true);const before=await archive.exportArchive(f.db);
+  await assert.rejects(archive.exportArchive(f.db,{maxBytes:4096}),/превышает безопасный предел/);
+  const proof=await f.inspect(before);
+  assert.equal((await archive.verifyRestoredArchive(f.db,proof)).verified,true);
+  assert.ok((await archive.exportArchive(f.db,{maxBytes:daily.MAX_BYTES})).includes('paseka-idb-full-v1'));
+ }finally{f.close();}
+});

@@ -188,7 +188,20 @@ function assertExportBudget(snap,maxBytes){
  function visit(value,depth=0){
   assert(depth<200,'Archive record too deep');
   add(64);
-  if(typeof value==='string'){add(value.length*6);return;}
+  if(typeof value==='string'){
+   let bytes=0;
+   for(let i=0;i<value.length;i++){
+    const code=value.charCodeAt(i);
+    if(code<32)bytes+=6;
+    else if(code===34||code===92)bytes+=2;
+    else if(code<128)bytes++;
+    else if(code<2048)bytes+=2;
+    else if(code>=0xd800&&code<=0xdbff&&i+1<value.length&&value.charCodeAt(i+1)>=0xdc00&&value.charCodeAt(i+1)<=0xdfff){bytes+=4;i++;}
+    else if(code>=0xd800&&code<=0xdfff)bytes+=6;
+    else bytes+=3;
+   }
+   add(bytes);return;
+  }
   if(value===null||typeof value!=='object')return;
   if(value instanceof Date){add(64);return;}
   if(value instanceof Blob){add(Math.ceil(value.size/3)*4+1024);if(typeof File!=='undefined'&&value instanceof File)add(value.name.length*6);add(value.type.length*6);return;}
