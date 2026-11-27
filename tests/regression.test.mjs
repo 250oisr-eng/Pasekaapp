@@ -3992,11 +3992,11 @@ test('honey extraction is atomic across frames, physical pair, journal and audit
    PasekaSeasonPlanning:{parseDate:value=>value==='2026-11-25'?new Date('2026-11-25'):null},
    PasekaLabels:{appendFrameEvent:(frame,type,details,at)=>frame.history.push({type,details,at})},
    today:()=> '2026-11-27',hname:()=> 'Улей 1',
-   frameLocationName:key=>key,uid:(()=>{let n=0;return()=> 'test-'+(++n)})(),
+   frameLocationName:(key,hiveId)=>{assert.equal(hiveId,'h','never treat Array.map index as hive ID');return key},uid:(()=>{let n=0;return()=> 'test-'+(++n)})(),
    save:async()=>{deps.saveCalls++;if(failure==='exception')throw new Error('test interrupted IndexedDB');return failure==='success'},
    alert(message){this.messages.push(message)},render(){this.renders++}
   };
-  deps.layoutFor=id=>deps.S.layouts[id];deps.frameArray=(layout,key)=>layout.honeyFrames[key];
+  deps.layoutFor=id=>deps.S.layouts[id];deps.frameArray=(layout,key,hiveId)=>{assert.equal(hiveId,'h');return layout.honeyFrames[key]};
   deps.cloneApiaryState=()=>structuredClone(deps.S);
   deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
   assert.equal(await loadFunction('saveExtractionOnce',deps)(),failure==='success');
@@ -4032,4 +4032,17 @@ test('honey extraction rejects invalid/future date and never touches state',asyn
   assert.equal(saves,0);
   assert.deepEqual(state.records,[]);
  }
+});
+
+test('rendering extraction history never passes Array.map index as hive ID',()=>{
+ const source=extractFunction('renderHiveExtractionActions');
+ assert.doesNotMatch(source,/\.map\(frameLocationName\)/);
+ assert.match(source,/x\.item\.boxes\.map\(key=>frameLocationName\(key,x\.item\.hiveId\)\)/);
+ const host={innerHTML:''};
+ const deps={S:{extractions:[{id:'ext',date:'2026-11-25',items:[{hiveId:'h',kilograms:2,boxes:['H1','H2'],returnedAt:null}]}]},
+  selectedHiveId:'h', $:id=>id==='hiveExtractionActions'?host:null,safe:String,
+  frameLocationName:(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key}};
+ loadFunction('renderHiveExtractionActions',deps)();
+ assert.match(host.innerHTML,/Корпуса после откачки/);
+ assert.match(host.innerHTML,/H1, H2/);
 });
