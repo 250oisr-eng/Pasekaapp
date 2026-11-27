@@ -28,3 +28,11 @@
 ## F6–F7 / границы
 
 `#442` распознавание/автоудаление FROZEN. Реальные записи рабочей пасеки, видео, signer/обновление production, миграции и опубликованная версия приложения не затрагиваются. **Никакой APK не устанавливать до exact SHA CI и самостоятельной сверки provenance**. Даже успешный тестовый SAF-export не доказывает независимый restore production.
+
+## Проверенный APK и физический приёмочный шаг
+
+**#619 MERGED**: main `eda81f8ffbf7491dba7b973373248f28cf19450a`. PR exact HEAD `ad8f183893de7eadfa3f4f696906fafb1948af81`: Node **1038/1038 PASS**, основной Android #45975935822 SUCCESS, [специальный SAF QA CI #45975935838](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45975935838) SUCCESS, Governance #45975935844 SUCCESS. APK `PASEKA-ARCHIVE-QA-ONLY.apk`; пакет `ru.paseka.journal.qa.archive`; APK SHA256 `83ce0f45cd57acc81f3fd5368b7e13cc8db3057221124b536147336d429ef4d6`. Артефакт **PASEKA-ONEPLUS-SAF-ARCHIVE-QA-APK** ID `15187042938`, ZIP SHA256 `beb0fe9cb12e1bbed23236f84b5bc740acb942b394cd729de9f75245f3b92026`, срок хранения до 04.12.2026. SHA ZIP и APK — разные значения.
+
+**Физический сценарий только после сверки контрольной суммы и package:** на Android 15+ из GitHub Actions скачать ZIP, распаковать, сверить APK `QA-SAF-PROVENANCE.json` и SHA256. Не заменять установленную «Пасека QA — тест» и не обновлять production. Отдельно установить «Пасека QA — архив», убедиться в новой пустой тестовой базе. Создать условный улей/семью/наблюдение без реальных OP; затем **«Ещё» → «Резервное копирование» → «P0 · Полный архив IndexedDB» → «Скачать полный архив текущей базы»**. Новый Android должен показать системный выбор файла/папки; выбрать «Загрузки», подтвердить создание JSON. Дождаться сообщения о SHA readback и наличии файла; найти его в «Файлы». Выбрать **именно этот JSON** через read-only проверку. Скопировать файл на отдельный носитель, если доступен. Отмена выбора или ошибка SHA = **FAIL** без очищения базы.
+
+Фиксировать по отдельности: `picker_opened`, `saved_file_exists`, `android_readback_sha_pass`, `in_app_readonly_archive_check`, `external_copy`, все `PASS/FAIL/NOT_TESTED`, плюс размер и 64-символьный SHA. Установка/диалог/USB/restore физически ещё **NOT_TESTED**. Временный debug signer не позволяет будущие гарантированные in-place upgrades; не переустанавливать QA ради проверки. Блокировки B01/B04/B05 остаются.

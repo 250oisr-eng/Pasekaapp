@@ -1462,7 +1462,7 @@
     "cycle3Still": "USER_REPORTED_ARCHIVE_VERIFY_FAIL"
   },
   "b01QaSafArchive20261127": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "IN_MAIN_BINARY_VERIFIED_DEVICE_NOT_TESTED",
     "branch": "feat/b01-qa-saf-archive-export-20261127",
     "mainBaseSha": "e5fdb2d295c062795820268b0997ebca01a54fde",
     "package": "ru.paseka.journal.qa.archive",
@@ -1470,9 +1470,24 @@
     "productionUnchanged": true,
     "exportStrategy": "SAF_CREATE_DOCUMENT_WITH_BYTEWISE_READBACK",
     "maxBytes": 268435456,
-    "ci": "NOT_VERIFIED",
+    "ci": {
+      "nodePass": 1038,
+      "nodeFail": 0,
+      "regularAndroid": 45975935822,
+      "isolatedSAFQa": 45975935838,
+      "governance": 45975935844,
+      "all": "success"
+    },
     "device": "NOT_TESTED",
     "fullRestore": "BLOCKED",
-    "mediaDeletion": "FROZEN"
+    "mediaDeletion": "FROZEN",
+    "merged": true,
+    "pr": 619,
+    "mergeSha": "eda81f8ffbf7491dba7b973373248f28cf19450a",
+    "verifiedPRSourceSha": "ad8f183893de7eadfa3f4f696906fafb1948af81",
+    "artifactId": 15187042938,
+    "artifactExpiresAt": "2026-12-04T09:44:20Z",
+    "apkSha256": "83ce0f45cd57acc81f3fd5368b7e13cc8db3057221124b536147336d429ef4d6",
+    "originalQaUnchanged": true
   }
 }
