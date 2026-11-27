@@ -1575,19 +1575,31 @@
     "completedVerifiedUserScenarios": 0
   },
   "nonvideoAccountingCycle20261127": {
-    "scope": "FAMILY_ID_INSPECTION_PREFILL_AND_FEEDING_LEDGER",
+    "scope": "FAMILY_INSPECTION_FEED_QUEEN_INVENTORY_ASSEMBLY_ATOMICITY",
     "baseMain": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
     "draftPr": 627,
-    "codeSha": "d031e9f7d76864624a32005080cf7634f996e3d4",
+    "codeSha": "967db03031b3206138678422d0183de6d9faf9db",
     "nodeTests": {
-      "tests": 1058,
-      "pass": 1058,
+      "tests": 1064,
+      "pass": 1064,
       "fail": 0,
-      "runId": 46017536898,
-      "verifiedOnSha": "d031e9f7d76864624a32005080cf7634f996e3d4"
+      "runId": 46027959851,
+      "verifiedOnSha": "967db03031b3206138678422d0183de6d9faf9db"
     },
-    "android": "PENDING",
-    "chromium": "PENDING",
+    "android": {
+      "status": "SUCCESS",
+      "runId": 46027969289,
+      "codeSha": "967db03031b3206138678422d0183de6d9faf9db",
+      "physical": "NOT_TESTED"
+    },
+    "chromium": {
+      "status": "SUCCESS",
+      "runId": 46027959844,
+      "codeSha": "967db03031b3206138678422d0183de6d9faf9db",
+      "journey": "HIVE_FAMILY_QUEEN_FEED_INSPECTION_STOCK_HONEY_PAIR_WINTER_RELOAD",
+      "source": "SYNTHETIC_REAL_INDEXEDDB",
+      "device": "NOT_TESTED"
+    },
     "serviceWorkerCache": "v325",
     "indexedDbSchemaChanged": false,
     "legacyRecordsMutated": false,
@@ -1596,14 +1608,27 @@
     "device": "NOT_TESTED",
     "completedVerifiedUserScenarios": 0,
     "unverifiedUserScenarios": [
-      "queen_create_replace",
-      "inventory_move",
-      "feeding_entry",
-      "inspection_reopen",
-      "honey_harvest",
-      "wintering"
+      "oneplus_queen_create_replace",
+      "oneplus_inventory_move",
+      "oneplus_feeding_entry",
+      "oneplus_inspection_reopen",
+      "oneplus_honey_harvest",
+      "oneplus_wintering",
+      "sectional_B07"
     ],
     "latestCodeNodeTests": "CI_VERIFIED_EXACT_CODE_SHA",
-    "queenFutureDateGuard": "CI_VERIFIED_NODE_ONLY"
+    "queenFutureDateGuard": "CI_VERIFIED_NODE_AND_BROWSER",
+    "governance": {
+      "status": "SUCCESS",
+      "runId": 46027969279,
+      "codeSha": "967db03031b3206138678422d0183de6d9faf9db"
+    },
+    "inventorySaveRollback": "CI_VERIFIED_NODE",
+    "assemblyPersistenceRollback": "CI_VERIFIED_NODE",
+    "legacyLayoutInventoryMigration": "BROWSER_VERIFIED_ADDITIVE_SOURCE_LINKED",
+    "newBrowserUserJourneys": {
+      "syntheticCompleted": 1,
+      "physicalCompleted": 0
+    }
   }
 }
