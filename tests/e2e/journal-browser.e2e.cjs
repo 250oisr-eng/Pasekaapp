@@ -216,6 +216,21 @@ async function journey(browser,origin,name,viewport){
     await diagnostics.waitFor({state:'hidden'});
     assert.deepEqual(await capture(),before,'opening diagnostics mutated journal data');
     console.log(JSON.stringify({scenario:'model-diagnostics',viewport:name,status:'PASS'}));
+
+    await page.locator('button[data-tab="home"]').click();
+    await page.locator('.home-tasks-card').getByText('＋ Запланировать').click();
+    await page.locator('#planType').selectOption('Осмотр');
+    await page.locator('#planNote').fill('QA завершённая работа');
+    await page.getByRole('button',{name:'Сохранить план'}).click();
+    const task=page.locator('#homeTasks .task-item').filter({hasText:'QA завершённая работа'});
+    await task.getByRole('button',{name:'Выполнено'}).click();
+    await page.locator('#completedTaskHistory summary').click();
+    const finished=page.locator('#completedTaskHistory article').filter({hasText:'QA завершённая работа'});
+    await finished.getByRole('button',{name:'Открыть запись журнала'}).click();
+    const linked=await page.evaluate(()=>S.tasks.find(t=>t.note==='QA завершённая работа').completedRecordId);
+    assert.equal(await page.locator('#recordId').inputValue(),linked);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#completedTaskHistory').evaluate(el=>el.open),true);
     assert.deepEqual(errors,[],'unexpected browser error or dialog');
     console.log(JSON.stringify({scenario:'hive-family-inspection-save-reload-no-duplicate',
       viewport:name,status:'PASS',source:'local-Chromium-real-IndexedDB',
