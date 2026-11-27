@@ -2338,6 +2338,8 @@
     "isolatedOp02": true,
     "cleanupDeletes": 0,
     "fullReviewOfEachPr": false,
-    "additionalTestsPending": true
+    "additionalTestsPending": true,
+    "moduleOrderEdgesChecked": 13,
+    "moduleOrderPassExpected": true
   }
 }

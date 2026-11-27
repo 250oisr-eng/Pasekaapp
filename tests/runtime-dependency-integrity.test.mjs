@@ -35,3 +35,32 @@ test('OP02 pending model stays offline-shell and runtime isolated until B07 acti
  assert.match(html,/SECTIONAL_HONEY_QA_WRITE_ENABLED/);
  assert.match(html,/sectionalExtractionHasEvidence/);
 });
+
+
+test('global-module load order follows direct domain dependencies without a cycle',()=>{
+ const dependencies=new Map([
+  ['./js/equipment-bodies.js',['./js/equipment-labels.js']],
+  ['./js/equipment-inventory.js',['./js/equipment-labels.js']],
+  ['./js/sectional-operation-coordinator.js',[
+   './js/equipment-items.js','./js/family-lineage.js','./js/equipment-inventory.js',
+   './js/equipment-labels.js','./js/sectional-physical-layout.js'
+  ]],
+  ['./js/sectional-stock-pairs.js',[
+   './js/equipment-inventory.js','./js/equipment-labels.js','./js/sectional-operation-coordinator.js'
+  ]],
+  ['./js/sectional-honey-review-ui.js',[
+   './js/sectional-honey-review.js','./js/sectional-operation-coordinator.js','./js/sectional-stock-pairs.js'
+  ]]
+ ]);
+ const paths=new Map(scriptPaths.map((x,i)=>[x,i]));
+ let edgeCount=0;
+ for(const [module,deps] of dependencies){
+  assert.ok(paths.has(module),'Missing active module '+module);
+  for(const dependency of deps){
+   assert.ok(paths.has(dependency),'Missing domain dependency '+dependency);
+   assert.ok(paths.get(dependency)<paths.get(module),module+' loads before '+dependency);
+   edgeCount++;
+  }
+ }
+ assert.equal(edgeCount,13);
+});

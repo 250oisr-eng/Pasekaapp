@@ -8,7 +8,7 @@
 - В `index.html` из 15 блоков патча 14 согласованы контекстно, пересечение блока редактора рамок разрешено по точным изменениям, сохранив sectional-honey gate и операции #649. В совмещённом дереве отсутствуют дубликаты ключевых функций.
 - `SECTIONAL_HONEY_QA_WRITE_ENABLED`, `sectionalExtractionHasEvidence`, `sectional_legacy_layout_forbidden` и скрипт sectional-honey UI сохранены. Профиль B07/OP02 по-прежнему не активируется.
 - Code HEAD `54c19b68`: Fast Quality, Android APK, Chromium E2E и Governance `success` (включая повторные GitHub workflow). Физический OnePlus для этого SHA **NOT_TESTED**.
-- 25 локальных `<script src>` входят в pre-cache Service Worker v327 и реально существуют; дублирующихся script/src и cache-путей нет. Из 26 JS модулей один не включён в рабочую оболочку — `js/sectional-op02-feeding.js` — намеренно изолирован.
+- 25 локальных `<script src>` входят в pre-cache Service Worker v327 и реально существуют; дублирующихся script/src и cache-путей нет. Дополнительно проверены 13 явных направленных связей глобальных доменных модулей: все зависимости расположены раньше потребителя, обратных связей в этой ограниченной карте нет. Проверка не эквивалентна доказательству отсутствия всех динамических циклов. Из 26 JS модулей один не включён в рабочую оболочку — `js/sectional-op02-feeding.js` — намеренно изолирован.
 
 ## Полная инвентаризация GitHub (pagination до пустой/неполной страницы)
 
