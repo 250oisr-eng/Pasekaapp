@@ -1871,5 +1871,31 @@
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null,
     "releaseAuthorized": false
+  },
+  "uxIntegrated20261127": {
+    "stage": "IN_MAIN",
+    "pr": 643,
+    "mergeSha": "de04d1725e175adf00fcfda69e9b3c8aebb00b6b",
+    "verifiedRuntime": "627e59e4d46405193f11d0e9642ad6190c3cca03",
+    "verifiedHead": "425e8e5b15d3418747681633a1d17ce373762804",
+    "mergedScope": [
+      638,
+      640,
+      643
+    ],
+    "qaPreviewExcluded": 639,
+    "treeDiffFiles": 0,
+    "nodeTests": 1085,
+    "ci": {
+      "mainFast": "success",
+      "mainGovernance": "success",
+      "mainAndroid": "in_progress",
+      "mainChromium": "in_progress"
+    },
+    "device": "NOT_TESTED",
+    "releaseAuthorized": false,
+    "productionMutation": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
   }
 }
