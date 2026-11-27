@@ -1202,11 +1202,11 @@
     "issue": 596,
     "sourceMain": "fa5493da9067d5d50204d19ad92f37ac0605839c",
     "branch": "feat/ui-596-bee-honeycomb-20261127",
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "CI_VERIFIED_EXACT_CODE_SHA_PENDING_MERGE",
     "uiRoutesPreserved": 11,
     "chromeViewportCasesPlanned": 11,
-    "chromeViewportCasesVerified": null,
-    "ciVerifiedExactSha": null,
+    "chromeViewportCasesVerified": 11,
+    "ciVerifiedExactSha": "b24957cd29dfb1950f0c8686ecb33d64546005f4",
     "device": "NOT_TESTED",
     "storageChanges": false,
     "videoChanges": false,
@@ -1240,6 +1240,20 @@
     "design": "angular aggressive profile bee; blue radial-gradient lightening toward edges",
     "baselineFailedAndroidRun": 45961701643,
     "baselineFailedTests": 5,
-    "exactHeadCi": "NOT_VERIFIED"
+    "exactHeadCi": "NOT_VERIFIED",
+    "nodeTests": {
+      "tests": 1017,
+      "pass": 1017,
+      "fail": 0
+    },
+    "chromiumViewportsPassed": 11,
+    "chromiumJournalScenariosPassed": 2,
+    "ciRuns": {
+      "android": 45964068902,
+      "chromium": 45964068824,
+      "governance": 45964068933
+    },
+    "androidApkBuild": "SUCCESS_CI_NOT_INSTALLED",
+    "merged": false
   }
 }
