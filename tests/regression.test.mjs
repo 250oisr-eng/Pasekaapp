@@ -34,6 +34,11 @@ function extractFunction(name) {
   const match = re.exec(html);
   assert.ok(match, 'Function not found: ' + name);
   const start = match.index;
+  if (name === 'saveExtractionOnce') {
+    const end=html.indexOf('\n/* B07: main-screen/real-store binding.',start);
+    assert.ok(end>start,'extraction handler ends before sectional runtime bindings');
+    return html.slice(start,end).trim();
+  }
   if (name === 'defaultHive') {
     const end = html.indexOf("\n$('hiveForm').onsubmit=defaultHive;", start);
     assert.ok(end > start, 'defaultHive form binding follows the handler');
@@ -54,6 +59,10 @@ function loadFunction(name, globals = {}) {
   deps.showStartupFailure ||= ()=>{};
   if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
   deps.window ||= appWindow;
+  // Execute actual profile/evidence predicates, not stubs.
+  deps.SECTIONAL_HONEY_QA_WRITE_ENABLED ??= false;
+  deps.isSectionalHive ||= new Function('deps','with (deps) { return ('+extractFunction('isSectionalHive')+'); }')(deps);
+  deps.sectionalExtractionHasEvidence ||= new Function('deps','with (deps) { return ('+extractFunction('sectionalExtractionHasEvidence')+'); }')(deps);
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
@@ -3647,7 +3656,7 @@ test('service worker caches accessory inventory module for offline operation',as
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/p0-source-inventory\.js/);
- assert.match(sw,/paseka-shell-v326/);
+ assert.match(sw,/paseka-shell-v327/);
 });
 
 
@@ -3773,7 +3782,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v326/);
+  assert.match(source,/paseka-shell-v327/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
@@ -4074,8 +4083,13 @@ test('rendering extraction history never passes Array.map index as hive ID',()=>
  assert.match(source,/x\.item\.boxes\.map\(key=>frameLocationName\(key,x\.item\.hiveId\)\)/);
  const host={innerHTML:''};
  const state={extractions:[{id:'ext',date:'2026-11-25',items:[{hiveId:'h',kilograms:2,boxes:['H1','H2'],returnedAt:null}]}]};
- const fn=new Function('$','S','selectedHiveId','frameLocationName','safe',source+';return renderHiveExtractionActions');
- fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String)();
+ const fn=new Function('
+ fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String,loadFunction('isSectionalHive',{S:state}))();
+ assert.match(host.innerHTML,/Корпуса после откачки/);
+ assert.match(host.innerHTML,/H1, H2/);
+});
+,'S','selectedHiveId','frameLocationName','safe','isSectionalHive',source+';return renderHiveExtractionActions');
+ fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String,loadFunction('isSectionalHive',{S:state}))();
  assert.match(host.innerHTML,/Корпуса после откачки/);
  assert.match(host.innerHTML,/H1, H2/);
 });

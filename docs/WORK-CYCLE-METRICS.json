@@ -2037,8 +2037,15 @@
     "pr": 649,
     "scope": "main-screen routing and existing atomic IndexedDB + backup binding; compile-time gate off",
     "baseSha": "a838dbd87ec9cb3de759fe990b842683842ad8c2",
-    "nodeTests": null,
-    "ci": "NOT_VERIFIED",
+    "nodeTests": {
+      "sha": "c7fd2f403776ea428414386fb027170fa94a35e3",
+      "passed": 1054,
+      "total": 1099,
+      "failed": 45,
+      "sectionalIntegrationPassed": 3,
+      "run": 46067058993
+    },
+    "ci": "FAILED_EXACT_SHA",
     "device": "NOT_TESTED",
     "storageChanges": true,
     "serviceWorkerChanges": true,
@@ -2047,5 +2054,12 @@
     "releaseAuthorized": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "b07RegressionCorrection20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "baseSha": "c7fd2f403776ea428414386fb027170fa94a35e3",
+    "ci": "PENDING",
+    "mergeAuthorization": "conditional pass",
+    "releaseAuthorized": false
   }
 }
