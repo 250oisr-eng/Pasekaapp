@@ -4,37 +4,39 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const nav = html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/)?.[1] || '';
-const cssStart = html.indexOf('/* #596: approved 4-3-4 seamless hexagonal navigation');
+const cssStart = html.indexOf('/* Five top-level sections; retain the centered honeycomb AI control.');
 const cssEnd = html.lastIndexOf('</style>');
 const css = cssStart >= 0 && cssEnd > cssStart ? html.slice(cssStart, cssEnd) : '';
 
-test('all eleven navigation routes retain consistent visible and keyboard order', () => {
+test('five primary routes retain visible and keyboard order; all six secondary routes remain accessible', () => {
   const tabs = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(m => m[1]);
-  assert.deepEqual(tabs, ['entrance','hives','home','planning','journal','ai','forage','incidents','deadout','varroa','settings']);
-  assert.equal(new Set(tabs).size, 11);
+  assert.deepEqual(tabs, ['home','hives','ai','journal','settings']);
+  assert.equal(new Set(tabs).size,5);
+  for(const [parent,children] of Object.entries({hives:['entrance','varroa'],journal:['planning','forage'],settings:['incidents','deadout']})){
+    const section=html.slice(html.indexOf('<section id="'+parent+'" class="panel">'));
+    const group=section.match(/<div class="section-shortcuts" role="group"[\s\S]*?<\/div>/)?.[0]||'';
+    assert.deepEqual([...group.matchAll(/data-subtab="([^"]+)"/g)].map(m=>m[1]),children);
+    for(const child of children){
+      assert.ok(html.includes('id="'+child+'" class="panel"'));
+      assert.ok(group.includes("showTab('"+child+"')"));
+    }
+  }
   assert.equal((nav.match(/data-tab="ai"/g) || []).length, 1, 'one AI entry');
   assert.match(nav, /<button data-tab="home" class="active"[^>]*aria-current="page"/);
   assert.ok(!/onkeydown=/.test(nav), 'do not reinstate legacy inline key events');
 });
 
-test('approved 4-3-4 honeycomb keeps eleven unique positions and accessible central AI', () => {
-  assert.ok(css, 'honeycomb styles must be declared after current main rules');
-  const grid = [['entrance',1,2],['hives',1,4],['home',1,6],['planning',1,8],
-    ['journal',2,3],['ai',2,5],['forage',2,7],
-    ['incidents',3,2],['deadout',3,4],['varroa',3,6],['settings',3,8]];
-  const cells=new Set(grid.map(([,row,col])=>row+':'+col));
-  assert.equal(cells.size,11,'unique grid slots');
-  for(const [tab,row,col] of grid){
-    const re=new RegExp('button\\[data-tab="'+tab+'"\\]\\s*\\{[^}]*grid-row:'+row+';grid-column:'+col+'/span 2');
-    assert.match(css,re,'4-3-4 slot '+tab);
-  }
+test('five-cell honeycomb keeps one row and accessible central AI', () => {
+  assert.ok(css, 'final honeycomb styles must be declared after older rules');
+  assert.match(css,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(css,/grid-row:1;grid-column:auto/);
   for(const token of [
-    'grid-template-rows:repeat(2,calc(var(--hex-h)*.75)) var(--hex-h)',
+    'grid-template-rows:var(--hex-h)',
     'gap:0','clip-path:polygon(50% 0',
     'env(safe-area-inset-bottom,0px)',
     'focus-visible','prefers-reduced-motion:reduce'
   ]) assert.ok(css.includes(token),'missing nav safety constraint: '+token);
-  assert.match(css,/button\[data-tab="ai"\]\{\s*grid-row:2;grid-column:5/);
+  assert.match(css,/button\[data-tab="ai"\]\{\s*grid-row:1;grid-column:3/);
   assert.match(nav,/<button data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"[^>]*><svg class="nav-ai-bee"/);
   assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
   assert.match(html,/document\.addEventListener\('keydown',event=>\{/);
@@ -96,7 +98,7 @@ test('urgent and today tasks remain visible even for hives beyond preview limit'
 
 
 test('central AI has a translucent hex rim and no legacy upward translation', () => {
-  assert.match(css,/grid-row:2;grid-column:5\/span 2;width:100%;height:var\(--hex-h\)/);
+  assert.match(css,/grid-row:1;grid-column:3;width:100%;height:var\(--hex-h\)/);
   assert.match(css,/transform:none!important/);
   assert.match(css,/border:2px solid rgba\(186,242,255,\.74\)/);
   assert.match(css,/background:radial-gradient\(circle at 50% 48%,#06467f 0%,#087bb8 43%,#56c8ed 73%,#b1f1ff 100%\)/);

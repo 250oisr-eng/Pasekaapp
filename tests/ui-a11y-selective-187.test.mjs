@@ -33,9 +33,9 @@ test('home stat captions are legible, including narrow phones', () => {
   assert.ok((background + 0.05) / (foreground + 0.05) >= 4.5, 'WCAG AA normal-text contrast');
 });
 
-test('navigation retains eleven destinations and marks the initial active page', () => {
+test('navigation retains five primary destinations and marks the initial active page', () => {
   const tabs = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(x => x[1]);
-  assert.deepEqual(tabs, ['entrance','hives','home','planning','journal','ai','forage','incidents','deadout','varroa','settings']);
+  assert.deepEqual(tabs, ['home','hives','ai','journal','settings']);
   assert.match(nav, /<button data-tab="home" class="active" aria-label="Обзор пасеки" aria-current="page">/);
   assert.equal((nav.match(/aria-current="page"/g) || []).length, 1);
 });
@@ -53,7 +53,7 @@ function navigationHarness() {
       getAttribute(name) { return attributes.get(name) || null; }
     };
   });
-  const panels = [...tabs, 'hiveDetail'].map(id => ({
+  const panels = [...tabs, 'hiveDetail','entrance','varroa','planning','forage','incidents','deadout'].map(id => ({
     id, classList: { toggle() {} }
   }));
   const slots = { backBar:{style:{}}, selectedHivePanel:{style:{}}, hiveHeaderSummary:{style:{}}, currentSectionTitle:{textContent:'Обзор'} };
@@ -86,7 +86,7 @@ test('live paintTab switches aria-current exactly once, including hiveDetail and
   const {paintTab,doc,nodes,slots} = navigationHarness();
   const cases = [
     ['home','home'], ['hives','hives'], ['journal','journal'], ['ai','ai'],
-    ['hiveDetail','hives'], ['invalid-synthetic-tab','home'], ['entrance','entrance']
+    ['hiveDetail','hives'], ['invalid-synthetic-tab','home'], ['entrance','hives'], ['varroa','hives'], ['planning','journal'], ['forage','journal'], ['incidents','settings'], ['deadout','settings']
   ];
   for (const [page, expected] of cases) {
     paintTab(page);
@@ -97,9 +97,21 @@ test('live paintTab switches aria-current exactly once, including hiveDetail and
     assert.equal(current[0].dataset.tab, expected);
     assert.equal(active[0], current[0]);
     assert.equal(doc.body.dataset.page, page.startsWith('invalid') ? 'home' : page);
-    const title = page==='hiveDetail'?'Тестовый улей':({'home':'Обзор','hives':'Ульи','journal':'Журнал','ai':'ИИ-помощник','entrance':'Лёток'})[page]||'Обзор';
+    const title = page==='hiveDetail'?'Тестовый улей':({'home':'Обзор','hives':'Ульи','journal':'Журнал','ai':'ИИ-помощник','entrance':'Лёток','varroa':'Клещ','planning':'План','forage':'Медоносы','incidents':'Инциденты','deadout':'Потери','settings':'Ещё'})[page]||'Обзор';
     assert.equal(slots.currentSectionTitle.textContent,title,'title synchronizes with route');
   }
   assert.ok(!html.includes('onkeydown="if(event.key==='), 'do not import old inline navigation handlers');
   assert.match(html, /document\.addEventListener\('keydown',event=>\{/);
+});
+
+test('primary menu is home-only and each interior page has an accessible icon-only Home button',()=>{
+ assert.match(html,/body\[data-page\]:not\(\[data-page="home"\]\) main>nav\[aria-label="Основные разделы"\]\{display:none!important\}/);
+ assert.match(html,/<button id="homeButton" type="button" aria-label="На главную" title="На главную" onclick="showTab\('home'\)"><svg[^>]*aria-hidden="true"/);
+ assert.match(html,/id="backBar" style="margin:8px 0;display:none"/);
+ assert.match(html,/#homeButton\{width:44px;min-width:44px/);
+ const {paintTab,slots}=navigationHarness();
+ for(const tab of ['home','hives','hiveDetail','journal','settings','ai','entrance','varroa','planning','forage','incidents','deadout']){
+  paintTab(tab);
+  assert.equal(slots.backBar.style.display,tab==='home'?'none':'flex');
+ }
 });
