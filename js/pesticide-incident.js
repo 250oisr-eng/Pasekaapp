@@ -62,16 +62,37 @@ function inspectPesticideIncidentIntegrity(state){
   if(!SCOPES.includes(row.scope))add('pesticide_incident_invalid_scope',{id:row.id});
   if(!Array.isArray(row.affectedHiveIds)||!Array.isArray(row.affectedHiveSnapshots))add('pesticide_incident_invalid_hive_links',{id:row.id});
   else{
-   const snapshots=new Set(row.affectedHiveSnapshots.map(x=>x?.id).filter(Boolean));
-   for(const hiveId of row.affectedHiveIds)if(!hives.has(hiveId)&&!snapshots.has(hiveId))add('pesticide_incident_hive_missing',{id:row.id,hiveId});
-   if(row.scope==='selected_hives'&&!row.affectedHiveIds.length)add('pesticide_incident_selected_scope_empty',{id:row.id});
+   const affected=new Set(),snapshots=new Set();
+   for(const id of row.affectedHiveIds){
+    if(typeof id!=='string'||!id.trim()||affected.has(id))
+     add('pesticide_incident_invalid_or_duplicate_hive_id',{id:row.id});
+    else affected.add(id);
+   }
+   for(const snapshot of row.affectedHiveSnapshots){
+    const id=snapshot?.id;
+    if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||typeof id!=='string'||!id.trim()||snapshots.has(id))
+     add('pesticide_incident_invalid_or_duplicate_hive_snapshot',{id:row.id});
+    else snapshots.add(id);
+   }
+   // Saved snapshots document the scope AT the incident; they must match exact
+   // saved IDs, not today’s apiary (a hive may legitimately be removed later).
+   if(affected.size!==snapshots.size||[...affected].some(id=>!snapshots.has(id)))
+    add('pesticide_incident_snapshot_mismatch',{id:row.id});
+   for(const hiveId of affected)if(!hives.has(hiveId)&&!snapshots.has(hiveId))
+    add('pesticide_incident_hive_missing',{id:row.id,hiveId});
+   if(row.scope==='selected_hives'&&!row.affectedHiveIds.length)
+    add('pesticide_incident_selected_scope_empty',{id:row.id});
   }
   if(row.deadBeesCount!=null&&(!Number.isInteger(row.deadBeesCount)||row.deadBeesCount<0||row.deadBeesCount>10000000))add('pesticide_incident_invalid_dead_count',{id:row.id});
   const hasGps=row.latitude!=null&&row.longitude!=null;
-  if((row.latitude==null)!==(row.longitude==null)||row.latitude!=null&&(!Number.isFinite(Number(row.latitude))||row.latitude < -90||row.latitude>90||!Number.isFinite(Number(row.longitude))||row.longitude < -180||row.longitude>180))add('pesticide_incident_invalid_coordinates',{id:row.id});
+  if((row.latitude==null)!==(row.longitude==null)||
+     row.latitude!=null&&(!Number.isFinite(row.latitude)||row.latitude < -90||row.latitude>90||
+                          !Number.isFinite(row.longitude)||row.longitude < -180||row.longitude>180))
+    add('pesticide_incident_invalid_coordinates',{id:row.id});
   if(row.locationAccuracyM!=null&&(!hasGps||!Number.isInteger(row.locationAccuracyM)||row.locationAccuracyM<0||row.locationAccuracyM>100000))add('pesticide_incident_invalid_gps_accuracy',{id:row.id});
   if(row.gpsCapturedAt!=null&&row.gpsCapturedAt!==''&&(!hasGps||!validGpsTimestamp(row.gpsCapturedAt)))add('pesticide_incident_invalid_gps_timestamp',{id:row.id});
   if(row.media!=null&&(!Array.isArray(row.media)||row.media.length>MAX_MEDIA||!row.media.every(x=>x&&x.kind==='image'&&typeof x.name==='string'&&x.name.length<=180&&['image/jpeg','image/png','image/webp','image/heic'].includes(x.type)&&typeof x.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(x.data)&&x.data.length<=MAX_MEDIA_DATA)))add('pesticide_incident_invalid_media',{id:row.id});
+  if(typeof row.status!=='string'||!row.status.trim())add('pesticide_incident_invalid_status',{id:row.id});
   if(row.causationStatus!=='unconfirmed')add('pesticide_incident_causation_overstated',{id:row.id});
  }
  return errors;
