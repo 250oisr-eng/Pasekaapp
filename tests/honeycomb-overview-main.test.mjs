@@ -25,7 +25,7 @@ test('approved 4-3-4 honeycomb keeps eleven unique positions and accessible cent
   const cells=new Set(grid.map(([,row,col])=>row+':'+col));
   assert.equal(cells.size,11,'unique grid slots');
   for(const [tab,row,col] of grid){
-    const re=new RegExp('button\\\\[data-tab="'+tab+'"\\\\]\\\\s*\\\\{[^}]*grid-row:'+row+';grid-column:'+col+'/span 2');
+    const re=new RegExp('button\\[data-tab="'+tab+'"\\]\\s*\\{[^}]*grid-row:'+row+';grid-column:'+col+'/span 2');
     assert.match(css,re,'4-3-4 slot '+tab);
   }
   for(const token of [
@@ -34,10 +34,10 @@ test('approved 4-3-4 honeycomb keeps eleven unique positions and accessible cent
     'env(safe-area-inset-bottom,0px)',
     'focus-visible','prefers-reduced-motion:reduce'
   ]) assert.ok(css.includes(token),'missing nav safety constraint: '+token);
-  assert.match(css,/button\\[data-tab="ai"\\]\\{\\s*grid-row:2;grid-column:5/);
+  assert.match(css,/button\[data-tab="ai"\]\{\s*grid-row:2;grid-column:5/);
   assert.match(nav,/<button data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"[^>]*><svg class="nav-ai-bee"/);
   assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
-  assert.match(html,/document\\.addEventListener\\('keydown',event=>\\{/);
+  assert.match(html,/document\.addEventListener\('keydown',event=>\{/);
 });
 
 const homeStart = html.indexOf('function renderHome(){');
@@ -95,8 +95,8 @@ test('urgent and today tasks remain visible even for hives beyond preview limit'
 
 
 test('central AI has a translucent hex rim and no legacy upward translation', () => {
-  assert.match(css,/grid-row:2;grid-column:5\\/span 2;width:100%;height:var\\(--hex-h\\)/);
+  assert.match(css,/grid-row:2;grid-column:5\/span 2;width:100%;height:var\(--hex-h\)/);
   assert.match(css,/transform:none!important/);
-  assert.match(css,/border:2px solid rgba\\(255,235,180,\\.66\\)/);
+  assert.match(css,/border:2px solid rgba\(255,235,180,\.66\)/);
   assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
 });
