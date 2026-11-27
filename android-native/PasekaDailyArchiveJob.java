@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.webkit.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -13,11 +14,13 @@ import java.util.Collections;
 
 /** Offline same-sandbox periodic backup; no primary writes. */
 public final class PasekaDailyArchiveJob extends JobService {
+    private static final String TAG = "PasekaArchiveQA";
     private static final int JOB_ID = 0x50415345;
     private static final long PERIOD_MS = 6L * 60L * 60L * 1000L;
     private static final long FLEX_MS = 60L * 60L * 1000L;
     private final Handler main = new Handler(Looper.getMainLooper());
     private JobParameters active;
+    private String lastPhase = "idle";
     private WebView worker;
     private Runnable timeout;
     public static void schedule(Context context) {
@@ -35,7 +38,12 @@ public final class PasekaDailyArchiveJob extends JobService {
     @Override public boolean onStartJob(JobParameters parameters) {
         if (active != null) return false;
         active = parameters;
-        timeout = () -> complete(parameters, true);
+        lastPhase = "START";
+        Log.i(TAG, "START");
+        timeout = () -> {
+            Log.w(TAG, "WATCHDOG_TIMEOUT phase=" + lastPhase);
+            complete(parameters, true);
+        };
         main.postDelayed(timeout, 180000L);
         main.post(() -> launch(parameters));
         return true;
@@ -44,6 +52,7 @@ public final class PasekaDailyArchiveJob extends JobService {
         if (active != parameters) return;
         try (InputStream input = getAssets().open("public/daily-archive-worker.html")) {
             String html = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            Log.i(TAG, "ASSET_READY");
             worker = new WebView(getApplicationContext());
             WebSettings settings = worker.getSettings();
             settings.setJavaScriptEnabled(true);
@@ -60,22 +69,57 @@ public final class PasekaDailyArchiveJob extends JobService {
                     return new WebResourceResponse("text/plain", "UTF-8", 403, "Forbidden",
                         Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
                 }
+                @Override public void onPageFinished(WebView view, String url) {
+                    if (active == parameters) Log.i(TAG, "PAGE_FINISHED phase=" + lastPhase);
+                }
+                @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                    if (active == parameters && request.isForMainFrame()) {
+                        Log.w(TAG, "MAIN_FRAME_ERROR code=" + error.getErrorCode());
+                        complete(parameters, true);
+                    }
+                }
                 @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                    Log.w(TAG, "RENDERER_GONE phase=" + lastPhase);
                     complete(parameters, true);
                     return true;
                 }
             });
             worker.addJavascriptInterface(new WorkerBridge(parameters), "PasekaArchiveJob");
+            Log.i(TAG, "LOAD_REQUESTED");
             worker.loadDataWithBaseURL("https://localhost/", html, "text/html", "UTF-8", null);
-        } catch (Exception failure) { complete(parameters, true); }
+        } catch (Exception failure) {
+            Log.e(TAG, "LAUNCH_EXCEPTION class=" + failure.getClass().getSimpleName());
+            complete(parameters, true);
+        }
     }
     public final class WorkerBridge {
         private final JobParameters parameters;
         WorkerBridge(JobParameters parameters) { this.parameters = parameters; }
         @JavascriptInterface public boolean isArchiveWorker() { return true; }
+        // Only fixed stage identifiers are accepted; never log content, URLs, media or exceptions.
+        @JavascriptInterface public void trace(String stage) {
+            if (stage == null) return;
+            switch (stage) {
+                case "BOOTSTRAP": case "ORIGIN": case "MARKER":
+                case "SOURCE_OPEN": case "SOURCE_READ": case "STATE_VALID":
+                case "STORE_OPEN": case "ROTATED": case "FAILED": case "FINISH":
+                    main.post(() -> {
+                        if (active == parameters) {
+                            lastPhase = stage;
+                            Log.i(TAG, "JS_PHASE " + stage);
+                        }
+                    });
+                    break;
+                default: break;
+            }
+        }
         @JavascriptInterface public void finish(String outcome) {
-            boolean retry = !"OK".equals(outcome) && !"SKIP".equals(outcome);
-            main.post(() -> complete(parameters, retry));
+            final String result = "OK".equals(outcome) ? "OK" : "SKIP".equals(outcome) ? "SKIP" : "RETRY";
+            main.post(() -> {
+                if (active != parameters) return;
+                Log.i(TAG, "BRIDGE_FINISH " + result + " phase=" + lastPhase);
+                complete(parameters, "RETRY".equals(result));
+            });
         }
     }
     private void dispose() {
@@ -92,10 +136,12 @@ public final class PasekaDailyArchiveJob extends JobService {
     private void complete(JobParameters parameters, boolean retry) {
         if (active != parameters) return;
         active = null;
+        Log.i(TAG, "JOB_FINISHED retry=" + retry + " phase=" + lastPhase);
         dispose();
         jobFinished(parameters, retry);
     }
     @Override public boolean onStopJob(JobParameters parameters) {
+        Log.w(TAG, "SYSTEM_STOP phase=" + lastPhase);
         active = null;
         dispose();
         return true;
