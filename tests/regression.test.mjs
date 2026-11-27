@@ -1888,7 +1888,7 @@ test('journal supports family filtering and inline attachment previews',()=>{
 
 test('hive detail keeps the hives navigation destination active',()=>{
  const paint=extractFunction('paintTab');
- assert.match(paint,/tab==='hiveDetail'&&x\.dataset\.tab==='hives'/);
+ assert.match(paint,/hiveDetail:'hives'/);assert.match(paint,/entrance:'hives',varroa:'hives'/);assert.match(paint,/x\.dataset\.tab===parent/);
  assert.doesNotMatch(paint,/tab==='hiveDetail'&&x\.dataset\.tab==='home'/);
 });
 

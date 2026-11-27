@@ -6,6 +6,8 @@
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
+**[#637 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/637):** пять основных разделов; Лёток/Клещ в Ульях, План/Медоносы в Журнале, Инцидент/Потери в Ещё. Проверки CI.
+
 ## План работ и журнал
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
