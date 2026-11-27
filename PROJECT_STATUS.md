@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · live main `495e38a99fc00cde5c671444e83d87a40d619750` after #597.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**27.11.2026 · live main `2dba3654d503be2070241df1845307b4f9d1f205` after #595.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -14,7 +14,7 @@
 ## Актуальные ветки и интеграция
 
 - **#599/#598/#597 MERGED:** поиск корпуса/журнала, карточка семьи, read-only путь первого внешнего архива. Main `495e38a99fc00cde5c671444e83d87a40d619750`; exact-main Fast/Android **1008/1008**, Governance SUCCESS. Не release.
-- **#595 Draft / main-synced:** нижняя сотовая навигация, 11 маршрутов, центральная ИИ-кнопка, заголовок раздела и три превью ульев; задачи не обрезаются. Code SHA `7a58ac9…`: Governance #45951762030 и Android #45951761963 **1013/1013 PASS**, Debug APK SUCCESS.
+- **#595 MERGED** на `main=2dba3654d503be2070241df1845307b4f9d1f205`: нижняя сотовая навигация, 11 маршрутов, центральная ИИ-кнопка и превью ульев. Code SHA `7a58ac9…`: Governance #45951762030 и Android #45951761963 **1013/1013 PASS** (прежний PR HEAD). Нужна отдельная проверка текущего main/OnePlus; UX #596 остаётся открытым.
 - **UX #596 PENDING_VISUAL_ACCEPTANCE:** проектный ориентир **2 ряда** против раскладки **3 ряда** на узких экранах. OnePlus/TalkBack/геометрия NOT_TESTED.
 - **B01/#442** всё ещё BLOCKED/FROZEN: нет проверенного независимого восстановления и лицензированной реальной видеоаналитики.
 
@@ -46,6 +46,6 @@
 
 ## Следующий конкретный шаг
 
-**#595 MERGE_AUTHORIZED / CI_VERIFIED_CODE_SHA:** code CI 1013/1013 PASS, docs-only HEAD требует отдельной Governance-сверки. После PASS и неизменного main выполнить только разрешённый merge #595. UX #596 — PENDING_VISUAL_ACCEPTANCE.
+**#602 DRAFT / INDEPENDENT QA:** на основе текущего #595 main подготовлен одноразовый APK только `ru.paseka.journal.qa` и четырёхцикловой план с синтетическими записями (`docs/ONEPLUS-ZERO-DATA-QA-ACCEPTANCE-2026-11-27.md`). В CI обязательна идентичность фактического APK, SHA и public signer; реальные устройства до отдельного теста **NOT_TESTED**. Следующий шаг — CI exact SHA #602, исправление конкретных ошибок, только затем отдельная QA-установка на OnePlus пользователем без production.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
