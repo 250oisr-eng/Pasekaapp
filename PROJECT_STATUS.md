@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · main `b520fd32c3be1ae59fc3fd3eb9a7a7302a274169` (one docs-only commit after CI PASS on `94f883be`).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · main `9b570ad1ff20c7e6cc440ecf8556b14e848667c9` (latest docs-only B03 #626 after `b520fd32`; verify exact SHA live before merge).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 **B03 · RESOLVED_INTEGRATION_SCOPE (Draft documentation only):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
@@ -23,6 +23,7 @@
 
 ## Блокировки до физических доказательств
 
+- **B01/G4 · OnePlus 27.11 / Draft #629 (не в main):** ADB NE2213 Android 16/API36 подтвердил принудительный старт периодической службы, ~180 сек до `jobFinished`, `Num failures=1`, `Num system stops=1`; причина без фаз не установлена. Последний/предыдущий ZIP 28/27 ноября остались «проверен» по скриншоту; новый фоновый архив **NOT_VERIFIED**, дата 28.11 была искусственной. Изолированная диагностическая сборка `.qa.daily.diag` готовится отдельным PR [#629](https://github.com/250oisr-eng/Pasekaapp/pull/629), CI/новый физический тест **NOT_VERIFIED**; установленные QA и production неизменны. [Протокол](docs/B01-ONEPLUS-WORKER-STAGE-DIAGNOSTIC-2026-11-27.md).
 - **#596 P1 / DEVICE_CYCLE_1_USER_REPORTED_PASS:** геометрия 4–3–4, переходы, Back, поворот и первый запуск на OnePlus — PASS по отчёту пользователя 8/8 от 27.11.2026; TalkBack, перчатки, яркое солнце и длительная эксплуатация отдельно NOT_TESTED.
 - **B01 P0 · #623 / IN_MAIN:** [два ZIP и одна кнопка](docs/B01-DAILY-TWO-ARCHIVES-2026-11-27.md). Код `70216c73`: Node **1054/1054**, Android build, Chromium restore + simulated background, Governance PASS. JobScheduler реализован. Изолированный QA #45993522131 PASS, [APK](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993522131/artifacts/15193929646) до 04.12.2026; физический OnePlus/фон и большие ZIP >256 MiB не подтверждены. Draft #452 исторический. #479/#522/#543 CLOSED. B06/B10 не ослаблены.
 - **B04/B05 P0 BLOCKED (Draft #469):** signer и совместимость обновления установленного Android APK, сохранение данных и rollback не доказаны. **Не устанавливать/обновлять производственный APK; установленный отдельный QA пакет не считать доказательством B04/B05.**
