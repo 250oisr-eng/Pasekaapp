@@ -1490,6 +1490,90 @@
     "apkSha256": "83ce0f45cd57acc81f3fd5368b7e13cc8db3057221124b536147336d429ef4d6",
     "originalQaUnchanged": true
   },
+  "b01TwoDailyArchives20261127": {
+    "sourceMain": "50cfdfd66e2691e471b698fbc53af0d16d99aa98",
+    "branch": "feat/b01-two-daily-archives",
+    "integration": "IN_MAIN",
+    "nodeTests": {
+      "tests": 1054,
+      "pass": 1054,
+      "fail": 0,
+      "cancelled": 0
+    },
+    "verifiedCi": [
+      {
+        "name": "Fast quality checks",
+        "id": 45993512819,
+        "conclusion": "success"
+      },
+      {
+        "name": "Build Android APK",
+        "id": 45993512876,
+        "conclusion": "success"
+      },
+      {
+        "name": "Journal real-browser E2E",
+        "id": 45993512831,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance Docs Checks",
+        "id": 45993522032,
+        "conclusion": "success"
+      }
+    ],
+    "device": "NOT_TESTED",
+    "production": false,
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null,
+    "pr": 623,
+    "codeSha": "70216c734e91831fe09cc7d98e777814d1a5116d",
+    "browserRestore": "PASS_SYNTHETIC_REAL_IDB",
+    "backgroundWorker": "PASS_SIMULATED_NATIVE_BRIDGE_REAL_IDB",
+    "androidScheduler": "NOT_TESTED_PHYSICAL",
+    "closedPrs": [
+      479,
+      522,
+      543
+    ],
+    "deletedBranches": 0,
+    "archiveLimitMiB": 256,
+    "mergedSha": "94f883be631d5bb205a1c4bbcfbea20fed554f48",
+    "verifiedCodeSha": "70216c734e91831fe09cc7d98e777814d1a5116d",
+    "qaRun": 45993522131,
+    "qaArtifact": 15193929646,
+    "qaPackage": "ru.paseka.journal.qa.daily",
+    "qaApkSha256": "b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa"
+  },
+  "b03ResolutionReview20261127": {
+    "classification": "RESOLVED_INTEGRATION_SCOPE_DRAFT",
+    "mainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
+    "codeEvidenceSha": "94f883be631d5bb205a1c4bbcfbea20fed554f48",
+    "mergedPrs": [
+      472,
+      623
+    ],
+    "ci": [
+      45993961493,
+      45993961608,
+      45993961524,
+      45993961501,
+      45994063782
+    ],
+    "mainAheadDocumentationOnly": true,
+    "publicationHistory": "NOT_INDEPENDENTLY_VERIFIED",
+    "productionRelease": "NOT_AUTHORIZED",
+    "remaining": [
+      "B01",
+      "B02",
+      "B04",
+      "B05",
+      "B11",
+      "B15"
+    ],
+    "deviceChanges": false,
+    "completedVerifiedUserScenarios": 0
+  },
   "homeRecentEvents20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 622,
@@ -1510,9 +1594,21 @@
     },
     "webPrepare": "PASS",
     "codeCi": [
-      {"name": "Fast", "id": 45989553703, "conclusion": "success"},
-      {"name": "Chromium", "id": 45989553705, "conclusion": "success"},
-      {"name": "Android debug", "id": 45989561734, "conclusion": "success"}
+      {
+        "name": "Fast",
+        "id": 45989553703,
+        "conclusion": "success"
+      },
+      {
+        "name": "Chromium",
+        "id": 45989553705,
+        "conclusion": "success"
+      },
+      {
+        "name": "Android debug",
+        "id": 45989561734,
+        "conclusion": "success"
+      }
     ],
     "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/pull/622/checks",
     "device": "NOT_TESTED",
