@@ -66,7 +66,7 @@ function readAll(db){
 }
 // Transactional compare-and-swap; another tab cannot replace a generation
 // between staging, read-back verification and promotion.
-function generation(rows){return JSON.stringify(rows.slice().sort((a,b)=>a.slot.localeCompare(b.slot)).map(r=>[r.slot,r.id,r.sha256,r.day,r.kind,r.blob?.size]));}
+function generation(rows){return JSON.stringify(rows.slice().sort((a,b)=>a.slot.localeCompare(b.slot)).map(r=>[r.slot,r.id,r.sha256,r.day,r.kind,r.targetSha256,r.blob?.size]));}
 function mutate(db,expected,action){
  return new Promise((resolve,reject)=>{
   const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE),req=store.getAll();let failure;
@@ -129,7 +129,7 @@ async function rotate(db,{day,createRaw,inspect}){
   if(keep)store.put({...keep,slot:'previous'});else store.delete('previous');
   store.delete('staging');
  });
- return {created:true,status:await checked(await readAll(db),inspect)};
+ return {created:true,status:[{slot:'latest',valid:true,day:saved.day,id:saved.id,name:saved.name,sha256:saved.sha256},keep?{...good[0],slot:'previous'}:{slot:'previous',valid:false,missing:true}]};
 }
 async function getVerified(db,slot,inspect){
  requireOk(['latest','previous'].includes(slot),'Выберите один из двух архивов');
@@ -138,10 +138,10 @@ async function getVerified(db,slot,inspect){
 }
 // A transient pre-restore safety file. Never discard it if a completed
 // restore cannot be verified. No routine daily rotation can overwrite it.
-async function prepareRollback(db,raw,day,inspect){
+async function prepareRollback(db,raw,day,inspect,targetSha256=null){
  const before=await readAll(db);
  requireOk(!before.some(r=>r.slot==='staging'&&r.kind==='rollback'),'Предыдущее восстановление не подтверждено; аварийная копия сохранена');
- const stage=await candidate(raw,day,'rollback',inspect);
+ const stage={...await candidate(raw,day,'rollback',inspect),targetSha256};
  await mutate(db,generation(before),store=>store.put(stage));
  const stored=await readAll(db),saved=stored.find(r=>r.slot==='staging');
  requireOk(saved?.id===stage.id,'Аварийная копия изменилась');
@@ -153,5 +153,31 @@ async function finishRollback(db,id){
  requireOk(rows.some(r=>r.slot==='staging'&&r.kind==='rollback'&&r.id===id),'Аварийная копия не найдена');
  await mutate(db,generation(rows),store=>store.delete('staging'));
 }
-root.PasekaDailyArchives=Object.freeze({openStore,readAll,checked,rotate,getVerified,prepareRollback,finishRollback,encodeZip,decodeZip,sha256,DB_NAME,MAX_BYTES});
+// An interrupted restore may leave the safety file behind. Delete it only
+// if the current full payload is byte-equivalent to the old or intended
+// state, verified again from committed storage. Otherwise keep it.
+async function payloadProof(raw){
+ const envelope=JSON.parse(raw);
+ requireOk(envelope?.manifest?.format==='paseka-idb-full-v1'&&envelope.payload?.database==='paseka-v1','Неверный формат аварийной копии');
+ const actual=await sha256(new Blob([JSON.stringify(envelope.payload)]));
+ requireOk(actual===envelope.manifest.sha256,'SHA-256 исходных данных не совпадает');
+ return {sha256:actual};
+}
+async function resolveInterruptedRestore(db,currentRaw,inspect){
+ const rows=await readAll(db),stage=rows.find(r=>r.slot==='staging'&&r.kind==='rollback');
+ if(!stage)return false;
+ const old=await verify(stage,payloadProof),current=await payloadProof(currentRaw);
+ let resolved=old.proof.sha256===current.sha256;
+ if(!resolved&&stage.targetSha256===current.sha256){
+  for(const slot of ['latest','previous']){
+   const row=rows.find(r=>r.slot===slot);
+   if(!row)continue;
+   try{if((await verify(row,inspect)).proof.sha256===current.sha256){resolved=true;break;}}catch(_){}
+  }
+ }
+ if(!resolved)return false;
+ await mutate(db,generation(rows),store=>store.delete('staging'));
+ return true;
+}
+root.PasekaDailyArchives=Object.freeze({openStore,readAll,checked,rotate,getVerified,prepareRollback,finishRollback,resolveInterruptedRestore,encodeZip,decodeZip,sha256,DB_NAME,MAX_BYTES});
 })(typeof window!=='undefined'?window:globalThis);
