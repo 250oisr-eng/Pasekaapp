@@ -45,3 +45,32 @@ test('deadout workflow is wired into the smartphone UI, local schema and offline
  assert.match(html,/S\.meta\.schemaVersion=12/);
  assert.match(sw,/\.\/js\/deadout-review\.js/);
 });
+
+
+test('invalid photo collection is rejected instead of silently discarding evidence',()=>{
+ for(const bad of [{corrupted:true},'',{length:1,0:{kind:'image'}},42]){
+  assert.throws(()=>deadout.buildDeadoutReviewDraft(base,hives,bad,()=> 'bad','2027-03-10T10:00:00Z'),
+   /список фотографий повреждён/i);
+ }
+ assert.equal(deadout.buildDeadoutReviewDraft(base,hives,null,()=> 'no-media','2027-03-10T10:00:00Z').media.length,0);
+});
+test('unavailable hive number is stored as unknown, not invented as zero or NaN',()=>{
+ const record=deadout.buildDeadoutReviewDraft(base,[{id:'h1'}],[],()=> 'id','2027-03-10T10:00:00Z');
+ assert.equal(record.hiveNumberAtTime,null);
+ assert.equal(JSON.stringify(record).includes('"hiveNumberAtTime":null'),true);
+ assert.deepEqual(deadout.inspectDeadoutIntegrity({hives:[{id:'h1'}],deadoutReviews:[record]}),[]);
+});
+test('damaged hive registry and malformed inspection IDs report integrity errors without throwing',()=>{
+ const record=deadout.buildDeadoutReviewDraft(base,hives,[],()=> 'id','2027-03-10T10:00:00Z');
+ const corrupted={meta:{schemaVersion:12},hives:{broken:true},deadoutReviews:[record]};
+ const before=JSON.stringify(corrupted);
+ const errors=deadout.inspectDeadoutIntegrity(corrupted);
+ assert.ok(errors.some(x=>x.code==='deadout_invalid_hive_registry'));
+ assert.equal(JSON.stringify(corrupted),before);
+ for(const id of ['  ','',null]){
+  const list=deadout.inspectDeadoutIntegrity({hives,deadoutReviews:[{...record,id}]});
+  assert.ok(list.some(x=>x.code==='deadout_invalid_or_duplicate_id'));
+ }
+ const malformed=deadout.inspectDeadoutIntegrity({hives,deadoutReviews:[[]]});
+ assert.ok(malformed.some(x=>x.code==='deadout_invalid_or_duplicate_id'));
+});
