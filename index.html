@@ -680,6 +680,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 const STARTUP_USE_MARKER_KEY='paseka:previously-used:v1';
+let honeyPairSaving=false;
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let startupWriteGate={ready:false};let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,startupRecoveryPending=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],familyEvents:[],sectionalTechProcesses:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function journalBroodCapacity(hiveId,state=S){
  const hive=state?.hives?.find(item=>item?.id===hiveId);if(!hive)return null;
@@ -1201,12 +1202,16 @@ function buildFeedingLedger(records,families,hiveId){
  const unitAliases={л:'л',литр:'л',литра:'л',литров:'л',мл:'мл',миллилитр:'мл',миллилитра:'мл',миллилитров:'мл',кг:'кг',килограмм:'кг',килограмма:'кг',килограммов:'кг',г:'г',гр:'г',грамм:'г',грамма:'г',граммов:'г',шт:'шт',штука:'шт',штуки:'шт',штук:'шт'};
  const groups=new Map();
  for(const record of source){
-  const familyId=typeof record.family==='string'&&record.family?record.family:'__unassigned__';
+  const explicitId=typeof record.family==='string'&&record.family?record.family:null;
+  const snapshotId=typeof record.familySnapshotAtTime?.id==='string'&&record.familySnapshotAtTime.id?record.familySnapshotAtTime.id:null;
+  const conflictingFamily=Boolean(explicitId&&snapshotId&&explicitId!==snapshotId);
+  const familyId=conflictingFamily?'__conflicted__':explicitId||snapshotId||'__unassigned__';
   const family=(Array.isArray(families)?families:[]).find(item=>item?.id===familyId);
-  const name=record.familyNameAtTime||record.familySnapshotAtTime?.name||family?.name||(familyId==='__unassigned__'?'Семья не указана':'Архивная семья');
-  if(!groups.has(familyId))groups.set(familyId,{familyId,name,count:0,latest:'',events:[],totals:new Map(),unparsedCount:0,duplicateCount:0,duplicateTaskIds:[]});
+  const name=conflictingFamily?'Семья не установлена: противоречие идентификаторов':record.familyNameAtTime||record.familySnapshotAtTime?.name||family?.name||(familyId==='__unassigned__'?'Семья не указана':'Архивная семья');
+  if(!groups.has(familyId))groups.set(familyId,{familyId,name,count:0,latest:'',events:[],totals:new Map(),unparsedCount:0,duplicateCount:0,ambiguousCount:0,duplicateTaskIds:[]});
   const group=groups.get(familyId);group.count++;group.events.push(record);
   if(record.date&&(!group.latest||record.date>group.latest))group.latest=record.date;
+  if(conflictingFamily){group.ambiguousCount++;continue}
   const duplicate=typeof record.taskId==='string'&&record.taskId&&taskCounts.get(record.taskId)>1;
   if(duplicate){group.duplicateCount++;if(!group.duplicateTaskIds.includes(record.taskId))group.duplicateTaskIds.push(record.taskId);continue}
   const raw=String(record.feedingAmount||'').trim(),match=raw.match(/^(\d+(?:[.,]\d+)?)\s*([а-яё]+)$/iu);
@@ -1216,7 +1221,7 @@ function buildFeedingLedger(records,families,hiveId){
   if(!Number.isFinite(amount)||amount<0){group.unparsedCount++;continue}
   const total=group.totals.get(unit)||{unit,amount:0,count:0};total.amount+=amount;total.count++;group.totals.set(unit,total);
  }
- return [...groups.values()].map(group=>({familyId:group.familyId,name:group.name,count:group.count,latest:group.latest,totals:[...group.totals.values()].sort((a,b)=>a.unit.localeCompare(b.unit,'ru')),unparsedCount:group.unparsedCount,duplicateCount:group.duplicateCount,duplicateTaskIds:group.duplicateTaskIds,events:group.events.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))})).sort((a,b)=>String(b.latest).localeCompare(String(a.latest))||a.name.localeCompare(b.name,'ru'));
+ return [...groups.values()].map(group=>({familyId:group.familyId,name:group.name,count:group.count,latest:group.latest,totals:[...group.totals.values()].sort((a,b)=>a.unit.localeCompare(b.unit,'ru')),unparsedCount:group.unparsedCount,duplicateCount:group.duplicateCount,ambiguousCount:group.ambiguousCount,duplicateTaskIds:group.duplicateTaskIds,events:group.events.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))})).sort((a,b)=>String(b.latest).localeCompare(String(a.latest))||a.name.localeCompare(b.name,'ru'));
 }
 function formatFeedingTotal(value){return Number(value.toFixed(3)).toLocaleString('ru-RU',{maximumFractionDigits:3})}
 function renderFeedingPlanComparison(){
@@ -1248,7 +1253,7 @@ function renderFeedingLedger(){
   const totals=group.totals.length?group.totals.map(total=>safe(formatFeedingTotal(total.amount))+' '+safe(total.unit)+' <span class="muted">('+total.count+' записей)</span>').join(' · '):'Количество с единицами не указано';
   const last=group.latest?'Последняя выдача: '+safe(group.latest):'Дата не указана';
   const eventsHtml=group.events.map(record=>'<li><b>'+safe(record.date||'Дата не указана')+'</b> · '+safe(record.feedingAmount||'количество не указано')+(record.feedingType?' · '+safe(record.feedingType):'')+(record.feedingSubstance?' · '+safe(record.feedingSubstance):'')+(record.taskId&&group.duplicateTaskIds.includes(record.taskId)?' · повторная запись задачи, не суммируется':'')+'</li>').join('');
-  return '<div class="card" style="margin-top:8px"><div class="row" style="justify-content:space-between;gap:8px"><b>'+safe(group.name)+'</b><span class="muted">'+group.count+' '+ruPlural(group.count,'выдача','выдачи','выдач')+'</span></div><div>'+totals+'</div><div class="muted">'+last+(group.unparsedCount?' · без суммирования: '+group.unparsedCount:'')+(group.duplicateCount?' · повторные задачи исключены из сумм: '+group.duplicateCount:'')+'</div><details><summary>История выдач</summary><ul>'+eventsHtml+'</ul></details></div>';
+  return '<div class="card" style="margin-top:8px"><div class="row" style="justify-content:space-between;gap:8px"><b>'+safe(group.name)+'</b><span class="muted">'+group.count+' '+ruPlural(group.count,'выдача','выдачи','выдач')+'</span></div><div>'+totals+'</div><div class="muted">'+last+(group.unparsedCount?' · без суммирования: '+group.unparsedCount:'')+(group.duplicateCount?' · повторные задачи исключены из сумм: '+group.duplicateCount:'')+(group.ambiguousCount?' · противоречивые записи без суммирования: '+group.ambiguousCount:'')+'</div><details><summary>История выдач</summary><ul>'+eventsHtml+'</ul></details></div>';
  }).join('');
 }
 
@@ -1507,7 +1512,18 @@ async function retireInventoryFrame(code){
  if(!result.ok){S=previous;alert(({invalid_frame_code:'Некорректный код рамки.',retirement_reason_required:'Укажи причину списания.',frame_not_found:'Рамка не найдена.',duplicate_frame_location:'Найдено несколько записей этой рамки. Сначала исправь дубли.',frame_already_retired:'Рамка уже списана.',frame_source_ambiguous:'Не удалось однозначно определить местоположение рамки.'})[result.error]||'Не удалось списать рамку: '+result.error);return}
  logAudit('frame_retired',{labelCode:code,reason,previousLocation:result.previousLocation});await saveInventoryChange(previous);
 }
-async function saveInventoryChange(previous){if(!await save()){S=previous;render();return false}renderEquipmentInventory();renderEquipmentReconciliation();return true}
+async function saveInventoryChange(previous){
+ let saved=false,failure='';
+ try{saved=await save()}catch(error){failure=error?.message||'Ошибка сохранения'}
+ if(!saved){
+  failure=S.meta?.saveError||failure||'Сохранение не подтверждено';
+  S=previous;S.meta=S.meta||{};S.meta.saveError=failure;
+  try{render()}catch(error){console.error('Не удалось обновить инвентарь после отмены',error)}
+  if(failure)try{alert('Изменение инвентаря не сохранено и отменено. '+failure)}catch(error){console.error('Не удалось показать сообщение о сохранении',error)}
+  return false;
+ }
+ renderEquipmentInventory();renderEquipmentReconciliation();return true;
+}
 async function registerCurrentCorpusInInventory(){
  const hiveId=selectedStructureHive(),boxKey=String(editingBox),previous=cloneApiaryState(),r=PasekaInventory.registerAtPosition(S,{hiveId,boxKey,profile:profileForHive(hiveId)},PasekaLabels,uid,new Date().toISOString());
  if(!r.ok){S=previous;render();return alert(r.message||'Не удалось зарегистрировать корпус: '+r.error)}if(r.existing)return alert('Этот физический корпус уже учтён в инвентаре.');
@@ -1966,16 +1982,22 @@ function useLastSavedInspection(){
  const status=$('inspectionPrefillStatus'),hive=$('inspectionHiveSelect')?.value;
  if(!status)return;
  if(!hive){status.textContent='Выбери улей для поиска последнего сохранённого осмотра.';return;}
+ const families=(Array.isArray(S.families)?S.families:[]).filter(f=>f?.hive===hive&&f.recordStatus!=='historical');
+ if(families.length>1){
+  if($('inspectionLastDate').dataset.fromJournal)resetInspectionReminder();
+  status.textContent='В улье несколько семей. Нельзя считать осмотр одной семьи осмотром всех. Укажи дату вручную.';return;
+ }
+ const familyId=families.length===1?families[0].id:null;
  try{
-  const result=PasekaSeasonPlanning.latestSavedInspection(S.records,hive,today());
+  const result=PasekaSeasonPlanning.latestSavedInspection(S.records,hive,today(),familyId);
   if(!result){
    if($('inspectionLastDate').dataset.fromJournal)resetInspectionReminder();
-   status.textContent='Для этого улья нет сохранённого осмотра за сегодня или раньше.';return;
+   status.textContent=familyId?'Для текущей семьи нет подтверждённого сохранённого осмотра за сегодня или раньше. Не используем осмотры других семей и записи без идентификатора.':'Для этого улья нет сохранённого осмотра за сегодня или раньше.';return;
   }
   $('inspectionLastDate').value=result.date;
   $('inspectionLastDate').dataset.fromJournal=hive;
   const previous=$('inspectionReminderResult');if(previous)previous.textContent='';
-  status.textContent='Из журнала подставлена дата '+result.date+' ('+hname(hive)+'). Теперь нажми «Рассчитать дату следующего контроля». Никакая операция не создаётся.';
+  status.textContent='Из журнала подставлена дата '+result.date+' ('+hname(hive)+(familyId?', текущая семья':', связь с семьёй не установлена')+'). Теперь нажми «Рассчитать дату следующего контроля». Никакая операция не создаётся.';
  }catch(error){status.textContent=error.message||'Дата осмотра не найдена.';}
 }
 function renderNectarBackwardPlan(){
@@ -2312,6 +2334,10 @@ function applyQueenChange(state,draft,makeId=()=>crypto.randomUUID()){
  if(code.length>80||source.length>160||notes.length>1000)throw new Error('Проверь длину сведений о матке');
  if(year!==null&&(!Number.isInteger(year)||year<1900||year>new Date().getFullYear()+1))throw new Error('Укажи корректный год вывода матки');
  if(date!=null&&(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(new Date(date+'T00:00:00Z').getTime())||new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date))throw new Error('Укажи существующую дату ввода матки');
+ if(date!=null){
+  const now=new Date(),todayLocal=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  if(date>todayLocal)throw new Error('Дата фактического ввода матки не может быть в будущем');
+ }
  state.queens=Array.isArray(state.queens)?state.queens:[];state.queenEvents=Array.isArray(state.queenEvents)?state.queenEvents:[];
  const current=family.currentQueenId?state.queens.find(q=>q.id===family.currentQueenId):null,editing=!!draft.queenId&&current?.id===draft.queenId;
  const details={code:code||null,year,source:source||null,notes:notes||null};
@@ -3698,35 +3724,50 @@ async function finishAssemblySetup(){
  if(assigned.some(n=>!chosen.includes(n))){
   alert('В сборке должны остаться корпуса с назначенными семьями: №'+assigned.filter(n=>!chosen.includes(n)).join(', №'));return;
  }
- if(l.mode==='winter'){l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=[false,false];l.honeyInstalled=false}
- const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:l.honeyBoxInstalled.slice()};
- const changed=before.mode!==after.mode||JSON.stringify(before.boxes)!==JSON.stringify(after.boxes)||JSON.stringify(before.winterOrder)!==JSON.stringify(after.winterOrder)||JSON.stringify(before.honeyBoxInstalled)!==JSON.stringify(after.honeyBoxInstalled);
- if(changed){
-  l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];
-  l.assemblies.push({date:today(),mode:before.mode,installedBoxes:before.boxes,honeyBoxInstalled:before.honeyBoxInstalled,winterOrder:before.winterOrder});
-  l.assemblies=l.assemblies.slice(-30);
-  if(wasComplete)logAudit('assembly_changed',{hiveId,from:before,to:after,boxChanges:assemblyBoxChanges(before,{mode:after.mode,boxes:after.boxes,winterOrder:after.winterOrder})});
- }
- l.setupComplete=true;l.setupEditing=false;
- if(!wasComplete)logAudit('assembly_configured',{hiveId,mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice()});
- assemblyEditSnapshot=null;pendingAssemblyMode=null;await save();renderStructure();
+ let previous;
+ try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную фиксацию комплектации: '+(error.message||error));return false}
+ try{
+  if(l.mode==='winter'){l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=[false,false];l.honeyInstalled=false}
+  const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:l.honeyBoxInstalled.slice()};
+  const changed=before.mode!==after.mode||JSON.stringify(before.boxes)!==JSON.stringify(after.boxes)||JSON.stringify(before.winterOrder)!==JSON.stringify(after.winterOrder)||JSON.stringify(before.honeyBoxInstalled)!==JSON.stringify(after.honeyBoxInstalled);
+  if(changed){
+   l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];
+   l.assemblies.push({date:today(),mode:before.mode,installedBoxes:before.boxes,honeyBoxInstalled:before.honeyBoxInstalled,winterOrder:before.winterOrder});
+   l.assemblies=l.assemblies.slice(-30);
+   if(wasComplete)logAudit('assembly_changed',{hiveId,from:before,to:after,boxChanges:assemblyBoxChanges(before,{mode:after.mode,boxes:after.boxes,winterOrder:after.winterOrder})});
+  }
+  l.setupComplete=true;l.setupEditing=false;
+  if(!wasComplete)logAudit('assembly_configured',{hiveId,mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice()});
+ }catch(error){S=previous;render();alert('Комплектация не зафиксирована: '+(error.message||error));return false}
+ if(!await savePhysicalAssemblyMutation(previous))return false;
+ assemblyEditSnapshot=null;pendingAssemblyMode=null;renderStructure();return true;
 }
 async function commitWinter(){
  const hiveId=selectedStructureHive(),l=layoutFor(hiveId),before={mode:l.mode,boxes:(l.installedBoxes||[]).slice(),winterOrder:(l.winterOrder||[]).slice()},vals=[0,1,2].map(i=>Number($('winterSlot'+i)?.value));
  if(vals.some(n=>![1,3,4,6].includes(n))||new Set(vals).size!==3){alert('Для зимней колонны выбери три разных корпуса из №1, 3, 4 и 6.');return}
  const familyBoxes=[1,2,3,4,5,6].filter(n=>l.boxes[n].family);if(familyBoxes.some(n=>!vals.includes(n))){alert('В выбранной зимней колонне должны остаться все корпуса с назначенными семьями: №'+familyBoxes.filter(n=>!vals.includes(n)).join(', №'));return}
- rememberCurrentAssembly(l);l.installedBoxes=[...vals];l.winterOrder=[...vals];l.honeyBoxInstalled=[false,false];l.honeyInstalled=false;l.mode='winter';
- const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:l.winterOrder.slice()};logAudit('assembly_changed',{hiveId,from:before,to:after,boxChanges:assemblyBoxChanges(before,after)});
- pendingAssemblyMode=null;$('modeTransition').style.display='none';await save();
+ let previous;
+ try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную зимнюю комплектацию: '+(error.message||error));return false}
+ try{
+  rememberCurrentAssembly(l);l.installedBoxes=[...vals];l.winterOrder=[...vals];l.honeyBoxInstalled=[false,false];l.honeyInstalled=false;l.mode='winter';
+  const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:l.winterOrder.slice()};logAudit('assembly_changed',{hiveId,from:before,to:after,boxChanges:assemblyBoxChanges(before,after)});
+ }catch(error){S=previous;render();alert('Зимняя комплектация отменена: '+(error.message||error));return false}
+ if(!await savePhysicalAssemblyMutation(previous))return false;
+ pendingAssemblyMode=null;$('modeTransition').style.display='none';return true;
 }
 async function commitSummer(){
  const hiveId=selectedStructureHive(),l=layoutFor(hiveId),before={mode:l.mode,boxes:(l.installedBoxes||[]).slice(),winterOrder:(l.winterOrder||[]).slice()},brood=[...document.querySelectorAll('.summer-brood-choice:checked')].map(x=>Number(x.value));
  const honeyOn=!!document.querySelector('.summer-honey-pair')?.checked,honey=[honeyOn,honeyOn];
  if(!brood.length&&!honeyOn){alert('Отметь хотя бы один установленный корпус');return}
  const familyBoxes=[1,2,3,4,5,6].filter(n=>l.boxes[n].family);if(familyBoxes.some(n=>!brood.includes(n))){alert('Нельзя снять корпус с назначенной семьёй. Оставь в сборке корпус №'+familyBoxes.filter(n=>!brood.includes(n)).join(', №')+' или сначала перемести семью.');return}
- rememberCurrentAssembly(l);l.installedBoxes=brood;l.honeyBoxInstalled=honey;l.honeyInstalled=honey.every(Boolean);l.mode='summer';
- const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice(),honeyPair:honeyOn};logAudit('assembly_changed',{hiveId,from:before,to:after,boxChanges:assemblyBoxChanges(before,after)});
- pendingAssemblyMode=null;$('modeTransition').style.display='none';await save();
+ let previous;
+ try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную летнюю комплектацию: '+(error.message||error));return false}
+ try{
+  rememberCurrentAssembly(l);l.installedBoxes=brood;l.honeyBoxInstalled=honey;l.honeyInstalled=honey.every(Boolean);l.mode='summer';
+  const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice(),honeyPair:honeyOn};logAudit('assembly_changed',{hiveId,from:before,to:after,boxChanges:assemblyBoxChanges(before,after)});
+ }catch(error){S=previous;render();alert('Летняя комплектация отменена: '+(error.message||error));return false}
+ if(!await savePhysicalAssemblyMutation(previous))return false;
+ pendingAssemblyMode=null;$('modeTransition').style.display='none';return true;
 }
 function frameChip(f,key,index){const display=f.labelCode?PasekaLabels.formatLabelCode('frame',f.labelCode):String(index+1),full=f.labelCode?PasekaLabels.formatLabelCode('frame',f.labelCode):'позиция '+(index+1)+' · код не назначен';return '<span role="button" tabindex="0" class="frame-chip status-'+safe(f.status||'foundation')+' '+(f.status==='foundation'?(f.type==='strip'?'partial':'wax'):'')+'" onclick="event.stopPropagation();openFrameFromDiagram(&quot;'+key+'&quot;,'+index+')" title="Открыть '+safe(full)+': '+frameStatusName(f.status)+'">'+safe(display)+'</span>'}
 function openFrameFromDiagram(key,index){editBox(String(key));editingFrame=index;renderFrameEditor()}
@@ -3743,17 +3784,38 @@ function toggleBroodBox(n){
  else l.installedBoxes.push(n);
  save();
 }
-function toggleHoneyPair(){
+async function savePhysicalAssemblyMutation(previous){
+ let saved=false,failure='';
+ try{saved=await save()}catch(error){failure=error?.message||'Ошибка сохранения'}
+ if(saved)return true;
+ failure=S.meta?.saveError||failure||'Сохранение не подтверждено';
+ S=previous;
+ S.meta=S.meta||{};
+ S.meta.saveError=failure;
+ try{render()}catch(error){console.error('Не удалось перерисовать комплектацию после отмены',error)}
+ try{alert('Изменение комплектации не сохранено и отменено. '+failure)}catch(error){console.error('Не удалось показать сообщение о сохранении',error)}
+ return false;
+}
+async function toggleHoneyPair(){
+ if(honeyPairSaving)return false;
  const hiveId=selectedStructureHive(),l=layoutFor(hiveId);if(l.mode==='winter')return alert('Медовые корпуса не устанавливаются в зимней сборке. Сначала перейди в летний режим.');
  const on=l.honeyBoxInstalled.some(Boolean);
  if(on){
   const hasData=l.honeyFrames.some(arr=>arr.some(fr=>(fr.status&&fr.status!=='foundation')||(fr.type&&fr.type!=='foundation')||fr.note));
   if(hasData&&!confirm('В медовых корпусах есть данные рамок. Снять оба корпуса с улья, сохранив все данные?'))return;
-  l.honeyBoxInstalled=[false,false];
- }else l.honeyBoxInstalled=[true,true];
- l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
- logAudit(on?'honey_pair_removed':'honey_pair_installed',{hiveId,boxes:['H1','H2']});
- save();
+ }
+ let previous;
+ try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную перестановку: '+(error.message||error));return false}
+ honeyPairSaving=true;
+ try{
+  try{
+   if(on)l.honeyBoxInstalled=[false,false];
+   else l.honeyBoxInstalled=[true,true];
+   l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
+   logAudit(on?'honey_pair_removed':'honey_pair_installed',{hiveId,boxes:['H1','H2']});
+  }catch(error){S=previous;render();alert('Изменение медовых корпусов отменено: '+(error.message||error));return false}
+  return await savePhysicalAssemblyMutation(previous);
+ }finally{honeyPairSaving=false}
 }
 function toggleHoneyBox(){toggleHoneyPair()}
 function syncBoxOrigin(){const wrap=$('offshootParentWrap'),sel=$('offshootParent');if(!wrap||!sel)return;wrap.style.display=$('boxOrigin').value==='offshoot'?'block':'none'}
@@ -4055,8 +4117,17 @@ function openExtractionDialog(){
  $('extractDlg').showModal();
 }
 function toggleExtractRow(el){const box=document.querySelector('[data-options="'+el.dataset.hive+'"]');if(box)box.style.display=el.checked?'block':'none'}
+let extractionCommitPending=false;
 async function saveExtraction(){
+ if(extractionCommitPending)return false;
+ extractionCommitPending=true;
+ try{return await saveExtractionOnce()}
+ finally{extractionCommitPending=false}
+}
+async function saveExtractionOnce(){
  const date=$('extractDate').value;if(!date)return alert('Укажи дату откачки');
+ const parsed=PasekaSeasonPlanning?.parseDate?.(date);
+ if(!parsed||date>today())return alert('Дата фактической откачки должна быть существующей и не позднее сегодняшнего дня');
  const selected=[...document.querySelectorAll('.extract-select:checked')];if(!selected.length)return alert('Выбери хотя бы один улей');
  const plans=[];
  for(const ch of selected){
@@ -4068,34 +4139,51 @@ async function saveExtraction(){
   const l=layoutFor(hid);
   if(l.mode==='winter')return alert('Откачка медовых корпусов возможна только в летней сборке: '+hname(hid));
   if(!l.honeyBoxInstalled.every(Boolean))return alert('В '+hname(hid)+' должны быть установлены оба медовых корпуса');
-  const extractionFrames=['H1','H2'].flatMap(key=>frameArray(l,key).filter(fr=>['nectar','sealed'].includes(fr.status)));
+  const extractionFrames=['H1','H2'].flatMap(key=>frameArray(l,key,hid).filter(fr=>['nectar','sealed'].includes(fr.status)));
   const frameIds=extractionFrames.map(fr=>fr?.frameId);
   if(frameIds.some(id=>typeof id!=='string'||!id)||new Set(frameIds).size!==frameIds.length)return alert('В медовой паре обнаружены рамки без номера или с повторяющимися номерами. Откачка отменена; сначала исправь учёт.');
-  plans.push({hiveId:hid,kg,l,frameIds});
+  plans.push({hiveId:hid,kg,frameIds});
  }
+ const originalState=S;
+ let draft;
+ try{draft=cloneApiaryState()}catch(error){alert('Откачка отменена: не удалось подготовить безопасную копию данных. '+(error.message||error));return false}
+ S=draft;
+ try{
  const items=[];
  for(const plan of plans){
-  ['H1','H2'].forEach(key=>frameArray(plan.l,key).forEach(fr=>{
+  const l=S.layouts?.[plan.hiveId];
+  if(!l||l.mode==='winter'||!l.honeyBoxInstalled?.every(Boolean))throw new Error('Состояние корпусов изменилось во время подготовки откачки');
+  ['H1','H2'].forEach(key=>frameArray(l,key,plan.hiveId).forEach(fr=>{
    if(['nectar','sealed'].includes(fr.status)){
     fr.history=fr.history||[];
     PasekaLabels.appendFrameEvent(fr,'extraction',{from:fr.status,to:'extracted'},date);
     fr.status='extracted';
    }
   }));
-  plan.l.honeyBoxInstalled=[false,false];plan.l.honeyInstalled=false;
+  l.honeyBoxInstalled=[false,false];l.honeyInstalled=false;
   items.push({hiveId:plan.hiveId,boxes:['H1','H2'],kilograms:plan.kg,frameIds:plan.frameIds,returnedAt:null});
   logAudit('honey_extracted',{hiveId:plan.hiveId,date,kilograms:plan.kg,frameCount:plan.frameIds.length,frameIds:plan.frameIds});
  }
  const event={id:uid(),date,items,createdAt:new Date().toISOString()};
  S.extractions=S.extractions||[];S.extractions.push(event);
- items.forEach(x=>S.records.push({id:uid(),date,type:'Откачка мёда',hive:x.hiveId,family:'',text:x.kilograms+' кг · '+x.boxes.map(frameLocationName).join(', '),extractionId:event.id,media:[]}));
- $('extractDlg').close();await save();
+ items.forEach(x=>S.records.push({id:uid(),date,type:'Откачка мёда',hive:x.hiveId,family:'',text:x.kilograms+' кг · '+x.boxes.map(key=>frameLocationName(key,x.hiveId)).join(', '),extractionId:event.id,media:[]}));
+  const persisted=await save();
+  if(!persisted)throw new Error(S.meta?.saveError||'Данные откачки не записаны');
+ }catch(error){
+  const reason=error?.message||'Ошибка сохранения';
+  S=originalState;
+  S.meta=S.meta||{};S.meta.saveError=reason;
+  try{render()}catch(renderError){console.error('Не удалось показать состояние после отмены откачки',renderError)}
+  alert('Откачка не сохранена: '+reason+'. Исходные данные не изменены.');
+  return false;
+ }
+ $('extractDlg').close();return true;
 }
 function renderHiveExtractionActions(){
  const host=$('hiveExtractionActions');if(!host||!selectedHiveId)return;
  const pending=(S.extractions||[]).flatMap(e=>(e.items||[]).filter(x=>x.hiveId===selectedHiveId&&!x.returnedAt).map(x=>({event:e,item:x})));
  const seasonTotal=(S.extractions||[]).flatMap(e=>e.items||[]).filter(x=>x.hiveId===selectedHiveId).reduce((n,x)=>n+Number(x.kilograms||0),0);
- host.innerHTML='<div class="card"><b>Мёд откачан в этом улье</b><div class="honey-total">'+seasonTotal.toFixed(1)+' кг</div>'+(pending.length?'<div class="divider"></div><b>Корпуса после откачки</b>'+pending.map(x=>'<div class="row"><span>'+safe(x.item.boxes.map(frameLocationName).join(', '))+' · '+safe(x.event.date)+'</span><button data-eid="'+x.event.id+'" data-hid="'+x.item.hiveId+'" onclick="returnHoneyBoxes(this.dataset.eid,this.dataset.hid)">Вернуть</button></div>').join(''):'<p class="muted">Нет корпусов, ожидающих возврата.</p>')+'</div>';
+ host.innerHTML='<div class="card"><b>Мёд откачан в этом улье</b><div class="honey-total">'+seasonTotal.toFixed(1)+' кг</div>'+(pending.length?'<div class="divider"></div><b>Корпуса после откачки</b>'+pending.map(x=>'<div class="row"><span>'+safe(x.item.boxes.map(key=>frameLocationName(key,x.item.hiveId)).join(', '))+' · '+safe(x.event.date)+'</span><button data-eid="'+x.event.id+'" data-hid="'+x.item.hiveId+'" onclick="returnHoneyBoxes(this.dataset.eid,this.dataset.hid)">Вернуть</button></div>').join(''):'<p class="muted">Нет корпусов, ожидающих возврата.</p>')+'</div>';
 }
 let returningHoney=[];
 function returnHoneyBoxes(eventId,hiveId){
