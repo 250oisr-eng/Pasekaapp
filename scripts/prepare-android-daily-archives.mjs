@@ -22,7 +22,7 @@ export async function buildDailyWorkerHtml(index,loadModule,runner){
  if(/<script\b[^>]*\bsrc\s*=/i.test(html))throw Error('DAILY_WORKER_BLOCKED: external script');
  html=html.replace(/<link\b[^>]*>/gi,'');
  if(html.split('<meta charset="utf-8">').length!==2)throw Error('DAILY_WORKER_BLOCKED: missing charset');
- html=html.replace('<meta charset="utf-8">','<meta charset="utf-8">'+CSP+'<script>window.__pasekaProbeInline=true;</script>');
+ html=html.replace('<meta charset="utf-8">','<meta charset="utf-8">'+CSP+'<script id="paseka-qa-inline-marker">window.__pasekaProbeInline=true;</script>');
  for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new Function(match[1]);
  return html;
 }
@@ -36,12 +36,12 @@ export async function prepareDailyWorkerWeb(workspace=root){
  await writeFile(join(workspace,'www/daily-archive-worker.html'),html);
  return html;
 }
-const allowed=new Set(['ru.paseka.journal','ru.paseka.journal.qa.daily','ru.paseka.journal.qa.daily.diag','ru.paseka.journal.qa.daily.probe']);
-export function dailyQaConfig(config,{diagnostic=false,probe=false}={}){
- if(config?.appId!=='ru.paseka.journal'||typeof diagnostic!=='boolean'||typeof probe!=='boolean'||(probe&&diagnostic))throw Error('DAILY_QA_BLOCKED: unexpected original Capacitor config');
+const allowed=new Set(['ru.paseka.journal','ru.paseka.journal.qa.daily','ru.paseka.journal.qa.daily.diag','ru.paseka.journal.qa.daily.probe','ru.paseka.journal.qa.daily.dom']);
+export function dailyQaConfig(config,{diagnostic=false,probe=false,dom=false}={}){
+ if(config?.appId!=='ru.paseka.journal'||typeof diagnostic!=='boolean'||typeof probe!=='boolean'||typeof dom!=='boolean'||Number(diagnostic)+Number(probe)+Number(dom)>1)throw Error('DAILY_QA_BLOCKED: unexpected original Capacitor config');
  assertDailyConfig(config);
- return {...config,appId:probe?'ru.paseka.journal.qa.daily.probe':diagnostic?'ru.paseka.journal.qa.daily.diag':'ru.paseka.journal.qa.daily',
-  appName:probe?'Пасека QA — проверка JavaScript':diagnostic?'Пасека QA — диагностика архива':'Пасека QA — автоархив'};
+ return {...config,appId:dom?'ru.paseka.journal.qa.daily.dom':probe?'ru.paseka.journal.qa.daily.probe':diagnostic?'ru.paseka.journal.qa.daily.diag':'ru.paseka.journal.qa.daily',
+  appName:dom?'Пасека QA — диагностика HTML':probe?'Пасека QA — проверка JavaScript':diagnostic?'Пасека QA — диагностика архива':'Пасека QA — автоархив'};
 }
 export function assertDailyConfig(config){
  if(!allowed.has(config?.appId)||config.webDir!=='www'||config.android?.allowMixedContent!==false||
@@ -85,9 +85,9 @@ export async function prepareDailyWorkerAndroid(workspace=root){
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const action=process.argv[2]||'android';
  (async()=>{
-  if(action==='config'||action==='diag-config'||action==='probe-config'){
+  if(action==='config'||action==='diag-config'||action==='probe-config'||action==='dom-config'){
    const path=join(root,'capacitor.config.json');
-   await writeFile(path,JSON.stringify(dailyQaConfig(JSON.parse(await readFile(path,'utf8')),{diagnostic:action==='diag-config',probe:action==='probe-config'}),null,2)+'\n');
+   await writeFile(path,JSON.stringify(dailyQaConfig(JSON.parse(await readFile(path,'utf8')),{diagnostic:action==='diag-config',probe:action==='probe-config',dom:action==='dom-config'}),null,2)+'\n');
   }else if(action==='android')await prepareDailyWorkerAndroid();
   else if(action==='web')await prepareDailyWorkerWeb();
   else throw Error('DAILY_WORKER_BLOCKED: unknown action');
