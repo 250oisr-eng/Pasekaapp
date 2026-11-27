@@ -670,7 +670,7 @@ test('workspace exposes five primary sections, six grouped routes and one canoni
   assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
   assert.equal((nav.match(/data-tab="ai"/g)||[]).length,1);
   assert.ok(!html.includes('id="homeAIQuestion"'));
-  assert.match(html,/<div class="card home-recent-card"><div class="row"><b>Последние события<\/b><button type="button" onclick="newRecord\(\)">＋ Записать событие<\/button>/);
+  assert.match(html,/<button type="button" onclick="openWorkspaceRecord\(''\)">＋ Записать событие<\/button>/);
   assert.ok(html.includes('id="aiQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
   assert.ok(html.includes('class="ai-prompt-chips"'));

@@ -20,12 +20,12 @@ test('manual season overrides calendar without storage, network or task mutation
  assert.ok(Object.isFrozen(result));assert.ok(Object.isFrozen(result.topics));
  assert.match(result.note,/Фактическое состояние/);
 });
-test('five groups preserve ten routes with a single separate AI entry',()=>{
+test('five primary groups preserve eleven routes with a single central AI entry',()=>{
  assert.equal(ui.groups.length,5);
  const routes=ui.groups.flatMap(group=>group.routes);
- assert.equal(routes.length,10);assert.equal(new Set(routes).size,10);
- assert.deepEqual([...routes,'ai'].sort(),Object.keys(ui.labels).sort());
- assert.equal(ui.routeGroup('ai'),'ai');assert.equal(ui.routeGroup('entrance'),'apiary');
+ assert.equal(routes.length,11);assert.equal(new Set(routes).size,11);
+ assert.deepEqual(routes.slice().sort(),Object.keys(ui.labels).sort());
+ assert.equal(ui.routeGroup('ai'),'ai');assert.equal(ui.routeGroup('entrance'),'hives');
  assert.equal(ui.routeGroup('unknown'),null);
 });
 test('visual modes are explicit and unknown input defaults to home',()=>{

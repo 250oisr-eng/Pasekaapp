@@ -21,7 +21,7 @@ test('approved home UX has one canonical bottom AI entry, without duplicate card
 });
 
 test('one-tap unsaved journal draft survives home simplification',()=>{
-  assert.match(home,/<div class="card home-recent-card"><div class="row"><b>Последние события<\/b><button type="button" onclick="newRecord\(\)">＋ Записать событие<\/button>/);
+  assert.match(home,/<button type="button" onclick="openWorkspaceRecord\(''\)">＋ Записать событие<\/button>/);
   assert.match(home,/id="recent"/);
   assert.match(home,/id="homeAlerts"/);
   assert.match(home,/id="homeTasks"/);
@@ -35,7 +35,7 @@ test('one-tap unsaved journal draft survives home simplification',()=>{
 test('desktop layout consumes the removed AI card slot without touching task visibility',()=>{
   assert.match(html,/#home>\.apiary-status-card\{grid-column:1\/-1\}/);
   assert.match(html,/#home>\.home-tasks-card\{grid-column:1\}/);
-  assert.match(html,/#home>\.home-recent-card\{grid-column:2\}/);
+  assert.match(html,/#home>\.workspace-season-card,#home>\.home-recent-card\{grid-column:1\/-1\}/);
   assert.doesNotMatch(html,/#home>\.home-ai-card|\.home-ai-prompts/);
   assert.match(html,/const homeHivePreviewLimit=3;/);
   assert.match(html,/const overdue=active\.filter/);

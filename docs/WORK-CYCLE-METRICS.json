@@ -3,21 +3,23 @@
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 638,
     "sourceMainSha": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
-    "codeSha": "0e498648db7741c50a17ac3c5e8c4c6562f3c2a0",
+    "codeSha": "a9cf76101c7a4bfc0d65364aa0748d120bc4a836",
     "targetedTests": 5,
     "nodeTests": null,
-    "ci": "IN_PROGRESS_NOT_VERIFIED",
+    "ci": "NOT_VERIFIED",
     "device": "NOT_TESTED",
     "visualBrowser": "NOT_TESTED",
-    "integrationDependencies": [
-      637,
-      622
-    ],
+    "integrationDependencies": [],
     "storageChanges": false,
-    "serviceWorkerChanges": false,
+    "serviceWorkerChanges": true,
     "releaseAuthorized": false,
     "completedVerifiedUserScenarios": 0,
-    "repeatedDocumentReads": null
+    "repeatedDocumentReads": null,
+    "integrationCandidate": true,
+    "composedFrom": [
+      637,
+      622
+    ]
   },
   "p0FirstExternalCopyGuide20261127": {
     "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
@@ -53,7 +55,11 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
-  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "upcomingHomeTasks20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
@@ -1668,7 +1674,11 @@
   "overviewModelDiagnostics20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "refreshedMainSha": "1a609a9ec46cace85a81663648fee749df677932",
-    "refreshedLocalNodeTests": {"pass": 1072, "fail": 0, "targetedPass": 13},
+    "refreshedLocalNodeTests": {
+      "pass": 1072,
+      "fail": 0,
+      "targetedPass": 13
+    },
     "sourceMainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
     "codeSha": "78ed9ab3ab58da774c64d01d7ba9171c8a8fdea4",
     "mainCi": [

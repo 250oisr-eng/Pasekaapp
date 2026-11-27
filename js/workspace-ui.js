@@ -8,11 +8,11 @@ const seasons=Object.freeze({
 });
 const modes=Object.freeze({field:'Полевой',home:'Домашний',night:'Ночной'});
 const groups=Object.freeze([
- {id:'home',label:'Главная',routes:['home']},
- {id:'apiary',label:'Пасека',routes:['hives','entrance']},
- {id:'journal',label:'Журнал',routes:['journal']},
- {id:'planning',label:'План',routes:['planning','forage']},
- {id:'more',label:'Ещё',routes:['varroa','incidents','deadout','settings']}
+ {id:'home',label:'Обзор',routes:['home']},
+ {id:'hives',label:'Ульи',routes:['hives','entrance','varroa']},
+ {id:'ai',label:'ИИ-помощник',routes:['ai']},
+ {id:'journal',label:'Журнал',routes:['journal','planning','forage']},
+ {id:'settings',label:'Ещё',routes:['settings','incidents','deadout']}
 ].map(group=>Object.freeze({...group,routes:Object.freeze(group.routes)})));
 const labels=Object.freeze({home:'Главная',hives:'Ульи',entrance:'Лёток',journal:'Журнал',planning:'План работ',forage:'Медоносы',varroa:'Клещ',incidents:'Инциденты',deadout:'Потери',settings:'Настройки',ai:'ИИ-помощник'});
 function has(object,key){return typeof key==='string'&&Object.prototype.hasOwnProperty.call(object,key);}
