@@ -57,6 +57,75 @@ export function analyzePrBranchGraph(prs, branches, {main='main'}={}) {
   };
 }
 
+
+/**
+ * A branch name missing from open PR heads/bases is not deletion evidence.
+ * Closed PR metadata is useful for review priority only; no ref is mutated.
+ * Optional compare evidence must be explicitly supplied from a live main...branch
+ * comparison, never inferred from a merged flag.
+ */
+export function analyzeBranchHistory(graph, closedPrs, comparisons={}) {
+  if(graph?.proof!=='STRUCTURAL_ONLY_NOT_MERGE_OR_DELETE_SAFETY' ||
+     !Array.isArray(graph.unreferencedBranches) || !Array.isArray(closedPrs) ||
+     !comparisons || typeof comparisons!=='object' || Array.isArray(comparisons))
+    throw Error('Complete structural graph, closed PR list and comparison map required');
+  const numbers=new Set(), byHead=new Map();
+  let mergedClosed=0;
+  for(const p of closedPrs){
+    if(p?.state!=='closed'||!Number.isSafeInteger(p.number)||p.number<1||
+       numbers.has(p.number)||typeof p.head?.ref!=='string'||!p.head.ref||
+       !(p.merged_at===null||p.merged_at===undefined||typeof p.merged_at==='string'))
+      throw Error('Invalid/duplicate closed PR metadata');
+    numbers.add(p.number);
+    if(p.merged_at)mergedClosed++;
+    const list=byHead.get(p.head.ref)||[];
+    list.push(p);
+    byHead.set(p.head.ref,list);
+  }
+  const groups={mergedOnly:[],closedUnmergedOnly:[],mixedClosedStates:[],noClosedPr:[]};
+  const verifiedComparisons=[];
+  for(const name of graph.unreferencedBranches){
+    const history=byHead.get(name)||[];
+    const hasMerged=history.some(p=>Boolean(p.merged_at));
+    const hasUnmerged=history.some(p=>!p.merged_at);
+    const group=!history.length?'noClosedPr':hasMerged&&hasUnmerged?'mixedClosedStates':
+      hasMerged?'mergedOnly':'closedUnmergedOnly';
+    groups[group].push(name);
+    if(Object.hasOwn(comparisons,name)){
+      const c=comparisons[name];
+      if(!c||!Number.isSafeInteger(c.ahead_by)||c.ahead_by<0||
+         !Number.isSafeInteger(c.behind_by)||c.behind_by<0||
+         !['ahead','behind','diverged','identical'].includes(c.status)||
+         (c.status==='ahead'&&c.behind_by!==0)||
+         (c.status==='behind'&&c.ahead_by!==0)||
+         (c.status==='identical'&&(c.ahead_by!==0||c.behind_by!==0))||
+         (c.status==='diverged'&&(!c.ahead_by||!c.behind_by)))
+        throw Error('Invalid compare evidence for '+name);
+      verifiedComparisons.push({
+        branch:name,group,aheadBy:c.ahead_by,behindBy:c.behind_by,
+        status:c.status,
+        verdict:c.ahead_by===0?'ANCESTOR_ONLY_REVIEW_NO_DELETE':'UNIQUE_COMMITS_REVIEW_NO_DELETE'
+      });
+    }
+  }
+  return {
+    proof:'CLOSED_PR_HISTORY_AND_OPTIONAL_ANCESTRY_NO_DELETE_AUTHORIZATION',
+    closedPrCount:closedPrs.length,mergedClosedPrCount:mergedClosed,
+    unmergedClosedPrCount:closedPrs.length-mergedClosed,
+    groupCounts:Object.fromEntries(Object.entries(groups).map(([key,items])=>[key,items.length])),
+    groups,verifiedComparisons,
+    warning:'Merged PR, missing open references and ahead=0 are separate evidence. None alone authorizes branch deletion.'
+  };
+}
+
+export async function collectPortfolio(fetchPage) {
+  const [graph,closed]=await Promise.all([
+    collectGraph(fetchPage),
+    listAll((page,size)=>fetchPage('closed',page,size))
+  ]);
+  return {...graph,closedPrHistory:analyzeBranchHistory(graph,closed)};
+}
+
 async function listAll(fetchPage,{pageSize=100,maxPages=30}={}) {
   const all=[];
   for(let page=1;page<=maxPages;page++) {
@@ -77,7 +146,8 @@ export async function collectGraph(fetchPage) {
 }
 
 async function fetchPage(repo,token,kind,page,size) {
-  const endpoint=kind==='pulls'?'pulls?state=open&':'branches?';
+  if(!['pulls','closed','branches'].includes(kind))throw Error('Unknown GitHub inventory endpoint');
+  const endpoint=kind==='pulls'?'pulls?state=open&':kind==='closed'?'pulls?state=closed&':'branches?';
   const response=await fetch('https://api.github.com/repos/'+repo+'/'+endpoint+
     'per_page='+size+'&page='+page,{
     method:'GET',headers:{Accept:'application/vnd.github+json',
@@ -95,7 +165,7 @@ if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]) {
     console.error('INVALID_REPOSITORY');process.exitCode=1;
   } else {
     try {
-      const result=await collectGraph((kind,page,size)=>
+      const result=await collectPortfolio((kind,page,size)=>
         fetchPage(repo,process.env.GITHUB_TOKEN,kind,page,size));
       console.log(JSON.stringify({repository:repo,asOfUtc:new Date().toISOString(),...result},null,2));
     } catch(e) {console.error('GRAPH_NOT_VERIFIED: '+e.message);process.exitCode=1;}
