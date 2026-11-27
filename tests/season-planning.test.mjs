@@ -118,7 +118,7 @@ test('planning UI offers explicit hive selection and leaves the date calculation
  assert.match(html,/onclick="useLastSavedInspection\(\)"/);
  assert.match(html,/Дата подставляется только из фактически сохранённой записи/);
  assert.match(html,/onclick="renderInspectionReminder\(\)"/);
- assert.match(html,/latestSavedInspection\(S\.records,hive,today\(\)\)/);
+ assert.match(html,/latestSavedInspection\(S\.records,hive,today\(\),familyId\)/);
 });
 
 test('planning does not default the last real inspection date to today',async()=>{
@@ -175,6 +175,7 @@ test('reminder prefill does not confuse older family records or multiple current
  const start=html.indexOf('function useLastSavedInspection(){');
  const end=html.indexOf('function renderNectarBackwardPlan(){',start);
  const source=html.slice(start,end);
+ const resetHelpers=html.slice(html.indexOf('function clearInspectionCalculation()'),start);
  const fields={inspectionHiveSelect:{value:'h1'},inspectionLastDate:{value:'',dataset:{}},
   inspectionPrefillStatus:{textContent:''},inspectionReminderResult:{textContent:'stale'}};
  const state={records:[
@@ -183,7 +184,7 @@ test('reminder prefill does not confuse older family records or multiple current
   {id:'not-attributed',hive:'h1',type:'Осмотр',date:'2026-11-26'}
  ],families:[{id:'new',hive:'h1'}]};
  const run=new Function('$','PasekaSeasonPlanning','S','today','hname',
-   source+';return useLastSavedInspection')(id=>fields[id],plan,state,()=> '2026-11-27',id=>'Улей '+id);
+   resetHelpers+source+';return useLastSavedInspection')(id=>fields[id],plan,state,()=> '2026-11-27',id=>'Улей '+id);
  run();
  assert.equal(fields.inspectionLastDate.value,'2026-11-21');
  assert.equal(fields.inspectionLastDate.dataset.fromJournal,'h1');
