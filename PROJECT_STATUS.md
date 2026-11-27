@@ -2,7 +2,7 @@
 
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
-**UX · IN_MAIN [#643](https://github.com/250oisr-eng/Pasekaapp/pull/643):** владелец разрешил интеграцию. #638/#640/#643 объединены, #640 закрыт без повторного merge. Биологические карточки, техническая карта, навигация, формы, режимы. Merge de04d172, дерево совпадает с проверенным 425e8e5b; runtime 627e59e4 Node 1085/1085, Android/Chromium/Governance PASS; exact main CI повторяется (Fast/Governance PASS). #639 отдельное QA демо CI PASS, не включено. OnePlus/TalkBack NOT_TESTED. NO_RELEASE, реальные данные не изменены.
+**UX · IN_MAIN [#643](https://github.com/250oisr-eng/Pasekaapp/pull/643):** runtime de04d172 Node 1085/1085, Android/Chromium/Governance/Workers PASS; docs-only main 6526fe6d Governance PASS. [Физическая приёмка](docs/ONEPLUS-UX-FINAL-ACCEPTANCE-2026-11-27.md): новый disposable QA package ru.paseka.journal.qa.ux20261127, runtime неизменён, binary CI pending. Старый QA/production не заменять. #639 отдельное демо. OnePlus/TalkBack NOT_TESTED. NO_RELEASE.
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
