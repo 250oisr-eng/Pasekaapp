@@ -252,3 +252,39 @@ test('conversation QA package is separate from previous installed voice QA',asyn
  assert.match(generated,/id="qaVoiceNatural"/);assert.match(generated,/Расскажи обычными словами/);
  assert.equal(assertDailyConfig(voiceQaConfig(config)),QA_ID);
 });
+
+
+test('natural session consumes confirmation once, even after several repeated affirmations',async()=>{
+ const {naturalSession}=await localDomain();const s=naturalSession(sample);
+ s.receive('улей три семья альфа осмотрел матка есть');
+ assert.ok(s.receive('да').draft);
+ for(let i=0;i<4;i++)assert.equal(s.receive('да').draft,undefined);
+});
+test('family can be named before the hive in separate phrases without losing the observation',async()=>{
+ const {naturalSession}=await localDomain();const s=naturalSession(sample);
+ assert.match(s.receive('семья Альфа, матка есть').message,/Какой улей/);
+ const p=s.receive('номер три').pending;assert.equal(p.hiveId,'h3');assert.equal(p.familyId,'f1');assert.match(p.text,/матка есть/);
+});
+test('ordinal hive and following frame count cannot be mistaken for another hive number',async()=>{
+ const {naturalSession}=await localDomain();const state=sample();state.hives.push({id:'h5',number:5});
+ const s=naturalSession(()=>state);
+ const p=s.receive('в третьем улье пять рамок с расплодом семья Альфа').pending;
+ assert.equal(p.hiveId,'h3');assert.match(p.text,/пять рамок/);
+ for(const text of ['два улья семья альфа матка есть','не третий улей а четвертый семья альфа матка есть']){
+  const x=naturalSession(()=>state);assert.equal(x.receive(text).pending,undefined);
+ }
+});
+test('ambiguous or invalid correction invalidates old readback, no stale yes can open it',async()=>{
+ const {naturalSession}=await localDomain();const state=sample();state.families.push({id:'f3',hive:'h3',name:'Бета'});
+ const s=naturalSession(()=>state);
+ s.receive('улей три семья альфа матка есть');
+ assert.equal(s.receive('семья альфа или бета').pending,undefined);
+ assert.equal(s.receive('да').draft,undefined);
+});
+test('explicit common note does not require family and cannot become feeding without family',async()=>{
+ const {naturalSession}=await localDomain();const s=naturalSession(sample);
+ s.receive('улей три');s.receive('без семьи');
+ assert.equal(s.receive('крышка повреждена').pending.familyId,'');
+ s.reset();s.receive('улей три');s.receive('без семьи');
+ assert.equal(s.receive('подкормил сиропом').pending,undefined);
+});

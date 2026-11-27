@@ -106,7 +106,7 @@
   // Natural diary: bounded local slot extraction, not an unrestricted language model.
   // Keep the original account of events; resolve identities only against current data.
   function naturalSession(readState,now=()=>Date.now()){
-    let hive=null,family=null,noFamily=false,parts=[],type='',pending=null,ask='hive',ambiguousType=false;
+    let hive=null,family=null,noFamily=false,parts=[],type='',pending=null,ask='hive',ambiguousType=false,confirmed=false,deferredName='';
     const tokens=s=>norm(s).match(/[а-яa-z0-9]+/gu)||[];
     const ordinals=['','перв','втор','трет','четверт','пят','шест','седьм','восьм','девят','десят','одиннадцат','двенадцат','тринадцат','четырнадцат','пятнадцат','шестнадцат','семнадцат','восемнадцат','девятнадцат','двадцат'];
     function nword(s){
@@ -268,7 +268,7 @@
         return {hiveId:h.id,hiveNumber:hive.number,familyId:f.id,familyName:String(f.name)};}
       return noFamily?{hiveId:h.id,hiveNumber:hive.number,familyId:'',familyName:''}:null;
     }
-    function reset(){hive=null;family=null;noFamily=false;parts=[];type='';pending=null;ask='hive';ambiguousType=false;}
+    function reset(){hive=null;family=null;noFamily=false;parts=[];type='';pending=null;ask='hive';ambiguousType=false;confirmed=false;deferredName='';}
     const reply=(message,extra={})=>({message,...extra});
     const label=p=>'Улей '+p.hiveNumber+(p.familyId?', семья '+p.familyName:', без семьи');
     const readback=p=>label(p)+'. '+p.type+'. '+p.text+'. Всё верно?';
@@ -294,6 +294,7 @@
     function receive(raw){
       const original=String(raw??'').trim();
       if(!original)return null;
+      if(confirmed)return reply('Черновик уже подтверждён. Начни новый сеанс.');
       const clean=original.replace(/^пасека(?:[,\s:]+слушай)?[,\s:]+/iu,'').trim(),key=norm(clean).replace(/[.!?]+$/,'').trim();
       if(/^(?:стоп|закончили|закончили на сегодня|заверши сеанс|хватит слушать|выключи микрофон)$/.test(key)){reset();return reply('Сеанс завершён.',{stop:true});}
       if(/^(?:отмена|отмени(?: черновик| запись)?|не надо|начнем заново|начать заново|нет отмена)$/.test(key)){reset();return reply('Черновик отменён. Расскажи о следующей записи.');}
@@ -303,59 +304,68 @@
         if(!pending)return prompt();
         const p=pending;pending=null;
         if(!revalidate(p)){reset();return reply('Улей или семья изменились. Начни запись заново.');}
-        return reply('Открываю черновик. Проверь и сохрани вручную.',{draft:{...p}});
+        confirmed=true;return reply('Открываю черновик. Проверь и сохрани вручную.',{draft:{...p}});
       }
       if(/^(?:нет|неверно|неправильно|не так|не подтверждаю)$/.test(key)){reset();return reply('Хорошо, ничего не сохранено. Расскажи исправленный вариант.');}
-      if(clean.length>500)return reply('Фраза слишком длинная. Расскажи запись короткими частями.');
+      // Any non-confirmation turn invalidates the previously read-back proposal.
+      pending=null;
+      if(clean.length>500){reset();return reply('Фраза слишком длинная. Расскажи запись короткими частями.');}
       const w=tokens(clean),used=new Set();
       const mark=(...indices)=>indices.forEach(i=>{if(i>=0&&i<w.length)used.add(i);});
       const hiveWord=/^(?:улей|улье|улья|улью|ульем|ульи|ульев|ульях)$/;
       const familyWord=/^(?:семья|семью|семьи|семье|семьей)$/;
+      const none=/^(?:без семьи|весь улей|для всего улья|общая заметка)$/.test(key);
       let numbers=[],hiveMention=false,numberAmbiguous=false;
-      for(let i=0;i<w.length;i++)if(hiveWord.test(w[i])){
+      if(!none&&w.some((v,i)=>v==='не'&&(hiveWord.test(w[i+1])||familyWord.test(w[i+1])||nword(w[i+1])!==null))){reset();return reply('Есть отрицание или исправление адресата. Назови один улей и одну семью заново.');}
+      for(let i=0;i<w.length;i++)if(!none&&hiveWord.test(w[i])){
         hiveMention=true;mark(i);
         let after=i+1;if(w[after]==='номер'){mark(after);after++;}
         const n=nword(w[after]),before=nword(w[i-1]);
-        if(n!==null){numbers.push(n);mark(after);
+        const beforeOrdinal=before!==null&&hiveNumber(w[i-1])===null;
+        const quantityAfter=/^(?:рамок|рамки|рамка|рамку|килограмм|килограмма|грамм|грамма|литр|литра|литров|корпуса|корпусов)$/.test(w[after+1]||'');
+        if(/^(?:ульи|ульев|ульях)$/.test(w[i])||before!==null&&!beforeOrdinal)numberAmbiguous=true;
+        if(beforeOrdinal&&n!==null&&!quantityAfter)numberAmbiguous=true;
+        if(n!==null&&!(beforeOrdinal&&quantityAfter)){numbers.push(n);mark(after);
           if(nword(w[after+1])!==null||(['или','либо','и'].includes(w[after+1])&&nword(w[after+2])!==null))numberAmbiguous=true;
         }
-        else if(before!==null){numbers.push(before);mark(i-1);if(nword(w[i-2])!==null||(['или','либо','и'].includes(w[i-2])&&nword(w[i-3])!==null))numberAmbiguous=true;}
+        else if(beforeOrdinal){numbers.push(before);mark(i-1);if(nword(w[i-2])!==null||(['или','либо','и'].includes(w[i-2])&&nword(w[i-3])!==null))numberAmbiguous=true;}
       }
-      if(ask==='hive'&&!hiveMention&&w.length===1&&nword(w[0])!==null){numbers.push(nword(w[0]));mark(0);}
+      if(ask==='hive'&&!hiveMention&&((w.length===1&&nword(w[0])!==null)||(w.length===2&&['номер','это'].includes(w[0])&&nword(w[1])!==null))){numbers.push(nword(w.at(-1)));w.forEach((v,i)=>mark(i));}
       const uniqueNumbers=[...new Set(numbers)];
       let hCandidate=null;
       if(hiveMention||numbers.length){
         if(numberAmbiguous||uniqueNumbers.length!==1||!(hCandidate=hiveByNumber(uniqueNumbers[0]))){
-          if(hive){reset();return reply('Номер улья неоднозначен. Начни запись заново.');}
-          return reply('Не смог однозначно определить улей. Назови один номер.');
+          reset();return reply('Номер улья неоднозначен или не найден. Назови один номер и повтори наблюдение.');
         }
         if(hive&&(hive.id!==hCandidate.id||hive.number!==uniqueNumbers[0])){reset();return reply('Это другой улей. Старый черновик отменён. Расскажи запись для нового улья заново.');}
         hive={id:hCandidate.id,number:uniqueNumbers[0]};
       }
-      const candidates=hive?rows().families.filter(f=>f?.hive===hive.id&&typeof f.name==='string'&&norm(f.name)):[];
-      const none=/^(?:без семьи|весь улей|для всего улья|общая заметка)$/.test(key);
-      const familyMarks=w.map((v,i)=>familyWord.test(v)?i:-1).filter(i=>i>=0);
+      const candidates=rows().families.filter(f=>f&&(!hive||f.hive===hive.id)&&typeof f.name==='string'&&norm(f.name));
+      const familyMarks=none?[]:w.map((v,i)=>familyWord.test(v)?i:-1).filter(i=>i>=0);
       const matches=[];
       for(const i of familyMarks){
         mark(i);const found=candidates.map(f=>({f,t:tokens(f.name)})).filter(({t})=>t.length&&t.every((v,k)=>w[i+1+k]===v)).sort((a,b)=>b.t.length-a.t.length);
         if(found.length){const max=found[0].t.length;for(const m of found.filter(x=>x.t.length===max)){matches.push(m.f);for(let k=1;k<=max;k++)mark(i+k);}
-          if(['или','либо','и'].includes(w[i+max+1])){const j=i+max+2;if(candidates.some(f=>tokens(f.name).every((v,k)=>w[j+k]===v)))return reply('Назови одну семью, не несколько.');}
+          if(['или','либо','и'].includes(w[i+max+1])){const j=i+max+2;if(candidates.some(f=>tokens(f.name).every((v,k)=>w[j+k]===v))){reset();return reply('Назови одну семью, не несколько, и повтори наблюдение.');}}
         }
-        else if(hive){if(family){reset();return reply('Имя семьи неясно. Начни запись заново.');}ask='family';return reply('Не нашёл семью по этому имени. Назови её точное имя.');}
+        else {reset();return reply('Не нашёл семью по этому имени. Назови её точное имя и повтори наблюдение.');}
       }
       if(ask==='family'&&hive&&!familyMarks.length&&!none){
         const exact=candidates.filter(f=>norm(f.name)===key);
         if(exact.length){matches.push(...exact);w.forEach((v,i)=>mark(i));}
       }
-      if(none){if(family){reset();return reply('Старый черновик отменён. Начни общую заметку заново.');}noFamily=true;w.forEach((v,i)=>mark(i));}
+      if(none){if(family||deferredName){reset();return reply('Старый черновик отменён. Начни общую заметку заново.');}noFamily=true;w.forEach((v,i)=>mark(i));}
       if(matches.length){
         const names=[...new Set(matches.map(f=>norm(f.name)))];
-        const h=hiveByNumber(hive.number),f=names.length===1&&h?familyByName(h,names[0]):null;
-        if(!f){if(family)reset();return reply('Имя семьи неоднозначно. Выбери конкретную семью вручную или назови уникальное имя.');}
-        if(family&&family.id!==f.id){reset();return reply('Это другая семья. Старый черновик отменён. Расскажи запись заново.');}
-        family={id:f.id,name:names[0]};noFamily=false;
+        if(names.length!==1||deferredName&&deferredName!==names[0]){reset();return reply('Имя семьи неоднозначно. Начни запись заново.');}
+        deferredName=names[0];noFamily=false;
       }
-      if(familyMarks.length&&!hive){return reply('Сначала уточни номер улья, затем назови семью.');}
+      if(hive&&deferredName){
+        const h=hiveByNumber(hive.number),f=h?familyByName(h,deferredName):null;
+        if(!f){reset();return reply('В выбранном улье не нашёл единственную семью с таким именем. Уточни адрес и повтори наблюдение.');}
+        if(family&&family.id!==f.id){reset();return reply('Это другая семья. Старый черновик отменён. Расскажи запись заново.');}
+        family={id:f.id,name:deferredName};
+      }
       const kinds=new Set();
       for(let i=0;i<w.length;i++){
         const v=w[i];if(used.has(i))continue;
@@ -369,7 +379,7 @@
       const filler=/^(?:в|у|на|для|и|а|номер|выбери|открой|запиши|записать|добавь|запись|сегодня|пожалуйста|значит|так|вот|еще)$/;
       const narrative=w.some((v,i)=>!used.has(i)&&!filler.test(v));
       if(narrative){
-        if(parts.join('\n').length+clean.length+1>600)return reply('Черновик слишком длинный. Подтверди его или отмени и сделай две записи.');
+        if(parts.join('\n').length+clean.length+1>600){reset();return reply('Черновик слишком длинный. Раздели рассказ на две записи.');}
         parts.push(clean);
       }
       if(!narrative&&!hiveMention&&!numbers.length&&!matches.length&&!none&&!kinds.size)return prompt();
