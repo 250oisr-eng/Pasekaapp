@@ -1,0 +1,648 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 10,
+  "start": 135,
+  "rows": [
+    {
+      "branch": "fix/ui-hive-accessible-labels-from187-20261126",
+      "closedPrs": [
+        {
+          "number": 587,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 6,
+      "behind": 157,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "e1c60d6f6ea47ac2cdc1301e5b0a7d026a5077fb",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/UI-HIVE-ACCESSIBILITY-SELECTIVE-2026-11-26.md",
+          "status": "added",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/hive-accessibility-keyboard.test.mjs",
+          "status": "added",
+          "additions": 66,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 6
+    },
+    {
+      "branch": "integrate/strategy-main-2026-11-23",
+      "closedPrs": [
+        {
+          "number": 448,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 386,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "46975de06028f4568b44c453d8120895bf31ef89",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "integrate/varroa-journal-main-2026-11-23",
+      "closedPrs": [
+        {
+          "number": 449,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 367,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "1b6b96b150efee406d7fea85a90e3ec3b0ac4b7d",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "perf/p2-entrance-video-metadata-main-20261125",
+      "closedPrs": [
+        {
+          "number": 511,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 214,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7e755a577cd243c6b4a51e775903e91e63db0a58",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "docs/P2-ENTRANCE-METADATA-ONLY-2026-11-25.md",
+          "status": "added",
+          "additions": 28,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 29,
+          "deletions": 1
+        },
+        {
+          "path": "tests/p2-entrance-metadata-cursor.test.mjs",
+          "status": "added",
+          "additions": 116,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 7
+    },
+    {
+      "branch": "perf/p2-journal-family-lookup-map-20261125",
+      "closedPrs": [
+        {
+          "number": 531,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 21,
+      "behind": 216,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "c50c668268372762d2f1fa1d75127c407a0de782",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "docs/P2-JOURNAL-FAMILY-LOOKUP-2026-11-25.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 5
+        },
+        {
+          "path": "tests/journal-csv-export.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/p2-journal-filter-first.test.mjs",
+          "status": "added",
+          "additions": 138,
+          "deletions": 0
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "returnedFiles": 8,
+      "totalCommits": 21
+    },
+    {
+      "branch": "perf/p2-journal-filter-first-20261125",
+      "closedPrs": [
+        {
+          "number": 510,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 10,
+      "behind": 217,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "95e8f323ca9a0db3a8da3d507579030a58720eff",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "docs/P2-JOURNAL-FILTER-FIRST-2026-11-25.md",
+          "status": "added",
+          "additions": 17,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 1
+        },
+        {
+          "path": "tests/p2-audit-preview-bound.test.mjs",
+          "status": "added",
+          "additions": 50,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 10
+    },
+    {
+      "branch": "port/p0-b01-legacy-json-preflight-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 507,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 230,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "635e4e3dded87a595645bb479e2c74040577ea5d",
+      "changedPaths": [
+        {
+          "path": "docs/P0-B01-LEGACY-JSON-TRANSFER-PREFLIGHT-2026-11-25.md",
+          "status": "added",
+          "additions": 19,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/audit-oneplus-json-transfer.mjs",
+          "status": "added",
+          "additions": 133,
+          "deletions": 0
+        },
+        {
+          "path": "tests/audit-oneplus-json-transfer.test.mjs",
+          "status": "added",
+          "additions": 69,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "port/p0-b04-readonly-installed-signer-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 500,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 237,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "f106e2aa7990ecc5c5ebf99baf5a3c45c54738b1",
+      "changedPaths": [
+        {
+          "path": "docs/P0-B04-INSTALLED-APK-READONLY-AUDIT-2026-11-25.md",
+          "status": "added",
+          "additions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/check-oneplus-upgrade.mjs",
+          "status": "added",
+          "additions": 137,
+          "deletions": 0
+        },
+        {
+          "path": "tests/check-oneplus-upgrade.test.mjs",
+          "status": "added",
+          "additions": 96,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 4
+    },
+    {
+      "branch": "port/p1-b08-readonly-pr-triage-after489-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 491,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 247,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "156181ef07e1c76b83e7afd2df22441ba1ec90cd",
+      "changedPaths": [
+        {
+          "path": "docs/P1-B08-DRAFT-INTEGRATION-ORDER-2026-11-25.md",
+          "status": "added",
+          "additions": 28,
+          "deletions": 0
+        },
+        {
+          "path": "docs/P1-B08-OPEN-PR-TRIAGE-2026-11-25.md",
+          "status": "added",
+          "additions": 47,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/read-only-pr-triage.mjs",
+          "status": "added",
+          "additions": 69,
+          "deletions": 0
+        },
+        {
+          "path": "tests/read-only-pr-triage.test.mjs",
+          "status": "added",
+          "additions": 56,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "port/p1-b09-idb-read-gates-after485-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 486,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 251,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "023ad0dd09435ba9c26042b86f26b960f19dfe9a",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 9
+        },
+        {
+          "path": "docs/P1-B09-MALFORMED-V3-READ-ABORT-GATE-2026-11-25.md",
+          "status": "added",
+          "additions": 26,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0
+        },
+        {
+          "path": "tests/idb-read-abort-and-malformed-v3.test.mjs",
+          "status": "added",
+          "additions": 151,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "port/p1-b11-safe-sw-v318-after485-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 489,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 251,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "023ad0dd09435ba9c26042b86f26b960f19dfe9a",
+      "changedPaths": [
+        {
+          "path": "docs/P1-B11-SW-CACHE-OWNERSHIP-2026-11-25.md",
+          "status": "added",
+          "additions": 29,
+          "deletions": 0
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 3
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/service-worker-offline-lifecycle.test.mjs",
+          "status": "added",
+          "additions": 138,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "port/p1-cloudflare-byte-limit-after485-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 487,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 251,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "023ad0dd09435ba9c26042b86f26b960f19dfe9a",
+      "changedPaths": [
+        {
+          "path": "cloudflare/worker.js",
+          "status": "modified",
+          "additions": 57,
+          "deletions": 2
+        },
+        {
+          "path": "docs/P1-B08-CLOUDFLARE-BOUNDED-BODY-PORT-2026-11-25.md",
+          "status": "added",
+          "additions": 30,
+          "deletions": 0
+        },
+        {
+          "path": "tests/cloudflare-bounded-body.test.mjs",
+          "status": "added",
+          "additions": 103,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "port/p1-legacy-inventory-audit-after485-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 488,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 251,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "023ad0dd09435ba9c26042b86f26b960f19dfe9a",
+      "changedPaths": [
+        {
+          "path": "docs/P1-B08-LEGACY-BODY-REFERENCE-READONLY-2026-11-25.md",
+          "status": "added",
+          "additions": 21,
+          "deletions": 0
+        },
+        {
+          "path": "js/equipment-inventory.js",
+          "status": "modified",
+          "additions": 37,
+          "deletions": 1
+        },
+        {
+          "path": "tests/legacy-layout-body-reference-audit.test.mjs",
+          "status": "added",
+          "additions": 70,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "qa/e2e-journal-browser-20261126",
+      "closedPrs": [
+        {
+          "number": 553,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 208,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "1c45e8cdcdc62dea000848d26cc4176f56fd4d3f",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/e2e-journal.yml",
+          "status": "added",
+          "additions": 35,
+          "deletions": 0
+        },
+        {
+          "path": "tests/e2e/journal-browser.e2e.cjs",
+          "status": "added",
+          "additions": 104,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    },
+    {
+      "branch": "test/b05-debug-apk-provenance-failclosed-20261126",
+      "closedPrs": [
+        {
+          "number": 535,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 227,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "346b35035861257be45dae93ee0573cbd4de9082",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/android-debug.yml",
+          "status": "modified",
+          "additions": 16,
+          "deletions": 1
+        },
+        {
+          "path": "diagnostics/android-debug-artifact/NOT_FOR_ONEPLUS.txt",
+          "status": "added",
+          "additions": 17,
+          "deletions": 0
+        },
+        {
+          "path": "docs/B05-DEBUG-APK-PROVENANCE-F0-F2-2026-11-26.md",
+          "status": "added",
+          "additions": 29,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/audit-android-debug-artifact.mjs",
+          "status": "added",
+          "additions": 92,
+          "deletions": 0
+        },
+        {
+          "path": "tests/audit-android-debug-artifact.test.mjs",
+          "status": "added",
+          "additions": 93,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 2
+    }
+  ]
+}
