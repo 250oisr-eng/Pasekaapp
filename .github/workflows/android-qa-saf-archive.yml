@@ -78,8 +78,10 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import {readFileSync,writeFileSync} from 'node:fs';
-          import {assertQaGradle} from './scripts/prepare-android-qa-config.mjs';
-          assertQaGradle(readFileSync('android/app/build.gradle','utf8'));
+          const gradle=readFileSync('android/app/build.gradle','utf8');
+          const ids=[...gradle.matchAll(/\\bapplicationId\\s*(?:=\\s*)?["']([^"']+)["']/g)].map(m=>m[1]);
+          if(ids.length!==1||ids[0]!=='ru.paseka.journal.qa.archive')
+            throw Error('QA_SAF_BLOCKED: compiled Android applicationId not isolated');
           let source=readFileSync('android/variables.gradle','utf8');
           for(const [key,value] of Object.entries({minSdkVersion:35,compileSdkVersion:35,targetSdkVersion:35})){
             const pattern=new RegExp('(^\\s*'+key+'\\s*=\\s*)\\d+','m');
