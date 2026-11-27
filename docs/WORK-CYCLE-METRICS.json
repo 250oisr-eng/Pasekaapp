@@ -1,4 +1,24 @@
 {
+  "seasonalWorkspaceUI20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 638,
+    "sourceMainSha": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "codeSha": "0e498648db7741c50a17ac3c5e8c4c6562f3c2a0",
+    "targetedTests": 5,
+    "nodeTests": null,
+    "ci": "IN_PROGRESS_NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "visualBrowser": "NOT_TESTED",
+    "integrationDependencies": [
+      637,
+      622
+    ],
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
+  },
   "p0FirstExternalCopyGuide20261127": {
     "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
     "pr": 597,
