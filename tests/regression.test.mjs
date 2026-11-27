@@ -661,7 +661,9 @@ test('workspace exposes eleven routes and one canonical AI entry, plus quick jou
   const nav=html.slice(navStart,navEnd);
   assert.equal((nav.match(/data-tab=/g)||[]).length,11);
   for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','План','Потери','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
-  assert.match(nav,/<span class="nav-ai-label">ИИ<\/span>/);
+  assert.match(nav,/<svg class="nav-ai-bee" aria-hidden="true"/);
+  assert.match(nav,/data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"/);
+  assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
   assert.equal((nav.match(/data-tab="ai"/g)||[]).length,1);
   assert.ok(!html.includes('id="homeAIQuestion"'));
   assert.match(html,/<div class="card home-recent-card"><div class="row"><b>Последние события<\/b><button type="button" onclick="newRecord\(\)">＋ Записать событие<\/button>/);
