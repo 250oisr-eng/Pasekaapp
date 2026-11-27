@@ -1265,5 +1265,21 @@
     },
     "mainExactCI": "NOT_VERIFIED",
     "published": false
+  },
+  "globalSearchReset20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "branch": "feat/ui-global-search-reset-a11y-20261127",
+    "baseMainSha": "4355f9942687e239d59a6b512b6947c0188680e5",
+    "scope": [
+      "index.html",
+      "tests/global-search-reset-a11y.test.mjs",
+      "docs"
+    ],
+    "dataWrites": false,
+    "offlineOnly": true,
+    "nodeCi": "NOT_VERIFIED",
+    "androidCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "merged": false
   }
 }
