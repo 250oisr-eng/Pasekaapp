@@ -1,4 +1,4 @@
-name: Build isolated JS probe QA APK (synthetic only)
+name: Build isolated HTML diagnostic QA APK (synthetic only)
 
 on:
   pull_request:
@@ -64,7 +64,7 @@ jobs:
       - name: Prepare embedded web files
         run: npm run web:prepare
       - name: Set isolated package only in CI checkout
-        run: node scripts/prepare-android-daily-archives.mjs probe-config
+        run: node scripts/prepare-android-daily-archives.mjs dom-config
       - name: Generate and sync Android wrapper
         run: |
           npx cap add android
@@ -78,7 +78,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync,writeFileSync} from 'node:fs';
           const ids=[...readFileSync('android/app/build.gradle','utf8').matchAll(/\bapplicationId\s*(?:=\s*)?["']([^"']+)["']/g)].map(m=>m[1]);
-          if(ids.length!==1||ids[0]!=='ru.paseka.journal.qa.daily.probe')throw Error('DAILY_QA_BLOCKED: wrong generated applicationId');
+          if(ids.length!==1||ids[0]!=='ru.paseka.journal.qa.daily.dom')throw Error('DAILY_QA_BLOCKED: wrong generated applicationId');
           let source=readFileSync('android/variables.gradle','utf8');
           for(const [key,value] of Object.entries({minSdkVersion:35,compileSdkVersion:35,targetSdkVersion:35})){
             const pattern=new RegExp('(^\\s*'+key+'\\s*=\\s*)\\d+','m');
@@ -87,7 +87,7 @@ jobs:
           }
           if(!/^\s*minSdkVersion\s*=\s*35\s*$/m.test(source))throw Error('QA_BLOCKED: minSdk not 35');
           writeFileSync('android/variables.gradle',source);
-          console.log('QA_PACKAGE_VERIFIED ru.paseka.journal.qa.daily.probe / Android API >= 35');
+          console.log('QA_PACKAGE_VERIFIED ru.paseka.journal.qa.daily.dom / Android API >= 35');
           NODE
       - name: Build disposable QA debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
@@ -96,18 +96,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p qa-artifact
-          cp android/app/build/outputs/apk/debug/app-debug.apk qa-artifact/PASEKA-DAILY-PROBE-QA-ONLY.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk qa-artifact/PASEKA-DAILY-DOM-QA-ONLY.apk
           node --input-type=module <<'NODE'
           import {readFileSync,writeFileSync} from 'node:fs';
           import {createHash} from 'node:crypto';
           import {execFileSync} from 'node:child_process';
           import {parseBadging,parseSigning} from './scripts/check-oneplus-upgrade.mjs';
-          const file='qa-artifact/PASEKA-DAILY-PROBE-QA-ONLY.apk';
+          const file='qa-artifact/PASEKA-DAILY-DOM-QA-ONLY.apk';
           const sdk=process.env.ANDROID_HOME+'/build-tools/35.0.0/';
           const call=(cmd,args)=>execFileSync(cmd,args,{encoding:'utf8',timeout:30000,maxBuffer:4*1024*1024});
           const parsed=parseBadging(call(sdk+'aapt',['dump','badging',file]));
           const signers=parseSigning(call(sdk+'apksigner',['verify','--print-certs',file]));
-          if(parsed.packageName!=='ru.paseka.journal.qa.daily.probe'||signers.length!==1){
+          if(parsed.packageName!=='ru.paseka.journal.qa.daily.dom'||signers.length!==1){
             throw Error('QA_BLOCKED: APK identity/signature is unsafe or unverified');
           }
           const sha=call('git',['rev-parse','HEAD']).trim();
@@ -116,7 +116,7 @@ jobs:
           const report={
             artifactKind:'ISOLATED_DISPOSABLE_QA_ONLY_NOT_RELEASE',
             packageName:parsed.packageName,
-            appLabel:'Пасека QA — проверка JavaScript',
+            appLabel:'Пасека QA — диагностика HTML',
             sourceCommitSha:sha,
             apkSha256:createHash('sha256').update(bytes).digest('hex'),
             apkBytes:bytes.length,
@@ -135,7 +135,7 @@ jobs:
         run: |
           printf '%s\n' \
             'PASEKA-DAILY-ARCHIVE-QA-ONLY' \
-            'Separate disposable Android package: ru.paseka.journal.qa.daily.probe' \
+            'Separate disposable Android package: ru.paseka.journal.qa.daily.dom' \
             'Never use to upgrade production ru.paseka.journal.' \
             'Only synthetic test records. Test automatic archive and restore ONLY inside this separate package. No production data.' \
             'Ephemeral debug signer: future in-place upgrades are NOT supported.' \
@@ -144,7 +144,7 @@ jobs:
       - name: Upload QA APK and verifiable public metadata; no user data
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-DAILY-PROBE-QA-APK
+          name: PASEKA-DAILY-DOM-QA-APK
           path: qa-artifact/
           if-no-files-found: error
           retention-days: 7
