@@ -64,3 +64,16 @@ test('queen registry blocks navigation on missing or malformed indices without e
  }
  assert.equal(api(null,'q','f','h'),null);
 });
+
+test('queen registry renderer reports corrupt indexes without mutating state',()=>{
+ const fields={queenRegistryList:{innerHTML:'',textContent:''},queenRegistryResultCount:{textContent:''}};
+ const state={queens:[{id:'q',familyId:'f'}],families:{damaged:true},hives:[{id:'h'}],queenEvents:[]};
+ const before=JSON.stringify(state);
+ const api=new Function('$','S',source+';return {renderQueenRegistry,queenRegistryFamily}')(
+  id=>fields[id],state);
+ assert.doesNotThrow(()=>api.renderQueenRegistry());
+ assert.match(fields.queenRegistryList.textContent,/Реестр маток повреждён/);
+ assert.equal(fields.queenRegistryResultCount.textContent,'Проверка данных требуется');
+ assert.equal(api.queenRegistryFamily(state,'q','f','h'),null);
+ assert.equal(JSON.stringify(state),before);
+});
