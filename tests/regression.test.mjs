@@ -148,7 +148,9 @@ test('queen registry renders chronological event timelines, unknown dates and pr
  const escapeHtml=value=>String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
  const render=loadFunction('renderQueenRegistry',{
   $:id=>id==='queenRegistryList'?host:null,
+  queenRegistryFamily:loadFunction('queenRegistryFamily'),
   S:{
+   hives:[{id:'h1'}],
    families:[{id:'f1',name:'Семья 1',hive:'h1',currentQueenId:'q2'}],
    queens:[
     {id:'q1',familyId:'f1',code:'Q-OLD',status:'replaced',createdAt:'2026-05-01T00:00:00Z'},
