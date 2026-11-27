@@ -28,6 +28,14 @@ jobs:
         run: node tests/e2e/journal-browser.e2e.cjs
       - name: Real browser navigation geometry (responsive, synthetic only)
         run: node tests/e2e/navigation-layout.e2e.cjs
+      - name: Two-row UX screenshot evidence (synthetic only, short retention)
+        if: success() && github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nav-geometry-synthetic-review
+          path: e2e-nav-review-*.png
+          if-no-files-found: ignore
+          retention-days: 2
       - name: Synthetic screenshots on failure
         if: failure()
         uses: actions/upload-artifact@v4

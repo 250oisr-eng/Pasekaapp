@@ -108,5 +108,7 @@ test('responsive compact navigation reorders existing nodes only and preserves f
   assert.match(html,/focused\.focus\(\{preventScroll:true\}\)/);
   assert.match(css,/grid-template-columns:repeat\(12,minmax\(0,1fr\)\)/);
   assert.match(css,/clip-path:none; \/\* Narrow screens/);
+  assert.match(css,/font-size:clamp\(11px,3vw,12px\)/);
+  assert.match(css,/@media\(max-width:340px\)[\s\S]*?button\{font-size:11px\}/);
   assert.ok(css.includes('main{padding-bottom:calc(160px + env(safe-area-inset-bottom,0px))!important}'));
 });

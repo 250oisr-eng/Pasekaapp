@@ -47,6 +47,7 @@ const measure=()=> {
       t.top<r.top-1||t.bottom>r.bottom+1);
     return {tab:button.dataset.tab,...r,visible:cs.visibility!=='hidden'&&cs.display!=='none',
       hit:hit===button||button.contains(hit),textOutside,
+      fontSize:parseFloat(cs.fontSize),
       overflowX:button.scrollWidth>button.clientWidth+1,
       overflowY:button.scrollHeight>button.clientHeight+1};
   });
@@ -116,6 +117,7 @@ const measure=()=> {
         if(m.overlaps.length)problems.push('overlapping tap rectangles: '+JSON.stringify(m.overlaps));
         for(const b of m.buttons){
           if(!b.visible)problems.push(b.tab+' hidden');
+          if(compact && b.fontSize<10.9)problems.push(b.tab+' unreadable compact font '+b.fontSize);
           if(b.width<43.5||b.height<43.5)problems.push(b.tab+' tap target '+Math.round(b.width)+'x'+Math.round(b.height));
           if(!b.hit)problems.push(b.tab+' center hit is intercepted');
           if(b.textOutside||b.overflowX||b.overflowY)problems.push(b.tab+' label overflows');
@@ -126,6 +128,8 @@ const measure=()=> {
         navHeight:m.nav?.height,mainPaddingBottom:m.mainPaddingBottom,
         aiDelta:m.aiDelta,overlaps:m.overlaps,problems,
         source:'local-Chromium-synthetic',realAndroid:'NOT_TESTED'}));
+      if(name==='portrait-320'||name==='portrait-390')
+        await page.screenshot({path:'e2e-nav-review-'+name+'.png',fullPage:false});
       if(problems.length){
         failures.push(name+': '+problems.join('; '));
         await page.screenshot({path:'e2e-nav-'+name+'-failure.png'}).catch(()=>{});
