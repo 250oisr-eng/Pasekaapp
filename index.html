@@ -3757,17 +3757,32 @@ function toggleBroodBox(n){
  else l.installedBoxes.push(n);
  save();
 }
-function toggleHoneyPair(){
+async function savePhysicalAssemblyMutation(previous){
+ let saved=false,failure='';
+ try{saved=await save()}catch(error){failure=error?.message||'Ошибка сохранения'}
+ if(saved)return true;
+ failure=S.meta?.saveError||failure||'Сохранение не подтверждено';
+ S=previous;
+ S.meta=S.meta||{};
+ S.meta.saveError=failure;
+ try{render()}catch(error){console.error('Не удалось перерисовать комплектацию после отмены',error)}
+ try{alert('Изменение комплектации не сохранено и отменено. '+failure)}catch(error){console.error('Не удалось показать сообщение о сохранении',error)}
+ return false;
+}
+async function toggleHoneyPair(){
  const hiveId=selectedStructureHive(),l=layoutFor(hiveId);if(l.mode==='winter')return alert('Медовые корпуса не устанавливаются в зимней сборке. Сначала перейди в летний режим.');
  const on=l.honeyBoxInstalled.some(Boolean);
  if(on){
   const hasData=l.honeyFrames.some(arr=>arr.some(fr=>(fr.status&&fr.status!=='foundation')||(fr.type&&fr.type!=='foundation')||fr.note));
   if(hasData&&!confirm('В медовых корпусах есть данные рамок. Снять оба корпуса с улья, сохранив все данные?'))return;
-  l.honeyBoxInstalled=[false,false];
- }else l.honeyBoxInstalled=[true,true];
+ }
+ let previous;
+ try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную перестановку: '+(error.message||error));return false}
+ if(on)l.honeyBoxInstalled=[false,false];
+ else l.honeyBoxInstalled=[true,true];
  l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
  logAudit(on?'honey_pair_removed':'honey_pair_installed',{hiveId,boxes:['H1','H2']});
- save();
+ return savePhysicalAssemblyMutation(previous);
 }
 function toggleHoneyBox(){toggleHoneyPair()}
 function syncBoxOrigin(){const wrap=$('offshootParentWrap'),sel=$('offshootParent');if(!wrap||!sel)return;wrap.style.display=$('boxOrigin').value==='offshoot'?'block':'none'}
