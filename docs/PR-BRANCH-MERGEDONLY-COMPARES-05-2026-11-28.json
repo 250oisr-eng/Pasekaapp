@@ -1,0 +1,744 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 5,
+  "start": 60,
+  "rows": [
+    {
+      "branch": "docs/record-status-journal-checkpoint-pr140-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 141,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 1078,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "562c3a7794e0b0c1dc5fda46bb89169274fc5446",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 3
+        }
+      ],
+      "returnedFiles": 1,
+      "totalCommits": 1
+    },
+    {
+      "branch": "docs/resolve-b03-main-archive-integration-20261127",
+      "closedPrs": [
+        {
+          "number": 626,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 31,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 29,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "docs/РЕЕСТР-БЛОКЕРОВ.md",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 2
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "docs/sectional-layout-contract-checkpoint-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 138,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 6,
+      "behind": 1081,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "f3de349a5018c557bfdb580071cf235018dd2dfd",
+      "changedPaths": [
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 1
+        },
+        {
+          "path": "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 17
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 1
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 6
+    },
+    {
+      "branch": "docs/source-docx-recovery-protocol-main-20261126",
+      "closedPrs": [
+        {
+          "number": 562,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 199,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "ea0d09bc10b577c95b7471746ba31399ff676089",
+      "changedPaths": [
+        {
+          "path": "docs/ПРОТОКОЛ-ЧТЕНИЯ-ИСХОДНЫХ-DOCX.md",
+          "status": "added",
+          "additions": 86,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 1,
+      "totalCommits": 1
+    },
+    {
+      "branch": "docs/ui-603-604-post-merge-status-20261127",
+      "closedPrs": [
+        {
+          "number": 605,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 48,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "0a86b8a2535e3c7b012e150a9a84535693093ce8",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "docs/ui-607-postmerge-checkpoint-20261127",
+      "closedPrs": [
+        {
+          "number": 608,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 46,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7f2f7aad126bebe45670775eb0ced93dd371813b",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 5
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 3
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "docs/ui-search-postmerge-final-20261127",
+      "closedPrs": [
+        {
+          "number": 611,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 43,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "1c0ff2390898b8c0fd17063569749bbdf38d98c2",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "docs/ui187-partial-port-checkpoint-20261126",
+      "closedPrs": [
+        {
+          "number": 588,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 6,
+      "behind": 156,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "docs/PR-AUDIT-CHECKPOINT-2026-11-26-M.md",
+          "status": "added",
+          "additions": 25,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PR-AUDIT-ROOTS-2026-11-26-K.json",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 1
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 37,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 6
+    },
+    {
+      "branch": "docs/varroa-treatment-sublimation-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 153,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 459,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "ef8fe87fd3336cff82aa31b7c99064d930d016c8",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "docs/verify-lineage-guard-ci-and-source-limitations-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 133,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 1085,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "45be293a0d3ce13423f95f382266bea625464d5f",
+      "changedPaths": [
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 2
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 7
+    },
+    {
+      "branch": "docs/workflow-merge-checkpoint-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 110,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 1107,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "1528a1bcaf35cf6c4db7f162e723417afb161340",
+      "changedPaths": [
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    },
+    {
+      "branch": "feat/b01-qa-saf-archive-export-20261127",
+      "closedPrs": [
+        {
+          "number": 619,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 14,
+      "behind": 35,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "e5fdb2d295c062795820268b0997ebca01a54fde",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/android-qa-saf-archive.yml",
+          "status": "added",
+          "additions": 155,
+          "deletions": 0
+        },
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 4
+        },
+        {
+          "path": "docs/ONEPLUS-QA-SAF-ARCHIVE-2026-11-27.md",
+          "status": "added",
+          "additions": 30,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "qa/native/PasekaSafExportPlugin.java",
+          "status": "added",
+          "additions": 180,
+          "deletions": 0
+        },
+        {
+          "path": "qa/native/qa-saf-export.js",
+          "status": "added",
+          "additions": 41,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/prepare-android-qa-saf.mjs",
+          "status": "added",
+          "additions": 61,
+          "deletions": 0
+        },
+        {
+          "path": "tests/qa-saf-archive-export.test.mjs",
+          "status": "added",
+          "additions": 63,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 10,
+      "totalCommits": 14
+    },
+    {
+      "branch": "feat/b01-two-daily-archives",
+      "closedPrs": [
+        {
+          "number": 623,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 25,
+      "behind": 33,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "50cfdfd66e2691e471b698fbc53af0d16d99aa98",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/android-debug.yml",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": ".github/workflows/android-qa-daily-archives.yml",
+          "status": "added",
+          "additions": 149,
+          "deletions": 0
+        },
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 5
+        },
+        {
+          "path": "android-native/PasekaDailyArchiveJob.java",
+          "status": "added",
+          "additions": 108,
+          "deletions": 0
+        },
+        {
+          "path": "android-native/daily-archive-worker.js",
+          "status": "added",
+          "additions": 45,
+          "deletions": 0
+        },
+        {
+          "path": "docs/B01-DAILY-TWO-ARCHIVES-2026-11-27.md",
+          "status": "added",
+          "additions": 35,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 49,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "docs/РЕЕСТР-БЛОКЕРОВ.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 150,
+          "deletions": 5
+        },
+        {
+          "path": "js/daily-archives.js",
+          "status": "added",
+          "additions": 183,
+          "deletions": 0
+        },
+        {
+          "path": "js/disaster-archive.js",
+          "status": "modified",
+          "additions": 109,
+          "deletions": 15
+        },
+        {
+          "path": "package.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "scripts/prepare-android-daily-archives.mjs",
+          "status": "added",
+          "additions": 94,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/prepare-web.mjs",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 0
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "tests/android-daily-archive-worker.test.mjs",
+          "status": "added",
+          "additions": 37,
+          "deletions": 0
+        },
+        {
+          "path": "tests/daily-archives.test.mjs",
+          "status": "added",
+          "additions": 236,
+          "deletions": 0
+        },
+        {
+          "path": "tests/disaster-archive-read-abort.test.mjs",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/e2e/journal-browser.e2e.cjs",
+          "status": "modified",
+          "additions": 132,
+          "deletions": 0
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/service-worker-offline-lifecycle.test.mjs",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 7
+        },
+        {
+          "path": "tests/sw-cache-boundary.test.mjs",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 7
+        }
+      ],
+      "returnedFiles": 25,
+      "totalCommits": 25
+    },
+    {
+      "branch": "feat/equipment-items-domain-model-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 134,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 11,
+      "behind": 1084,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "fc5863ee4baf0d803fc65f8177979c2504bf9b71",
+      "changedPaths": [
+        {
+          "path": "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+          "status": "modified",
+          "additions": 42,
+          "deletions": 0
+        },
+        {
+          "path": "js/equipment-items.js",
+          "status": "added",
+          "additions": 276,
+          "deletions": 0
+        },
+        {
+          "path": "tests/equipment-items.test.mjs",
+          "status": "added",
+          "additions": 240,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 11
+    },
+    {
+      "branch": "feat/equipment-items-runtime-validation-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 136,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 1083,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "16b906b97f8dcdfbffe629a5ad6330884768a92d",
+      "changedPaths": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 42,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    }
+  ]
+}

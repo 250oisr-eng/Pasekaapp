@@ -1,0 +1,583 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 6,
+  "start": 75,
+  "rows": [
+    {
+      "branch": "feat/family-events-runtime-integration-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 146,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 1016,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "ffbf931453868208460e59d274e09d6c557b8297",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "feat/family-lineage-model-clean-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 128,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 14,
+      "behind": 1089,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7f2fff2767ec21b0b5bd7045c556f9e650c0c07f",
+      "changedPaths": [
+        {
+          "path": "js/family-lineage.js",
+          "status": "added",
+          "additions": 633,
+          "deletions": 0
+        },
+        {
+          "path": "tests/family-lineage.test.mjs",
+          "status": "added",
+          "additions": 444,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 14
+    },
+    {
+      "branch": "feat/full-frame-inventory-traceability-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 151,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 609,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "5980b5b9f619abd441a3830b24b43f64a0f6f446",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "feat/full-installed-corpus-frame-capacity-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 152,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 516,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "a82d4137a6f1edab5066cc50f123642d6ea8ecfa",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "feat/p0-b01-offline-archive-verifier-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 501,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 237,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "f106e2aa7990ecc5c5ebf99baf5a3c45c54738b1",
+      "changedPaths": [
+        {
+          "path": "docs/P0-B01-EXPORTED-FILE-OFFLINE-VERIFIER-2026-11-25.md",
+          "status": "added",
+          "additions": 20,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/verify-exported-archive.mjs",
+          "status": "added",
+          "additions": 78,
+          "deletions": 0
+        },
+        {
+          "path": "tests/verify-exported-archive.test.mjs",
+          "status": "added",
+          "additions": 86,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 4
+    },
+    {
+      "branch": "feat/p0-b01-readonly-local-media-copy-audit-20261126",
+      "closedPrs": [
+        {
+          "number": 541,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 15,
+      "behind": 211,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "104e129e0134168e60b52816e85f75e698036c55",
+      "changedPaths": [
+        {
+          "path": "docs/B01-ЛОКАЛЬНАЯ-СВЕРКА-МЕДИА-КОПИЙ-2026-11-26.md",
+          "status": "added",
+          "additions": 25,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/audit-local-media-copy.mjs",
+          "status": "added",
+          "additions": 107,
+          "deletions": 0
+        },
+        {
+          "path": "tests/audit-local-media-copy.test.mjs",
+          "status": "added",
+          "additions": 86,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 15
+    },
+    {
+      "branch": "feat/p0-b01-unified-readonly-recovery-audit-20261126",
+      "closedPrs": [
+        {
+          "number": 542,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 39,
+      "behind": 210,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "2330bf4243ea9ec8765dc110645dadfc02c283b3",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/b01-unified-local-kit.yml",
+          "status": "added",
+          "additions": 105,
+          "deletions": 0
+        },
+        {
+          "path": "docs/B01-ЕДИНЫЙ-ТЕСТ-ИНСТРУКЦИЯ-2026-11-26.md",
+          "status": "added",
+          "additions": 49,
+          "deletions": 0
+        },
+        {
+          "path": "docs/B01-ЕДИНЫЙ-ТЕСТ-КОНТРАКТ-2026-11-26.md",
+          "status": "added",
+          "additions": 43,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/run-unified-recovery-audit.mjs",
+          "status": "added",
+          "additions": 100,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/verify-exported-archive.mjs",
+          "status": "modified",
+          "additions": 45,
+          "deletions": 4
+        },
+        {
+          "path": "tests/unified-recovery-audit.test.mjs",
+          "status": "added",
+          "additions": 115,
+          "deletions": 0
+        },
+        {
+          "path": "tools/b01-unified/RUN-LOCAL-AUDIT.cmd",
+          "status": "added",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "tools/b01-unified/choose-local-files.ps1",
+          "status": "added",
+          "additions": 55,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 8,
+      "totalCommits": 39
+    },
+    {
+      "branch": "feat/p0-g0-readonly-source-inventory-2026-11-24",
+      "closedPrs": [
+        {
+          "number": 468,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 346,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "b8b8e7dffa554dc16a16762c2d41c34c0c9b9574",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "feat/p1-journal-filtered-csv-export-20261126",
+      "closedPrs": [
+        {
+          "number": 548,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 12,
+      "behind": 218,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "8ee72eb6d8754a3baaf41a78d797ce6e45533081",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 51,
+          "deletions": 9
+        },
+        {
+          "path": "tests/journal-csv-export.test.mjs",
+          "status": "added",
+          "additions": 92,
+          "deletions": 0
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 12
+    },
+    {
+      "branch": "feat/qa-isolated-current-main-20261127",
+      "closedPrs": [
+        {
+          "number": 613,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 8,
+      "behind": 41,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "14b398c97354800062b170e835a97bf7c76b7eb5",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/android-qa-isolated.yml",
+          "status": "added",
+          "additions": 146,
+          "deletions": 0
+        },
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4
+        },
+        {
+          "path": "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+          "status": "added",
+          "additions": 28,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 25,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/prepare-android-qa-config.mjs",
+          "status": "added",
+          "additions": 44,
+          "deletions": 0
+        },
+        {
+          "path": "tests/android-qa-config.test.mjs",
+          "status": "added",
+          "additions": 55,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 8,
+      "totalCommits": 8
+    },
+    {
+      "branch": "feat/queen-absence-confirmation-event-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 142,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 46,
+      "behind": 1077,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "20e7737d1586a190349d62c243a593bf39cb9689",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 53,
+          "deletions": 27
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 2
+        },
+        {
+          "path": "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+          "status": "modified",
+          "additions": 33,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 18
+        },
+        {
+          "path": "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ТЗ-ТЕХПРОЦЕССА.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "js/family-lineage.js",
+          "status": "modified",
+          "additions": 96,
+          "deletions": 6
+        },
+        {
+          "path": "tests/family-lineage.test.mjs",
+          "status": "modified",
+          "additions": 184,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 10,
+      "totalCommits": 46
+    },
+    {
+      "branch": "feat/sectional-layout-contract-v1-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 137,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 21,
+      "behind": 1082,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "febff4547e996fbec00f7d56b61fb5b20d6d9b4b",
+      "changedPaths": [
+        {
+          "path": "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+          "status": "modified",
+          "additions": 54,
+          "deletions": 40
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 2
+        },
+        {
+          "path": "js/sectional-physical-layout.js",
+          "status": "added",
+          "additions": 263,
+          "deletions": 0
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/plant-module.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 56,
+          "deletions": 1
+        },
+        {
+          "path": "tests/sectional-physical-layout.test.mjs",
+          "status": "added",
+          "additions": 262,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 7,
+      "totalCommits": 21
+    },
+    {
+      "branch": "feat/sectional-op04-atomic-coordinator-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 148,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 923,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "27cb4de3f8bf8848475aa9877bb84affb7a51a83",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "feat/sectional-op05-atomic-mesh-plug-install-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 149,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 785,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "f8053b9a91e873ecfd61c07f5f8657ca53b42a02",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "feat/sectional-op07-atomic-honey-stage-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 150,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 672,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "70583dc435674de5984640b727cc3f6064c2ca17",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    }
+  ]
+}

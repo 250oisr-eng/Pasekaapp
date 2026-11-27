@@ -1,0 +1,559 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 9,
+  "start": 120,
+  "rows": [
+    {
+      "branch": "fix/p1-honey-pair-staged-main-20261126",
+      "closedPrs": [
+        {
+          "number": 583,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 5,
+      "behind": 161,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "70e9cec1be2d6b5aea032b55c1c91fa9de0840ae",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "docs/P1-HONEY-PAIR-STAGED-SELECTIVE-2026-11-26.md",
+          "status": "added",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 1
+        },
+        {
+          "path": "tests/honey-pair-profile-validation.test.mjs",
+          "status": "added",
+          "additions": 104,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 5
+    },
+    {
+      "branch": "fix/p1-idb-required-stores-open-gate-2026-11-24",
+      "closedPrs": [
+        {
+          "number": 473,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 325,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "157b1bf699fd7cd3294326ef91ad5b208c1b1700",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p1-journal-physical-brood-capacity-20261126",
+      "closedPrs": [
+        {
+          "number": 570,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 8,
+      "behind": 191,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "10a77e046d1120d7f8286cd6cdbb3cb8348c99b7",
+      "changedPaths": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 50,
+          "deletions": 15
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/journal-physical-capacity.test.mjs",
+          "status": "added",
+          "additions": 107,
+          "deletions": 0
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 12
+        },
+        {
+          "path": "tests/service-worker-offline-lifecycle.test.mjs",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 8
+        },
+        {
+          "path": "tests/sw-cache-boundary.test.mjs",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 7
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 8
+    },
+    {
+      "branch": "fix/p1-json-family-hive-review-main-port-20261126",
+      "closedPrs": [
+        {
+          "number": 559,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 202,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "0619c44e244568f4f8df8283161e035efffcc5eb",
+      "changedPaths": [
+        {
+          "path": "scripts/audit-oneplus-json-transfer.mjs",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 0
+        },
+        {
+          "path": "tests/audit-oneplus-json-transfer.test.mjs",
+          "status": "modified",
+          "additions": 74,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    },
+    {
+      "branch": "fix/p1-main-journal-varroa-rollback-2026-11-24",
+      "closedPrs": [
+        {
+          "number": 475,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 283,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "4c296752e20e117ca94b2f34c14262b29737aaf3",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p1-safe-physical-body-swap-main-20261126",
+      "closedPrs": [
+        {
+          "number": 563,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 198,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "69adb18a20abfc58eb6c26e2fd1a8c351ab9e8ab",
+      "changedPaths": [
+        {
+          "path": "js/equipment-bodies.js",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 1
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/equipment-bodies.test.mjs",
+          "status": "modified",
+          "additions": 36,
+          "deletions": 1
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/service-worker-offline-lifecycle.test.mjs",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 8
+        },
+        {
+          "path": "tests/sw-cache-boundary.test.mjs",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 6
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 7
+    },
+    {
+      "branch": "fix/p1-sw-refuse-partial-shell-20261125",
+      "closedPrs": [
+        {
+          "number": 515,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 12,
+      "behind": 225,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "fb73a5bda488e67a610cce7f459a48c827666a0d",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4
+        },
+        {
+          "path": "docs/P1-SW-PARTIAL-RESPONSE-2026-11-25.md",
+          "status": "added",
+          "additions": 20,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 3
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/service-worker-install-private.test.mjs",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 2
+        },
+        {
+          "path": "tests/service-worker-offline-lifecycle.test.mjs",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 8
+        },
+        {
+          "path": "tests/sw-cache-boundary.test.mjs",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 8,
+      "totalCommits": 12
+    },
+    {
+      "branch": "fix/p1-sw-reject-redirected-shell-20261125",
+      "closedPrs": [
+        {
+          "number": 530,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 29,
+      "behind": 224,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "8a382790327f0a8035cf605224915ecf9c10b0c5",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 5
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/service-worker-install-private.test.mjs",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 2
+        },
+        {
+          "path": "tests/service-worker-offline-lifecycle.test.mjs",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 8
+        },
+        {
+          "path": "tests/sw-cache-boundary.test.mjs",
+          "status": "modified",
+          "additions": 85,
+          "deletions": 2
+        }
+      ],
+      "returnedFiles": 7,
+      "totalCommits": 29
+    },
+    {
+      "branch": "fix/p1-sw-safe-cache-main-2026-11-23",
+      "closedPrs": [
+        {
+          "number": 443,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 429,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "84bfc1316cf51ffcdbd16dec2687f2462c20e7cb",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/pages-manual-release-gate-2026-11-23",
+      "closedPrs": [
+        {
+          "number": 447,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 399,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "ec3e47405f2131553ce37e624d04e628942bdfea",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/persist-snapshot-post-commit-main-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 115,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 1102,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "cb55c0c7574e0bed78c1ad033f74b228e22a622e",
+      "changedPaths": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 42,
+          "deletions": 19
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 79,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 3
+    },
+    {
+      "branch": "fix/qa-failclosed-tap-summary-20261126",
+      "closedPrs": [
+        {
+          "number": 585,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 11,
+      "behind": 159,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "f52f27fd4e69f3bdcc16aa57e78ff01c29dd74c4",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 2
+        },
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/QA-TAP-EVIDENCE-SELECTIVE-2026-11-26.md",
+          "status": "added",
+          "additions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/qa-tap-evidence.mjs",
+          "status": "added",
+          "additions": 69,
+          "deletions": 0
+        },
+        {
+          "path": "tests/qa-tap-evidence.test.mjs",
+          "status": "added",
+          "additions": 99,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 7,
+      "totalCommits": 11
+    },
+    {
+      "branch": "fix/sectional-inventory-location-main-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 145,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 1038,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "e14dd6eaa3cec9fe3daa57e2daea0a16d1f638b7",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/ui-187-honeycomb-overview-20261127",
+      "closedPrs": [
+        {
+          "number": 595,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 59,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "78844736fb02ac6b2db4951b007845d5f2613fda",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/ui-a11y-selective-187-20261127",
+      "closedPrs": [
+        {
+          "number": 593,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 113,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "45328a522ed3950155bf7f317090c8919395032a",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    }
+  ]
+}

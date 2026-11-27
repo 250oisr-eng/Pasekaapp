@@ -1,0 +1,711 @@
+{
+  "kind": "POST_COMPARE_BRANCH_HEAD_SNAPSHOT_NOT_EXACT_TIME_OF_COMPARE",
+  "mainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "branchCount": 674,
+  "heads": [
+    {
+      "branch": "audit/p0-b04-signer-device-gates-2026-11-25",
+      "headSha": "9dd6d50cac6cce8e756c2ed429084aa5b49f4ff9"
+    },
+    {
+      "branch": "audit/pr-complete-filepaths-20261126",
+      "headSha": "8d5e6805d1f4cdbb7e980960d3ffb67f69a9615d"
+    },
+    {
+      "branch": "audit/pr-live-graph-census-20261126",
+      "headSha": "852b2a496fb8ba8e7d7fbc691b27980f4c8f150a"
+    },
+    {
+      "branch": "audit/pr-portfolio-checkpoint-2026-11-26-b",
+      "headSha": "9816378878beae3b544d59311df0d1e66b98d06b"
+    },
+    {
+      "branch": "audit/pr-portfolio-reconcile-20261126",
+      "headSha": "b9e7ab1ca08ae51a455f3d74ba737b76096fc3e7"
+    },
+    {
+      "branch": "audit/pr-portfolio-triage-20261126",
+      "headSha": "05f537ac3584ce69f5c096549707a1df67bc6a41"
+    },
+    {
+      "branch": "audit/pr-root-safety-reconcile-20261126",
+      "headSha": "feb7312dfb00f5a3e785eeb7305020a53d37da8c"
+    },
+    {
+      "branch": "audit/root-33-line-diff-20261126",
+      "headSha": "fd8567621ebb23f8a2846cd4f706175cadbfaca1"
+    },
+    {
+      "branch": "audit/root-33-unique-code-matrix-20261126",
+      "headSha": "0455e4f4c1f22b8712c68c295afe3c2260b5e7d5"
+    },
+    {
+      "branch": "audit/techprocess-safety-review-2026-11-16",
+      "headSha": "b190c6e56099c5dd9f35a9f2904c7db065bd5a13"
+    },
+    {
+      "branch": "ci/run-android-validation-on-pull-requests-2026-11-17",
+      "headSha": "d4bbf28e7fdc198c684910362e8314cf439d9b67"
+    },
+    {
+      "branch": "docs/add-root-project-status-journal-2026-11-17",
+      "headSha": "6b2bb4a73c14cc25844d7d06172d9cbb6b0aeb8b"
+    },
+    {
+      "branch": "docs/audit-p1-journal-p0-startup-20261126",
+      "headSha": "54b0c4189d58df8621a84de75cc9d4dcad352a09"
+    },
+    {
+      "branch": "docs/b01-archive-zip-fail-postmerge-20261127",
+      "headSha": "5f4fb9d03d6ded7da90193824b27946bde465763"
+    },
+    {
+      "branch": "docs/b01-qa-saf-built-device-gate-20261127",
+      "headSha": "033f520b899c542b1cd65a4c6a53a7a1d8b1be8c"
+    },
+    {
+      "branch": "docs/b06-two-licensed-research-tracks-main-20261126",
+      "headSha": "7c5b80b49ab3432c88f2c38606b76389961ff154"
+    },
+    {
+      "branch": "docs/blocker-registry-lifecycle-2026-11-24",
+      "headSha": "a36eb74edf5ca1a5263250cc8e1bde1e54deded9"
+    },
+    {
+      "branch": "docs/completed-journal-csv-performance-cycle-20261126",
+      "headSha": "0f278fdccec0b0502d058b94af9c5a628250dc69"
+    },
+    {
+      "branch": "docs/correct-frame-height-confirmation-2026-11-17",
+      "headSha": "07de72ba921da5c2d83543d4c8215c2fb16f007b"
+    },
+    {
+      "branch": "docs/development-workflow-2026-11-17",
+      "headSha": "00ff965f17378805282ec2a314bb2518842951e1"
+    },
+    {
+      "branch": "docs/family-layout-architecture-audit-2026-11-17",
+      "headSha": "d6067ea62a145328d1272073ccb31420dc321b42"
+    },
+    {
+      "branch": "docs/family-lineage-model-checkpoint-2026-11-17",
+      "headSha": "f86d6ece7b97e0bff5fc8ae0e8d929f8890afee3"
+    },
+    {
+      "branch": "docs/finalize-root-audit-n-20261126",
+      "headSha": "cdd598ec4b9ac36827081dceec6f58ea9363ddad"
+    },
+    {
+      "branch": "docs/frame-history-guard-checkpoint-2026-11-17",
+      "headSha": "b2a3265c0296171cb175ecdc933d777d28a5340c"
+    },
+    {
+      "branch": "docs/free-only-tools-and-ai-collaboration",
+      "headSha": "861a7b219164f6a9d80d76b7f5990e2c2fcc72b6"
+    },
+    {
+      "branch": "docs/governance-f0-f7-compact-status-2026-11-24",
+      "headSha": "dc7ad01724dfca8394fbc6b676c42aae01bc12d7"
+    },
+    {
+      "branch": "docs/governance-wip-stop-selective-20261126",
+      "headSha": "9b44124d7bf9a783f43dfb02d846ea6742804682"
+    },
+    {
+      "branch": "docs/hive-deletion-rollback-checkpoint-2026-11-17",
+      "headSha": "6f3610d0a5abeb70d6013d97a4c9d9197c0bb048"
+    },
+    {
+      "branch": "docs/hive-family-mutation-rollback-checkpoint-2026-11-17",
+      "headSha": "e5e723dc8c34a7fd394e010d91fcea60170bae2d"
+    },
+    {
+      "branch": "docs/integration-equipment-voice-20261126",
+      "headSha": "0e32c7bee392ea3dce3c0128813dd30afb762541"
+    },
+    {
+      "branch": "docs/integration-ledger-post-485-488-2026-11-25",
+      "headSha": "10a3708d4966d28d024d2ccf9546218c789497f4"
+    },
+    {
+      "branch": "docs/inventory-atomicity-checkpoint-2026-11-17",
+      "headSha": "f1c9ca25831b9059e8aca02f0d33f1f1b5257c30"
+    },
+    {
+      "branch": "docs/merge-release-authority-2026-11-17",
+      "headSha": "e5d2874692183e7d1e7df422e69a0e11f7bd2ee0"
+    },
+    {
+      "branch": "docs/oneplus-qa-binary-ready-20261127",
+      "headSha": "856cd64afc1db949a5d056aee61f4b64897955af"
+    },
+    {
+      "branch": "docs/oneplus-qa-cycle1-pass-cycle2-20261127",
+      "headSha": "5d0bc502376d4e809fc66850ed8b3d907c3f712e"
+    },
+    {
+      "branch": "docs/oneplus-qa-cycle2-pass-cycle3-20261127",
+      "headSha": "bcdfaa2b9ff85e18321ba7bb4b5c4b2eb3ac4e80"
+    },
+    {
+      "branch": "docs/p0-b01-b04-op13-cycle-f7-2026-11-25",
+      "headSha": "4cee12ef7dfdbf4d531f2c12eb284cb6cc45cbf6"
+    },
+    {
+      "branch": "docs/p0-b01-local-verifier-json-pair-f7-2026-11-25",
+      "headSha": "c0efb5fee83103c6e92e546b6389fe9496c9bddb"
+    },
+    {
+      "branch": "docs/p0-startup-write-gate-f7-2026-11-25",
+      "headSha": "eb39d59acb9b215f039a7d79d063d52a8094cbd9"
+    },
+    {
+      "branch": "docs/p1-op13-regular-vs-honey-source-contract-2026-11-25",
+      "headSha": "0ee675d16d23f21ae2b89d52dc755d61cde17549"
+    },
+    {
+      "branch": "docs/parallel-7-track-cycle-status-2026-11-25",
+      "headSha": "4227cfe5b826cc2ddee9ddf3664b6dfb80efc062"
+    },
+    {
+      "branch": "docs/persist-snapshot-pr-checkpoint-2026-11-17",
+      "headSha": "35424601fc7fbea0843962dba6fd3ccb327886d3"
+    },
+    {
+      "branch": "docs/persistence-commit-integration-checkpoint-2026-11-17",
+      "headSha": "4546a0b86299b817815af67c727ed278fa70c423"
+    },
+    {
+      "branch": "docs/persistence-integration-checkpoint-2026-11-17",
+      "headSha": "3244456d87d3b460e5ce103bbf844707951cac67"
+    },
+    {
+      "branch": "docs/post-merge-591-root-triage-20261127",
+      "headSha": "e98f686c928f0064dfa7795b5753777cdfef3d67"
+    },
+    {
+      "branch": "docs/post-merge-593-ux-status-20261127",
+      "headSha": "66f6c794c6b94636fdebfde0172d72ca3bc986d9"
+    },
+    {
+      "branch": "docs/pr-audit-cycle-f-20261126",
+      "headSha": "f8fb6a475a3a1d2ef2508b04c6cc337ebcb6b0c0"
+    },
+    {
+      "branch": "docs/pr-audit-final-post-b01-20261126",
+      "headSha": "f7359a33b5ae132a6ff9204de015ce0b381f98d0"
+    },
+    {
+      "branch": "docs/pr-audit-final-sync-20261126",
+      "headSha": "6fdc90b10695dae9f7486c00530253c0c272ea22"
+    },
+    {
+      "branch": "docs/pr-audit-i-code-merge-finalize-20261126",
+      "headSha": "a66090c63f37eb5fa7bdb986851fd743a3201921"
+    },
+    {
+      "branch": "docs/pr-audit-qa-553-checkpoint-20261126",
+      "headSha": "13d50ef3436bd0ea043d71cd104c2cf1f641720c"
+    },
+    {
+      "branch": "docs/pr-inventory-and-current-state-2026-11-17",
+      "headSha": "f173b1c7ba5249065df504dffb15e23149abde8d"
+    },
+    {
+      "branch": "docs/pr-portfolio-audit-cycle-c-20261126",
+      "headSha": "95ff8e3fb8e5290240cd651f70cb23871ebbb10e"
+    },
+    {
+      "branch": "docs/pr-portfolio-audit-cycle-d-20261126",
+      "headSha": "645e3e26647f866f6449531849fc05eaac9fd56e"
+    },
+    {
+      "branch": "docs/project-control-post-merge-2026-11-16",
+      "headSha": "c74dcaa012f52114bd58464600f66b24bdbf9f9e"
+    },
+    {
+      "branch": "docs/project-control-system-2026-11-16",
+      "headSha": "1b65f03512b719b2a2462f20516700c06a6a907a"
+    },
+    {
+      "branch": "docs/qa-pr532-partial-port-checkpoint-20261126",
+      "headSha": "f7b62914caceb0cf5de656a8248b9f9bc3ce66d5"
+    },
+    {
+      "branch": "docs/record-pr146-merge-next-steps-2026-11-17",
+      "headSha": "bb995e107b92dbd9b66e5e34f87ff271b76f34da"
+    },
+    {
+      "branch": "docs/record-project-status-journal-merge-2026-11-17",
+      "headSha": "1908aa0bc481a0938f74ebe8e3bb4eb8224c9d6a"
+    },
+    {
+      "branch": "docs/record-release-authority-finalization-2026-11-17",
+      "headSha": "eb04266b870414822dcc4b2f491b2093b5e43212"
+    },
+    {
+      "branch": "docs/record-status-journal-checkpoint-pr140-2026-11-17",
+      "headSha": "b721983377a7d9286f8b90b7d2e92cfc035a9e51"
+    },
+    {
+      "branch": "docs/resolve-b03-main-archive-integration-20261127",
+      "headSha": "2a96e842f33f746460df3893af6ab2d8bdf827a5"
+    },
+    {
+      "branch": "docs/sectional-layout-contract-checkpoint-2026-11-17",
+      "headSha": "79dc4af2f76d8c240621d5210ada5ac8ceb8d788"
+    },
+    {
+      "branch": "docs/source-docx-recovery-protocol-main-20261126",
+      "headSha": "3f9ebf7a4f3b5f1d03481bb93243f8b81faaffbc"
+    },
+    {
+      "branch": "docs/ui-603-604-post-merge-status-20261127",
+      "headSha": "0a86b8a2535e3c7b012e150a9a84535693093ce8"
+    },
+    {
+      "branch": "docs/ui-607-postmerge-checkpoint-20261127",
+      "headSha": "83db8bfb772e4aa3308255bd1f77a6e81b924ae9"
+    },
+    {
+      "branch": "docs/ui-search-postmerge-final-20261127",
+      "headSha": "3f6829117c3ced11a22967f77c876b4f0bdf2884"
+    },
+    {
+      "branch": "docs/ui187-partial-port-checkpoint-20261126",
+      "headSha": "cff8ce3c14fe9a9e102ac2850f9730442ae6b034"
+    },
+    {
+      "branch": "docs/varroa-treatment-sublimation-2026-11-17",
+      "headSha": "ef8fe87fd3336cff82aa31b7c99064d930d016c8"
+    },
+    {
+      "branch": "docs/verify-lineage-guard-ci-and-source-limitations-2026-11-17",
+      "headSha": "77d0cce7aa3c3f06c0e4dd28e35b97a826e71b2a"
+    },
+    {
+      "branch": "docs/workflow-merge-checkpoint-2026-11-17",
+      "headSha": "3d521f161e7ed339cff4f4feea7acef7f96b8283"
+    },
+    {
+      "branch": "feat/b01-qa-saf-archive-export-20261127",
+      "headSha": "ad8f183893de7eadfa3f4f696906fafb1948af81"
+    },
+    {
+      "branch": "feat/b01-two-daily-archives",
+      "headSha": "1d2228e171088ff4cbf299513575d23b4a49b143"
+    },
+    {
+      "branch": "feat/equipment-items-domain-model-2026-11-17",
+      "headSha": "2b036fad83e8f00ad0ac9cba4882915820e28d69"
+    },
+    {
+      "branch": "feat/equipment-items-runtime-validation-2026-11-17",
+      "headSha": "c5dc33c3c06db7ec80af23ba6e91bbeb21daa782"
+    },
+    {
+      "branch": "feat/family-events-runtime-integration-2026-11-17",
+      "headSha": "ffbf931453868208460e59d274e09d6c557b8297"
+    },
+    {
+      "branch": "feat/family-lineage-model-clean-2026-11-17",
+      "headSha": "dcfa87783a7a7a83f2883ca9a7ca521e23a1aa2e"
+    },
+    {
+      "branch": "feat/full-frame-inventory-traceability-2026-11-17",
+      "headSha": "5980b5b9f619abd441a3830b24b43f64a0f6f446"
+    },
+    {
+      "branch": "feat/full-installed-corpus-frame-capacity-2026-11-17",
+      "headSha": "a82d4137a6f1edab5066cc50f123642d6ea8ecfa"
+    },
+    {
+      "branch": "feat/p0-b01-offline-archive-verifier-2026-11-25",
+      "headSha": "cbf0f16fb7f9f5acd74ec6ff99af32afe980bd1f"
+    },
+    {
+      "branch": "feat/p0-b01-readonly-local-media-copy-audit-20261126",
+      "headSha": "4f3a6909671a5c41f0e68d227070640343ef3955"
+    },
+    {
+      "branch": "feat/p0-b01-unified-readonly-recovery-audit-20261126",
+      "headSha": "efb37420e2a814bcc003683fdef5d8caecf53fe9"
+    },
+    {
+      "branch": "feat/p0-g0-readonly-source-inventory-2026-11-24",
+      "headSha": "b8b8e7dffa554dc16a16762c2d41c34c0c9b9574"
+    },
+    {
+      "branch": "feat/p1-journal-filtered-csv-export-20261126",
+      "headSha": "73afcdb71a41019d36735f6de49f572c2658c3fb"
+    },
+    {
+      "branch": "feat/qa-isolated-current-main-20261127",
+      "headSha": "acd35f567d87c640f2eb620312679cb981d2305f"
+    },
+    {
+      "branch": "feat/queen-absence-confirmation-event-2026-11-17",
+      "headSha": "451ff2b607feb634d7737a00b3683e0bd3c218df"
+    },
+    {
+      "branch": "feat/sectional-layout-contract-v1-2026-11-17",
+      "headSha": "aa18cc00c1aa5a6e98c31486df104b54b8e49046"
+    },
+    {
+      "branch": "feat/sectional-op04-atomic-coordinator-2026-11-17",
+      "headSha": "27cb4de3f8bf8848475aa9877bb84affb7a51a83"
+    },
+    {
+      "branch": "feat/sectional-op05-atomic-mesh-plug-install-2026-11-17",
+      "headSha": "f8053b9a91e873ecfd61c07f5f8657ca53b42a02"
+    },
+    {
+      "branch": "feat/sectional-op07-atomic-honey-stage-2026-11-17",
+      "headSha": "70583dc435674de5984640b727cc3f6064c2ca17"
+    },
+    {
+      "branch": "feat/ui-596-bee-honeycomb-20261127",
+      "headSha": "49f85367d2b528f5db57cb820d2416825a37211c"
+    },
+    {
+      "branch": "feat/ui-global-search-reset-a11y-20261127",
+      "headSha": "df3ccf77b7a24cf67c1ca0b3bb99b7d2fc34e000"
+    },
+    {
+      "branch": "feat/ui-search-family-history-safe-20261127",
+      "headSha": "4ab891f3c7cfbf26dc4feffc1499f23686c8b560"
+    },
+    {
+      "branch": "fix/accounting-inspection-family-attribution-20261127",
+      "headSha": "702961561ed53978c44bb72e05c842cb2747e0d7"
+    },
+    {
+      "branch": "fix/b01-qa-archive-zip-misselect-20261127",
+      "headSha": "616c5f81c99e6ad613afee4a0ead2459896b0cc6"
+    },
+    {
+      "branch": "fix/b01-tar-header-audit-selective-20261126",
+      "headSha": "422d169c6f8b3932a1b4782231bdbde2cbcdf849"
+    },
+    {
+      "branch": "fix/b04-existing-java-locator-main-port-20261126",
+      "headSha": "270152169672a1fee07e53d1705991fd0147c964"
+    },
+    {
+      "branch": "fix/b05-debug-signer-reference-compare-20261126",
+      "headSha": "fc4f38b6fa92cc66ec4d0a0eed538f7004b194d7"
+    },
+    {
+      "branch": "fix/b05-keytool-metadata-preflight-main-20261126",
+      "headSha": "5152f5aa2855735998efcc8b57833324a0d9edc0"
+    },
+    {
+      "branch": "fix/cloudflare-preview-ai-binding-main-2026-11-17",
+      "headSha": "fdd4bb7aa70f80a792c7bd2a5b420854e8edde51"
+    },
+    {
+      "branch": "fix/family-hive-mutation-rollback-current-main-2026-11-17",
+      "headSha": "c3d3ce0b7c04633ba7b9bf7ab3f232f985ccec32"
+    },
+    {
+      "branch": "fix/family-lineage-queen-ownership-guards-2026-11-17",
+      "headSha": "d0072ba861e9b439e297fb4c349d681b66f665de"
+    },
+    {
+      "branch": "fix/family-transfer-frame-history-guard-current-main-2026-11-17",
+      "headSha": "a5e454b5ed4f6c1fb9d6d354446f5cbb3a086335"
+    },
+    {
+      "branch": "fix/hive-deletion-rollback-current-main-2026-11-17",
+      "headSha": "7b4b9e7bfa9209c59984695e08d1bcd0b565c44e"
+    },
+    {
+      "branch": "fix/indexeddb-persistence-queue-safety-2026-11-17",
+      "headSha": "9745863d6fbedf10cbca2d2b26eab4b22fa8e703"
+    },
+    {
+      "branch": "fix/inventory-history-transactions-current-main-2026-11-17",
+      "headSha": "3059ef41bec8cd5ddcc850cbcf13bcd09943aef0"
+    },
+    {
+      "branch": "fix/op07-12-15-day-window-2026-11-17",
+      "headSha": "166239e80d2724abf0e5256c54873cfc8bbed6a4"
+    },
+    {
+      "branch": "fix/p0-b01-backup-scope-labels-2026-11-25",
+      "headSha": "e895fb012cb6068e222c6cfecbbc5ab838789e9c"
+    },
+    {
+      "branch": "fix/p0-b01-bounded-file-read-2026-11-25",
+      "headSha": "bb04ceaa00c8be75937cebadbea529939bd86742"
+    },
+    {
+      "branch": "fix/p0-b01-first-launch-write-gate-main-2026-11-25",
+      "headSha": "1a5a18ed7f3717d173d285110ebca037a0ce17da"
+    },
+    {
+      "branch": "fix/p0-first-external-backup-guide-20261127",
+      "headSha": "2af07459d4e2d5cee219b4ae35521999a9b7016b"
+    },
+    {
+      "branch": "fix/p0-main-based-disaster-archive-reconciliation-2026-11-24",
+      "headSha": "4d3d82a65c5dfbddf835cd0f853fbbe684309420"
+    },
+    {
+      "branch": "fix/p0-previous-use-startup-marker-20261126",
+      "headSha": "73483cf6bd3fb4d3e96a7fcca76704836297bb3c"
+    },
+    {
+      "branch": "fix/p1-b11-service-worker-install-private-response-gate-2026-11-24",
+      "headSha": "2726dd6911d07803cc8b82283844d7d0a6d5076c"
+    },
+    {
+      "branch": "fix/p1-b15-cloudflare-manual-release-main-2026-11-25",
+      "headSha": "49b80c3b156e208aef0f92cf176bb158c712078c"
+    },
+    {
+      "branch": "fix/p1-brood-frame-strip-dynamic-20261126",
+      "headSha": "6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc"
+    },
+    {
+      "branch": "fix/p1-cloudflare-bounded-body-ci-main-20261126",
+      "headSha": "2c3994f7d3d7f65d8317ea352a02fb927af14c83"
+    },
+    {
+      "branch": "fix/p1-entrance-video-list-stale-response-20261125",
+      "headSha": "3123459cd05e493424a28f50bd882fe2a4d7cb2b"
+    },
+    {
+      "branch": "fix/p1-governance-docs-push-main-gate-2026-11-24",
+      "headSha": "9cd45a3e2a585741bcc73a780781ffd1885f8499"
+    },
+    {
+      "branch": "fix/p1-gps-pesticide-provenance-main-port-20261126",
+      "headSha": "a204c4e39373b9eee309666d2f0d91942edaa4b7"
+    },
+    {
+      "branch": "fix/p1-honey-pair-staged-main-20261126",
+      "headSha": "da147b94aaa4ad3ae9959a2a7771fefaa538c958"
+    },
+    {
+      "branch": "fix/p1-idb-required-stores-open-gate-2026-11-24",
+      "headSha": "157b1bf699fd7cd3294326ef91ad5b208c1b1700"
+    },
+    {
+      "branch": "fix/p1-journal-physical-brood-capacity-20261126",
+      "headSha": "267253f55d166d34783cdfd4188f6933e9398e1f"
+    },
+    {
+      "branch": "fix/p1-json-family-hive-review-main-port-20261126",
+      "headSha": "06550ed8653829c460d8dc16359b856d020238e0"
+    },
+    {
+      "branch": "fix/p1-main-journal-varroa-rollback-2026-11-24",
+      "headSha": "4c296752e20e117ca94b2f34c14262b29737aaf3"
+    },
+    {
+      "branch": "fix/p1-safe-physical-body-swap-main-20261126",
+      "headSha": "a4536c1e4144966a31de2c72ecc10870f21a926e"
+    },
+    {
+      "branch": "fix/p1-sw-refuse-partial-shell-20261125",
+      "headSha": "ed2d0db3b16441f22e38320a8233646fec34cbb0"
+    },
+    {
+      "branch": "fix/p1-sw-reject-redirected-shell-20261125",
+      "headSha": "b621bb865da28082496ecbcbf27b53f1baaf8d09"
+    },
+    {
+      "branch": "fix/p1-sw-safe-cache-main-2026-11-23",
+      "headSha": "84bfc1316cf51ffcdbd16dec2687f2462c20e7cb"
+    },
+    {
+      "branch": "fix/pages-manual-release-gate-2026-11-23",
+      "headSha": "ec3e47405f2131553ce37e624d04e628942bdfea"
+    },
+    {
+      "branch": "fix/persist-snapshot-post-commit-main-2026-11-17",
+      "headSha": "475a5fe6e40233ec500d71ae654ed82ea71f9709"
+    },
+    {
+      "branch": "fix/qa-failclosed-tap-summary-20261126",
+      "headSha": "b67f75ad720548adaa4ea1fdab80b9f104d663c7"
+    },
+    {
+      "branch": "fix/sectional-inventory-location-main-2026-11-17",
+      "headSha": "e14dd6eaa3cec9fe3daa57e2daea0a16d1f638b7"
+    },
+    {
+      "branch": "fix/ui-187-honeycomb-overview-20261127",
+      "headSha": "78844736fb02ac6b2db4951b007845d5f2613fda"
+    },
+    {
+      "branch": "fix/ui-a11y-selective-187-20261127",
+      "headSha": "45328a522ed3950155bf7f317090c8919395032a"
+    },
+    {
+      "branch": "fix/ui-hive-accessible-labels-from187-20261126",
+      "headSha": "7e48cd5da1ae264d8b42439bbd94c18628a9249d"
+    },
+    {
+      "branch": "integrate/strategy-main-2026-11-23",
+      "headSha": "46975de06028f4568b44c453d8120895bf31ef89"
+    },
+    {
+      "branch": "integrate/varroa-journal-main-2026-11-23",
+      "headSha": "1b6b96b150efee406d7fea85a90e3ec3b0ac4b7d"
+    },
+    {
+      "branch": "perf/p2-entrance-video-metadata-main-20261125",
+      "headSha": "48e928e2757eddc7e68abc54d4b67f79318d50b3"
+    },
+    {
+      "branch": "perf/p2-journal-family-lookup-map-20261125",
+      "headSha": "b65e0d07b1bc789926c55d98d2c02fa143f76b97"
+    },
+    {
+      "branch": "perf/p2-journal-filter-first-20261125",
+      "headSha": "356e30390858d759db7ea865b3fb86595cb01df2"
+    },
+    {
+      "branch": "port/p0-b01-legacy-json-preflight-2026-11-25",
+      "headSha": "f0200ceb6c6e3f6a1a1b88320d6346f928099b26"
+    },
+    {
+      "branch": "port/p0-b04-readonly-installed-signer-2026-11-25",
+      "headSha": "6da2de1b95e47137167161d9fa0ed574ff136add"
+    },
+    {
+      "branch": "port/p1-b08-readonly-pr-triage-after489-2026-11-25",
+      "headSha": "6eb9ad696716089ac52b0decdbe693f3b3d16e78"
+    },
+    {
+      "branch": "port/p1-b09-idb-read-gates-after485-2026-11-25",
+      "headSha": "cfc469a79a0ae87b1922fd132ca3df223809987a"
+    },
+    {
+      "branch": "port/p1-b11-safe-sw-v318-after485-2026-11-25",
+      "headSha": "a97a2a2c3f14ac93f3e2f7b2df475b3812568ca9"
+    },
+    {
+      "branch": "port/p1-cloudflare-byte-limit-after485-2026-11-25",
+      "headSha": "046dcffb2ae72547110b32f446a70a17829222fe"
+    },
+    {
+      "branch": "port/p1-legacy-inventory-audit-after485-2026-11-25",
+      "headSha": "c8acf6c69c51e17b889c091bda2c1228bdb28cc2"
+    },
+    {
+      "branch": "qa/e2e-journal-browser-20261126",
+      "headSha": "e58cadf4ba2d3bd15af8aa4f4c043c45930cc9e2"
+    },
+    {
+      "branch": "test/b05-debug-apk-provenance-failclosed-20261126",
+      "headSha": "3c26e9628b93ac89d2e2a04062d6f4f2f5f9e075"
+    },
+    {
+      "branch": "test/b09-quota-atomic-rollback-2026-11-26",
+      "headSha": "bd8ed9146ce3d8eddb5c510716135c515786736c"
+    },
+    {
+      "branch": "test/p0-b01-archive-request-error-2026-11-25",
+      "headSha": "da9d4239d25051a858e80ab6c6fba8ba9b698a5f"
+    },
+    {
+      "branch": "test/p0-b01-export-read-abort-2026-11-25",
+      "headSha": "1373ffd69bc60479e11a98db67db8e72ab3b0e06"
+    },
+    {
+      "branch": "test/p1-b08-cloudflare-stream-error-2026-11-25",
+      "headSha": "7e376464da4f5822f22ff7f22a0f13d91829e08d"
+    },
+    {
+      "branch": "test/p1-b08-readonly-pr-metadata-2026-11-25",
+      "headSha": "580331ac11e0c9f8618d8fa880792785542bf7bc"
+    },
+    {
+      "branch": "test/p1-b09-blocked-upgrade-main-port-20261126",
+      "headSha": "f8b098bb7af38738fead6f5a2b5219fbcc87a9e5"
+    },
+    {
+      "branch": "test/p1-b09-legacy-idb-upgrade-proofs-2026-11-24",
+      "headSha": "e978ae3039088095e51f0fcc82e1724e6b6ac302"
+    },
+    {
+      "branch": "test/p1-b11-sw-failclosed-install-2026-11-25",
+      "headSha": "4af76eaeb7f2155b209136b72358a4eb81262dfe"
+    },
+    {
+      "branch": "test/p1-body-frame-history-guards-main-20261126",
+      "headSha": "226433a777e07742b02d0dead1fd9c928ec99b71"
+    },
+    {
+      "branch": "test/p1-farrar-profile-180mm-regression-main-20261126",
+      "headSha": "baf6342de800f260a9ee9945e2be4489491c4085"
+    },
+    {
+      "branch": "test/p1-legacy-body-reference-audit-main-20261126",
+      "headSha": "e787697d7b1f88e18bcffed4b2fbda28b8acffae"
+    },
+    {
+      "branch": "test/ui-global-search-browser-proof-20261127",
+      "headSha": "b243e5103adc7dae8d4fe6d211b86f0df8c7ebaa"
+    },
+    {
+      "branch": "work/family-history-view",
+      "headSha": "7111c136aa302f0390b875259be5a266bb1c405f"
+    },
+    {
+      "branch": "work/hive-biological-technical-20261127",
+      "headSha": "425e8e5b15d3418747681633a1d17ce373762804"
+    },
+    {
+      "branch": "work/home-planning-list",
+      "headSha": "50be40170c8e3c52015f46c6247f5f358f286cbf"
+    },
+    {
+      "branch": "work/overview-model-diagnostics",
+      "headSha": "c2cd3e7f4e97e7e536d07550131e012adaa7ac2e"
+    },
+    {
+      "branch": "work/p1-equipment-label-prefix",
+      "headSha": "688b36de4187595983399d4fd8fb97ebe569ac51"
+    },
+    {
+      "branch": "work/p1-nectar-planning-window",
+      "headSha": "09543b028d66eeeb9949ad73e56d0a90b8a96360"
+    },
+    {
+      "branch": "work/search-to-inventory-body",
+      "headSha": "a5b7392fa39f2f62975443fbf52bf69dccafd6c2"
+    },
+    {
+      "branch": "work/seasonal-workspace-ui-20261127",
+      "headSha": "7632061c148d3d9c86add3adc155b54465a73692"
+    },
+    {
+      "branch": "work/second-honey-pair-current-model-20261127",
+      "headSha": "642db8f42ee5af36783dbee23926fba4ece9ad3a"
+    },
+    {
+      "branch": "work/spoken-frame-symbols",
+      "headSha": "083de6d13bdb391bec69b31149b76e6ccd2524f7"
+    },
+    {
+      "branch": "work/ui-596-geometry-20261127",
+      "headSha": "067a0438ce154340e7cf1905b1dbaaaf6eb2758b"
+    },
+    {
+      "branch": "work/ui-home-canonical-ai-20261127",
+      "headSha": "7a4b4e10b796057ef3328fe156490d7875f6e82b"
+    },
+    {
+      "branch": "work/ux-integration-status-20261127",
+      "headSha": "e85e9e0c7a2f35e908fdec0b614bc1c0c18d1177"
+    },
+    {
+      "branch": "work/voice-feeding-spoken-fields",
+      "headSha": "53e9651431c97075aaacaa4c3eadf997324099fa"
+    }
+  ]
+}

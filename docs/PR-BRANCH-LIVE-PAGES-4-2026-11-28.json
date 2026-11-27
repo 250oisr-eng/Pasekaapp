@@ -1,0 +1,1277 @@
+{
+  "repository": "250oisr-eng/Pasekaapp",
+  "part": 4,
+  "source": "github-public-rest",
+  "pages": [
+    {
+      "kind": "open",
+      "page": 9,
+      "count": 20,
+      "items": [
+        {
+          "number": 334,
+          "head": "test/fileproof329-isolated-restore-commit-2026-11-21",
+          "base": "test/android-fileproof329-restore-preflight-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 333,
+          "head": "test/android-fileproof329-restore-preflight-2026-11-21",
+          "base": "test/android-fileproof329-persisted-file-stop-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 332,
+          "head": "test/android-fileproof329-persisted-file-stop-2026-11-21",
+          "base": "test/android-fileproof329-report-recovery-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 331,
+          "head": "test/android-fileproof329-report-recovery-2026-11-21",
+          "base": "test/android-two-mp4-fileproof329-runtime-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 330,
+          "head": "test/android-two-mp4-fileproof329-runtime-2026-11-21",
+          "base": "test/android-two-mp4-mediastore-isolation-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 329,
+          "head": "test/android-two-mp4-mediastore-isolation-2026-11-21",
+          "base": "test/android-two-mp4-external-file-roundtrip-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 328,
+          "head": "test/android-two-mp4-external-file-roundtrip-2026-11-21",
+          "base": "test/android-two-mp4-proof325-report-recovery-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 327,
+          "head": "test/android-two-mp4-proof325-report-recovery-2026-11-21",
+          "base": "test/android-two-mp4-isolated-apk-proof-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 326,
+          "head": "test/android-two-mp4-isolated-apk-proof-2026-11-21",
+          "base": "test/android-two-blob-app-export-gate-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 325,
+          "head": "test/android-two-blob-app-export-gate-2026-11-21",
+          "base": "test/android-archive-external-stop",
+          "state": "open"
+        },
+        {
+          "number": 324,
+          "head": "test/android-archive-external-stop",
+          "base": "test/paseka02-final-commit-abort-retry",
+          "state": "open"
+        },
+        {
+          "number": 323,
+          "head": "test/paseka02-final-commit-abort-retry",
+          "base": "test/video-inventory-hash-alias-evidence-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 322,
+          "head": "research/video-apis-zenodo-bounded-zip-evidence-2026-11-21",
+          "base": "test/video-apis-zenodo-real-split-audit-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 321,
+          "head": "test/video-apis-zenodo-real-split-audit-2026-11-21",
+          "base": "test/video-apis-mellifera-source-and-split-gate-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 320,
+          "head": "test/video-apis-mellifera-source-and-split-gate-2026-11-21",
+          "base": "research/video-licensed-native-bee-source-audit-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 319,
+          "head": "research/video-licensed-native-bee-source-audit-2026-11-21",
+          "base": "test/video-compound-counting-contract-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 318,
+          "head": "test/video-compound-counting-contract-2026-11-21",
+          "base": "test/video-external-manual-event-source-audit-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 317,
+          "head": "test/video-inventory-hash-alias-evidence-2026-11-21",
+          "base": "test/android-video-external-copy-boundary-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 316,
+          "head": "test/android-video-external-copy-boundary-2026-11-21",
+          "base": "fix/paseka01-commit-v2-protection-recheck-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 315,
+          "head": "fix/paseka01-commit-v2-protection-recheck-2026-11-21",
+          "base": "test/paseka01-after-v2-quarantine-e2e-2026-11-21",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 10,
+      "count": 20,
+      "items": [
+        {
+          "number": 314,
+          "head": "test/paseka01-after-v2-quarantine-e2e-2026-11-21",
+          "base": "test/paseka02-quarantine-recovery-structural-audit-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 313,
+          "head": "test/paseka02-quarantine-recovery-structural-audit-2026-11-21",
+          "base": "test/paseka02-quarantine-abort-reopen-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 312,
+          "head": "test/paseka02-quarantine-abort-reopen-2026-11-21",
+          "base": "test/paseka02-pending-blob-full-sha-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 311,
+          "head": "test/paseka02-pending-blob-full-sha-2026-11-21",
+          "base": "test/paseka02-staged-child-metadata-integrity",
+          "state": "open"
+        },
+        {
+          "number": 310,
+          "head": "test/paseka02-staged-child-metadata-integrity",
+          "base": "test/paseka02-interrupted-stage-recovery",
+          "state": "open"
+        },
+        {
+          "number": 309,
+          "head": "test/paseka02-interrupted-stage-recovery",
+          "base": "test/retention-archive-reopen-integration",
+          "state": "open"
+        },
+        {
+          "number": 308,
+          "head": "test/retention-archive-reopen-integration",
+          "base": "docs/video-author-response-watch-and-retention-audit-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 307,
+          "head": "docs/video-author-response-watch-and-retention-audit-2026-11-21",
+          "base": "test/video-manual-manifest-evidence-gate-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 306,
+          "head": "test/video-manual-manifest-evidence-gate-2026-11-21",
+          "base": "test/video-manual-event-selection-support",
+          "state": "open"
+        },
+        {
+          "number": 305,
+          "head": "test/video-manual-event-selection-support",
+          "base": "test/video-external-manual-event-source-audit-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 303,
+          "head": "test/video-external-manual-event-source-audit-2026-11-21",
+          "base": "test/video-fan-zone-transition-ambiguity-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 302,
+          "head": "test/video-fan-zone-transition-ambiguity-2026-11-21",
+          "base": "test/video-v6-cross-label-frame-alignment-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 301,
+          "head": "test/video-v6-cross-label-frame-alignment-2026-11-21",
+          "base": "test/video-public-motion-baseline-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 300,
+          "head": "test/video-public-motion-baseline-2026-11-21",
+          "base": "test/video-detector-prediction-evidence-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 299,
+          "head": "test/video-detector-prediction-evidence-2026-11-21",
+          "base": "test/video-fan-occlusion-memory-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 298,
+          "head": "test/video-fan-occlusion-memory-2026-11-21",
+          "base": "test/video-fan-iou-association-baseline-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 297,
+          "head": "test/video-fan-iou-association-baseline-2026-11-21",
+          "base": "work/fan-track-evaluator",
+          "state": "open"
+        },
+        {
+          "number": 296,
+          "head": "work/fan-track-evaluator",
+          "base": "work/fan-track-ground-truth",
+          "state": "open"
+        },
+        {
+          "number": 295,
+          "head": "work/fan-track-ground-truth",
+          "base": "work/mendeley-fan-series",
+          "state": "open"
+        },
+        {
+          "number": 294,
+          "head": "work/mendeley-fan-series",
+          "base": "work/mendeley-first-frame-comparison",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 11,
+      "count": 20,
+      "items": [
+        {
+          "number": 293,
+          "head": "work/mendeley-first-frame-comparison",
+          "base": "work/mendeley-jpeg-origin-tags",
+          "state": "open"
+        },
+        {
+          "number": 292,
+          "head": "work/mendeley-jpeg-origin-tags",
+          "base": "work/mendeley-v6-publisher-checksums",
+          "state": "open"
+        },
+        {
+          "number": 291,
+          "head": "work/mendeley-v6-publisher-checksums",
+          "base": "work/recovery-mendeley-provenance",
+          "state": "open"
+        },
+        {
+          "number": 290,
+          "head": "work/recovery-mendeley-provenance",
+          "base": "feat/video-mendeley-v6-temporal-leakage-gates-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 289,
+          "head": "feat/video-mendeley-v6-temporal-leakage-gates-2026-11-20",
+          "base": "test/video-mendeley-v6-real-bbox-scale-audit-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 288,
+          "head": "test/video-mendeley-v6-real-bbox-scale-audit-2026-11-20",
+          "base": "test/video-mendeley-v6-user-16-pairs-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 287,
+          "head": "test/video-mendeley-v6-user-16-pairs-2026-11-20",
+          "base": "feat/video-mendeley-v6-bounded-csv-staging-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 286,
+          "head": "feat/video-mendeley-v6-bounded-csv-staging-2026-11-20",
+          "base": "test/video-mendeley-v6-real-jpg-yolo-pair-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 285,
+          "head": "test/video-mendeley-v6-real-jpg-yolo-pair-2026-11-20",
+          "base": "test/video-mendeley-v6-public-metadata-audit-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 284,
+          "head": "test/video-mendeley-v6-public-metadata-audit-2026-11-20",
+          "base": "feat/video-mendeley-v6-yolo-staging-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 283,
+          "head": "feat/video-mendeley-v6-yolo-staging-2026-11-20",
+          "base": "fix/video-source-file-links-race-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 282,
+          "head": "fix/video-source-file-links-race-2026-11-20",
+          "base": "test/video-joined-provenance-gate-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 281,
+          "head": "test/video-joined-provenance-gate-2026-11-20",
+          "base": "test/video-physical-source-sha-verification-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 280,
+          "head": "test/video-physical-source-sha-verification-2026-11-20",
+          "base": "test/video-source-recording-sha-holdout-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 279,
+          "head": "test/video-source-recording-sha-holdout-2026-11-20",
+          "base": "docs/video-open-bee-dataset-candidates-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 278,
+          "head": "docs/video-open-bee-dataset-candidates-2026-11-20",
+          "base": "test/video-source-session-manifest-gate-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 277,
+          "head": "test/video-source-session-manifest-gate-2026-11-20",
+          "base": "docs/video-lila-provenance-gate-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 276,
+          "head": "docs/video-lila-provenance-gate-2026-11-20",
+          "base": "fix/video-voc-png-unassigned-coco-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 275,
+          "head": "fix/video-voc-png-unassigned-coco-2026-11-20",
+          "base": "test/video-lila-stratified-sample-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 274,
+          "head": "test/video-lila-stratified-sample-2026-11-20",
+          "base": "feat/video-voc-to-unassigned-coco-2026-11-20",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 12,
+      "count": 20,
+      "items": [
+        {
+          "number": 273,
+          "head": "feat/video-voc-to-unassigned-coco-2026-11-20",
+          "base": "test/video-lila-voc-range-sample-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 272,
+          "head": "test/video-lila-voc-range-sample-2026-11-20",
+          "base": "test/video-lila-public-byte-range-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 271,
+          "head": "test/video-lila-public-byte-range-2026-11-20",
+          "base": "test/video-public-mendeley-metadata-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 270,
+          "head": "test/video-public-mendeley-metadata-2026-11-20",
+          "base": "test/video-public-archive-integrity-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 269,
+          "head": "test/video-public-archive-integrity-2026-11-20",
+          "base": "docs/video-mendeley-v6-tracking-evidence-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 268,
+          "head": "docs/video-mendeley-v6-tracking-evidence-2026-11-20",
+          "base": "fix/video-coco-self-contained-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 267,
+          "head": "fix/video-coco-self-contained-2026-11-20",
+          "base": "feat/video-offline-coco-preparation-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 266,
+          "head": "feat/video-offline-coco-preparation-2026-11-20",
+          "base": "docs/video-permissive-detector-training-path-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 265,
+          "head": "docs/video-permissive-detector-training-path-2026-11-20",
+          "base": "test/video-dataset-split-isolation-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 264,
+          "head": "test/video-dataset-split-isolation-2026-11-20",
+          "base": "test/video-android-physical-evidence-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 263,
+          "head": "test/video-android-physical-evidence-2026-11-20",
+          "base": "test/video-license-risk-screen-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 262,
+          "head": "test/video-license-risk-screen-2026-11-20",
+          "base": "test/video-model-license-provenance-gate-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 261,
+          "head": "test/video-model-license-provenance-gate-2026-11-20",
+          "base": "test/video-offline-inference-benchmark-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 260,
+          "head": "test/video-offline-inference-benchmark-2026-11-20",
+          "base": "test/video-android-wasm-capability-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 259,
+          "head": "test/video-android-wasm-capability-2026-11-20",
+          "base": "fix/video-private-camera-lifecycle-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 258,
+          "head": "fix/video-private-camera-lifecycle-2026-11-20",
+          "base": "feat/video-private-camera-staging-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 257,
+          "head": "feat/video-private-camera-staging-2026-11-20",
+          "base": "feat/video-temporal-track-coverage-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 256,
+          "head": "feat/video-temporal-track-coverage-2026-11-20",
+          "base": "feat/video-entrance-crossing-evidence-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 255,
+          "head": "feat/video-entrance-crossing-evidence-2026-11-20",
+          "base": "feat/video-detector-benchmark-metrics-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 254,
+          "head": "feat/video-detector-benchmark-metrics-2026-11-20",
+          "base": "feat/video-model-artifact-integrity-2026-11-20",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 13,
+      "count": 20,
+      "items": [
+        {
+          "number": 253,
+          "head": "feat/video-model-artifact-integrity-2026-11-20",
+          "base": "docs/video-bee-model-license-candidate-audit-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 252,
+          "head": "docs/video-bee-model-license-candidate-audit-2026-11-20",
+          "base": "fix/video-external-copy-provenance-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 251,
+          "head": "fix/video-external-copy-provenance-2026-11-20",
+          "base": "test/video-end-to-end-safety-invariants-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 250,
+          "head": "test/video-end-to-end-safety-invariants-2026-11-20",
+          "base": "feat/video-observation-pipeline-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 249,
+          "head": "feat/video-observation-pipeline-2026-11-20",
+          "base": "feat/video-model-evidence-contract-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 248,
+          "head": "feat/video-model-evidence-contract-2026-11-20",
+          "base": "fix/video-queue-source-integrity-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 247,
+          "head": "fix/video-queue-source-integrity-2026-11-20",
+          "base": "fix/video-preprocessing-failclosed-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 246,
+          "head": "fix/video-preprocessing-failclosed-2026-11-20",
+          "base": "fix/video-entrance-unverified-status-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 245,
+          "head": "fix/video-entrance-unverified-status-2026-11-20",
+          "base": "fix/video-ledger-read-integrity-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 244,
+          "head": "fix/video-ledger-read-integrity-2026-11-20",
+          "base": "feat/video-recognition-durable-ledger-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 243,
+          "head": "feat/video-recognition-durable-ledger-2026-11-20",
+          "base": "docs/video-recognition-cleanup-state-contract-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 242,
+          "head": "docs/video-recognition-cleanup-state-contract-2026-11-20",
+          "base": "fix/video-entrance-manual-delete-guard-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 241,
+          "head": "fix/video-entrance-manual-delete-guard-2026-11-20",
+          "base": "feat/journal-video-v2-source-evidence-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 240,
+          "head": "feat/journal-video-v2-source-evidence-2026-11-20",
+          "base": "fix/video-archive-v2-legacy-copy-coverage-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 239,
+          "head": "fix/video-archive-v2-legacy-copy-coverage-2026-11-20",
+          "base": "feat/video-archive-v2-copy-inventory-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 238,
+          "head": "feat/video-archive-v2-copy-inventory-2026-11-20",
+          "base": "feat/video-archive-v2-entrance-quarantine-rollback-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 237,
+          "head": "feat/video-archive-v2-entrance-quarantine-rollback-2026-11-20",
+          "base": "feat/video-archive-v2-entrance-atomic-commit-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 236,
+          "head": "feat/video-archive-v2-entrance-atomic-commit-2026-11-20",
+          "base": "feat/video-archive-v2-pinned-add-abort-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 235,
+          "head": "feat/video-archive-v2-pinned-add-abort-2026-11-20",
+          "base": "feat/video-archive-v2-pinned-payload-proof-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 234,
+          "head": "feat/video-archive-v2-pinned-payload-proof-2026-11-20",
+          "base": "feat/video-archive-v2-staging-integrity-2026-11-20",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 14,
+      "count": 20,
+      "items": [
+        {
+          "number": 233,
+          "head": "feat/video-archive-v2-staging-integrity-2026-11-20",
+          "base": "feat/video-archive-v2-pending-stage-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 232,
+          "head": "feat/video-archive-v2-pending-stage-2026-11-20",
+          "base": "fix/v2-pending-media-id-collision-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 231,
+          "head": "fix/v2-pending-media-id-collision-2026-11-20",
+          "base": "feat/video-archive-v2-metadata-atomic-restore-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 230,
+          "head": "feat/video-archive-v2-metadata-atomic-restore-2026-11-20",
+          "base": "feat/video-archive-v2-end-to-end-dry-run-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 229,
+          "head": "fix/win11-selftest-saved-report-oneclick-2026-11-20",
+          "base": "fix/hive-card-mobile-full-details-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 228,
+          "head": "fix/hive-card-mobile-full-details-2026-11-20",
+          "base": "fix/device-selftest-mobile-readable-results-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 227,
+          "head": "fix/device-selftest-mobile-readable-results-2026-11-20",
+          "base": "test/win11-manual-agent-report-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 226,
+          "head": "feat/video-archive-v2-end-to-end-dry-run-2026-11-20",
+          "base": "feat/video-archive-v2-commit-lock-guard-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 225,
+          "head": "feat/video-archive-v2-commit-lock-guard-2026-11-20",
+          "base": "feat/video-archive-v2-restore-db-preflight-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 224,
+          "head": "feat/video-archive-v2-restore-db-preflight-2026-11-20",
+          "base": "feat/video-archive-v2-restore-ledger-gate-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 223,
+          "head": "feat/video-archive-v2-restore-ledger-gate-2026-11-20",
+          "base": "feat/video-archive-v2-posthash-recheck-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 222,
+          "head": "feat/video-archive-v2-posthash-recheck-2026-11-20",
+          "base": "feat/video-archive-v2-consistent-read-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 221,
+          "head": "feat/video-archive-v2-consistent-read-2026-11-20",
+          "base": "feat/video-archive-v2-record-codec-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 220,
+          "head": "feat/video-archive-v2-record-codec-2026-11-20",
+          "base": "feat/video-archive-v2-record-media-adapter-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 219,
+          "head": "feat/video-archive-v2-record-media-adapter-2026-11-20",
+          "base": "feat/video-archive-v2-pending-entrance-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 218,
+          "head": "feat/video-archive-v2-pending-entrance-2026-11-20",
+          "base": "feat/video-archive-v2-metadata-codec-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 217,
+          "head": "feat/video-archive-v2-metadata-codec-2026-11-20",
+          "base": "feat/video-archive-v2-ledger-validator-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 216,
+          "head": "feat/video-archive-v2-ledger-validator-2026-11-20",
+          "base": "docs/video-archive-v2-contract-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 215,
+          "head": "docs/video-archive-v2-contract-2026-11-20",
+          "base": "fix/archive-staging-history-protection-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 214,
+          "head": "fix/archive-ready-ledger-race-2026-11-20",
+          "base": "fix/full-archive-video-ledger-interlock-2026-11-20",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 15,
+      "count": 20,
+      "items": [
+        {
+          "number": 213,
+          "head": "feat/video-source-sha256-evidence-2026-11-20",
+          "base": "feat/video-archive-restore-preflight-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 212,
+          "head": "fix/archive-staging-history-protection-2026-11-20",
+          "base": "fix/archive-staging-finalize-ledger-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 211,
+          "head": "fix/archive-staging-finalize-ledger-2026-11-20",
+          "base": "fix/full-archive-video-ledger-interlock-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 210,
+          "head": "fix/full-archive-video-ledger-interlock-2026-11-20",
+          "base": "feat/full-media-backup-restore-main-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 209,
+          "head": "feat/video-archive-restore-preflight-2026-11-20",
+          "base": "fix/journal-video-stable-identity-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 208,
+          "head": "fix/journal-video-stable-identity-2026-11-20",
+          "base": "feat/video-recognition-ledger-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 207,
+          "head": "feat/video-recognition-ledger-2026-11-20",
+          "base": "feat/video-retention-guard-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 206,
+          "head": "feat/video-retention-guard-2026-11-20",
+          "base": "docs/video-ephemeral-until-recognition-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 205,
+          "head": "docs/video-ephemeral-until-recognition-2026-11-20",
+          "base": "feat/sectional-late-honey-pair-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 204,
+          "head": "test/archive-sectional-honey-roundtrip-2026-11-20",
+          "base": "feat/full-media-backup-restore-main-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 203,
+          "head": "fix/backup-media-scope-notice-2026-11-20",
+          "base": "feat/sectional-late-honey-pair-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 202,
+          "head": "feat/sectional-late-honey-pair-2026-11-20",
+          "base": "fix/honey-pairs-2-or-4-validator-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 201,
+          "head": "feat/honey-second-pair-readonly-preflight-2026-11-20",
+          "base": "fix/honey-pairs-2-or-4-validator-2026-11-20",
+          "state": "open"
+        },
+        {
+          "number": 199,
+          "head": "test/win11-manual-agent-report-2026-11-19",
+          "base": "test/manual-android-offline-archive-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 197,
+          "head": "test/manual-android-offline-archive-2026-11-19",
+          "base": "test/pr194-native-negative-paths-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 196,
+          "head": "test/pr194-native-negative-paths-2026-11-19",
+          "base": "test/pr194-win11-manual-archive-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 195,
+          "head": "test/pr194-win11-manual-archive-2026-11-19",
+          "base": "fix/win11-report-polling-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 194,
+          "head": "fix/android-archive-byte-count-2026-11-19",
+          "base": "fix/android-mediastore-begin-cleanup-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 193,
+          "head": "fix/android-mediastore-begin-cleanup-2026-11-19",
+          "base": "fix/android-archive-empty-payload-guard-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 192,
+          "head": "fix/android-archive-empty-payload-guard-2026-11-19",
+          "base": "docs/archive-release-safety-gates-2026-11-19",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 16,
+      "count": 20,
+      "items": [
+        {
+          "number": 191,
+          "head": "docs/chatgpt-plus-development-policy-2026-11-19",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 190,
+          "head": "docs/archive-release-safety-gates-2026-11-19",
+          "base": "feat/full-media-backup-restore-main-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 189,
+          "head": "feat/local-ai-review-pilot-2026-11-19",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 186,
+          "head": "fix/win11-report-polling-2026-11-19",
+          "base": "fix/win11-powershell-parse-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 185,
+          "head": "fix/win11-powershell-parse-2026-11-19",
+          "base": "test/win11-signature-safe-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 184,
+          "head": "test/win11-signature-safe-2026-11-19",
+          "base": "test/win11-native-downloads-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 183,
+          "head": "test/win11-native-downloads-2026-11-19",
+          "base": "test/win11-device-automation-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 182,
+          "head": "test/win11-device-automation-2026-11-19",
+          "base": "test/varroa-archive-roundtrip-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 181,
+          "head": "test/varroa-archive-roundtrip-2026-11-19",
+          "base": "feat/varroa-last-treatment-hive-card-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 180,
+          "head": "test/varroa-hive-card-android-2026-11-19",
+          "base": "feat/varroa-last-treatment-hive-card-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 179,
+          "head": "feat/varroa-last-treatment-hive-card-2026-11-19",
+          "base": "feat/varroa-treatment-log-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 178,
+          "head": "test/varroa-archive-schema16-android-2026-11-19",
+          "base": "feat/varroa-treatment-log-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 177,
+          "head": "test/varroa-treatment-android-isolated-2026-11-19",
+          "base": "feat/varroa-treatment-log-2026-11-19",
+          "state": "open"
+        },
+        {
+          "number": 176,
+          "head": "feat/varroa-treatment-log-2026-11-19",
+          "base": "feat/full-media-backup-restore-main-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 174,
+          "head": "test/full-archive-android-isolated-2026-11-18",
+          "base": "feat/full-media-backup-restore-main-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 173,
+          "head": "test/android-indexeddb-persistence-probe-2026-11-18",
+          "base": "test/isolated-android-apk-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 172,
+          "head": "test/isolated-android-apk-2026-11-18",
+          "base": "test/android-adb-preflight-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 171,
+          "head": "test/android-adb-preflight-2026-11-18",
+          "base": "test/local-windows-browser-smoke-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 169,
+          "head": "feat/honeycomb-navigation-ui-2026-11-18",
+          "base": "feat/full-media-backup-restore-main-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 168,
+          "head": "feat/full-media-backup-restore-main-2026-11-18",
+          "base": "main",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 17,
+      "count": 20,
+      "items": [
+        {
+          "number": 167,
+          "head": "feat/ergonomic-interface-four-honey-boxes-2026-11-18",
+          "base": "fix/forage-purpose-responsive-audit-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 166,
+          "head": "fix/forage-purpose-responsive-audit-2026-11-18",
+          "base": "fix/forage-voice-error-cleanup-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 165,
+          "head": "fix/forage-voice-error-cleanup-2026-11-18",
+          "base": "fix/offline-voice-without-ai-login-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 164,
+          "head": "fix/offline-voice-without-ai-login-2026-11-18",
+          "base": "feat/offline-speech-recognition-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 163,
+          "head": "test/local-windows-browser-smoke-2026-11-18",
+          "base": "feat/offline-speech-recognition-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 162,
+          "head": "feat/offline-speech-recognition-2026-11-18",
+          "base": "feat/legacy-entrance-media-migration-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 161,
+          "head": "feat/legacy-entrance-media-migration-2026-11-18",
+          "base": "feat/media-ai-vision-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 160,
+          "head": "feat/media-ai-vision-2026-11-18",
+          "base": "feat/media-job-capture-ui-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 159,
+          "head": "feat/media-job-capture-ui-2026-11-18",
+          "base": "feat/media-job-indexeddb-store-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 158,
+          "head": "feat/media-job-indexeddb-store-2026-11-18",
+          "base": "feat/media-job-lifecycle-contract-2026-11-18",
+          "state": "open"
+        },
+        {
+          "number": 157,
+          "head": "feat/media-job-lifecycle-contract-2026-11-18",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 156,
+          "head": "audit/full-backup-archive-pr9-40-2026-11-18",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 106,
+          "head": "feat/sectional-physical-layout-validator-2026-11-17",
+          "base": "feat/sectional-lineage-ui-2026-11-17-r2",
+          "state": "open"
+        },
+        {
+          "number": 105,
+          "head": "feat/sectional-physical-layout-contract-2026-11-17",
+          "base": "feat/family-lineage-model-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 104,
+          "head": "feat/sectional-lineage-ui-2026-11-17-r2",
+          "base": "feat/family-lineage-model-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 101,
+          "head": "feat/family-lineage-model-2026-11-16",
+          "base": "test/r4-backup-roundtrip-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 100,
+          "head": "docs/r4-two-grid-geometry-2026-11-16",
+          "base": "feat/r4-physical-excluder-links-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 99,
+          "head": "test/r4-backup-roundtrip-2026-11-16",
+          "base": "feat/r4-physical-excluder-links-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 96,
+          "head": "docs/project-status-autosave-main-2026-11-16",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 95,
+          "head": "feat/r4-physical-excluder-links-2026-11-16",
+          "base": "fix/sectional-spec-1-6-compatibility-2026-11-16",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 18,
+      "count": 20,
+      "items": [
+        {
+          "number": 94,
+          "head": "fix/r4-excluder-section-alignment-2026-11-16",
+          "base": "feat/two-large-excluder-footprint-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 93,
+          "head": "fix/sectional-spec-1-6-compatibility-2026-11-16",
+          "base": "feat/two-large-excluder-footprint-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 92,
+          "head": "feat/two-large-excluder-footprint-2026-11-16",
+          "base": "feat/sectional-physical-accessories-registry-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 90,
+          "head": "docs/physical-accessory-registry-status-2026-11-16",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 89,
+          "head": "feat/sectional-physical-accessories-registry-2026-11-16",
+          "base": "fix/sectional-op07-unconfirmed-excluder-layout-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 88,
+          "head": "fix/sectional-op07-unconfirmed-excluder-layout-2026-11-16",
+          "base": "fix/sectional-op06-laying-observation-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 86,
+          "head": "audit/sectional-physical-equipment-model-docs-2026-11-16",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 84,
+          "head": "fix/equipment-body-profile-resolver-rebased-2026-11-16",
+          "base": "fix/op04-require-two-additional-bottoms-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 83,
+          "head": "fix/op04-require-two-additional-bottoms-2026-11-16",
+          "base": "fix/sectional-profile-ai-isolation-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 82,
+          "head": "fix/equipment-body-profile-resolver-2026-11-16",
+          "base": "fix/sectional-profile-ai-isolation-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 81,
+          "head": "docs/sectional-profile-equipment-audit-2026-11-16",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 80,
+          "head": "fix/sectional-profile-ai-isolation-2026-11-16",
+          "base": "fix/sectional-state-validation-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 79,
+          "head": "fix/sectional-source-semantics-2026-11-16",
+          "base": "fix/sectional-state-validation-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 78,
+          "head": "fix/sectional-state-validation-2026-11-16",
+          "base": "fix/validate-stored-operation-invariants-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 73,
+          "head": "fix/serialize-backup-restore-operations-2026-11-16",
+          "base": "fix/auto-backup-sync-put-errors-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 72,
+          "head": "fix/auto-backup-sync-put-errors-2026-11-16",
+          "base": "fix/indexeddb-sync-put-error-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 71,
+          "head": "fix/indexeddb-sync-put-error-2026-11-16",
+          "base": "fix/indexeddb-recovery-commit-flag-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 68,
+          "head": "fix/farrar-assembly-finish-strict-types-2026-11-16",
+          "base": "fix/farrar-invalid-assembly-state-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 67,
+          "head": "fix/farrar-invalid-assembly-state-2026-11-16",
+          "base": "fix/farrar-winter-render-readonly-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 66,
+          "head": "fix/farrar-winter-render-readonly-2026-11-16",
+          "base": "fix/farrar-three-sections-single-hive-2026-11-16",
+          "state": "open"
+        }
+      ]
+    }
+  ]
+}

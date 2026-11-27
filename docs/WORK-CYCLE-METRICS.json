@@ -2120,5 +2120,32 @@
     "governance": "FAIL",
     "android": "FAIL_SAME_GOVERNANCE_TEST",
     "browser": "PENDING"
+  },
+  "branchMergedOnly176Audit20261128": {
+    "stage": "STRUCTURAL_CENSUS_COMPLETE_SEMANTIC_REVIEW_PARTIAL",
+    "pr": 653,
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "openPrs": 407,
+    "closedPrs": 243,
+    "branches": 674,
+    "unreferencedBranches": 260,
+    "mergedOnlyBranches": 176,
+    "fullPinnedCompares": 176,
+    "aheadZero": 39,
+    "aheadPositive": 137,
+    "docsOnly": 54,
+    "testsOrDocsOnly": 12,
+    "runtimePaths": 41,
+    "buildConfigPaths": 30,
+    "compareErrors": 0,
+    "baseShaMismatches": 0,
+    "verifiedBlobIdentities": 9,
+    "mergedOnlySemanticFullyReviewed": false,
+    "deleteAuthorized": false,
+    "mergeAuthorized": false,
+    "releaseAuthorized": false,
+    "deviceVerified": false,
+    "ci": "PENDING_FINAL_EXACT_HEAD",
+    "next": "Review #647 unique actual daily accounting scope; #633 CSV already included in #647; do not merge both"
   }
 }

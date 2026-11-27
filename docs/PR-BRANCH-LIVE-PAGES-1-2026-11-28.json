@@ -1,0 +1,1237 @@
+{
+  "repository": "250oisr-eng/Pasekaapp",
+  "part": 1,
+  "source": "github-public-rest",
+  "pages": [
+    {
+      "kind": "closed",
+      "page": 1,
+      "count": 20,
+      "items": [
+        {
+          "number": 649,
+          "head": "work/second-honey-pair-current-model-20261127",
+          "base": "main",
+          "merged": "2026-11-27T21:13:37Z"
+        },
+        {
+          "number": 645,
+          "head": "work/ux-integration-status-20261127",
+          "base": "main",
+          "merged": "2026-11-27T19:27:20Z"
+        },
+        {
+          "number": 643,
+          "head": "work/hive-biological-technical-20261127",
+          "base": "main",
+          "merged": "2026-11-27T19:25:43Z"
+        },
+        {
+          "number": 640,
+          "head": "work/hive-record-ergonomics-20261127",
+          "base": "work/seasonal-workspace-ui-20261127",
+          "merged": null
+        },
+        {
+          "number": 638,
+          "head": "work/seasonal-workspace-ui-20261127",
+          "base": "main",
+          "merged": "2026-11-27T19:25:45Z"
+        },
+        {
+          "number": 637,
+          "head": "fix/group-primary-navigation",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 627,
+          "head": "fix/accounting-inspection-family-attribution-20261127",
+          "base": "main",
+          "merged": "2026-11-27T17:00:24Z"
+        },
+        {
+          "number": 626,
+          "head": "docs/resolve-b03-main-archive-integration-20261127",
+          "base": "main",
+          "merged": "2026-11-27T14:24:53Z"
+        },
+        {
+          "number": 625,
+          "head": "work/overview-model-diagnostics",
+          "base": "main",
+          "merged": "2026-11-27T17:25:29Z"
+        },
+        {
+          "number": 623,
+          "head": "feat/b01-two-daily-archives",
+          "base": "main",
+          "merged": "2026-11-27T11:52:09Z"
+        },
+        {
+          "number": 622,
+          "head": "work/home-recent-events",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 621,
+          "head": "work/home-planning-list",
+          "base": "main",
+          "merged": "2026-11-27T17:09:11Z"
+        },
+        {
+          "number": 620,
+          "head": "docs/b01-qa-saf-built-device-gate-20261127",
+          "base": "main",
+          "merged": "2026-11-27T09:46:27Z"
+        },
+        {
+          "number": 619,
+          "head": "feat/b01-qa-saf-archive-export-20261127",
+          "base": "main",
+          "merged": "2026-11-27T09:45:05Z"
+        },
+        {
+          "number": 618,
+          "head": "docs/b01-archive-zip-fail-postmerge-20261127",
+          "base": "main",
+          "merged": "2026-11-27T09:31:11Z"
+        },
+        {
+          "number": 617,
+          "head": "fix/b01-qa-archive-zip-misselect-20261127",
+          "base": "main",
+          "merged": "2026-11-27T09:29:52Z"
+        },
+        {
+          "number": 616,
+          "head": "docs/oneplus-qa-cycle2-pass-cycle3-20261127",
+          "base": "main",
+          "merged": "2026-11-27T09:17:12Z"
+        },
+        {
+          "number": 615,
+          "head": "docs/oneplus-qa-cycle1-pass-cycle2-20261127",
+          "base": "main",
+          "merged": "2026-11-27T09:05:40Z"
+        },
+        {
+          "number": 614,
+          "head": "docs/oneplus-qa-binary-ready-20261127",
+          "base": "main",
+          "merged": "2026-11-27T08:48:20Z"
+        },
+        {
+          "number": 613,
+          "head": "feat/qa-isolated-current-main-20261127",
+          "base": "main",
+          "merged": "2026-11-27T08:46:56Z"
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 2,
+      "count": 20,
+      "items": [
+        {
+          "number": 612,
+          "head": "feat/ui-search-family-history-safe-20261127",
+          "base": "main",
+          "merged": "2026-11-27T08:41:47Z"
+        },
+        {
+          "number": 611,
+          "head": "docs/ui-search-postmerge-final-20261127",
+          "base": "main",
+          "merged": "2026-11-27T08:31:25Z"
+        },
+        {
+          "number": 610,
+          "head": "test/ui-global-search-browser-proof-20261127",
+          "base": "main",
+          "merged": "2026-11-27T08:29:59Z"
+        },
+        {
+          "number": 609,
+          "head": "feat/ui-global-search-reset-a11y-20261127",
+          "base": "main",
+          "merged": "2026-11-27T08:26:52Z"
+        },
+        {
+          "number": 608,
+          "head": "docs/ui-607-postmerge-checkpoint-20261127",
+          "base": "main",
+          "merged": "2026-11-27T08:18:47Z"
+        },
+        {
+          "number": 607,
+          "head": "feat/ui-596-bee-honeycomb-20261127",
+          "base": "main",
+          "merged": "2026-11-27T08:17:23Z"
+        },
+        {
+          "number": 606,
+          "head": "work/ui-596-two-row-candidate-20261127",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 605,
+          "head": "docs/ui-603-604-post-merge-status-20261127",
+          "base": "main",
+          "merged": "2026-11-27T06:57:40Z"
+        },
+        {
+          "number": 604,
+          "head": "work/ui-home-canonical-ai-20261127",
+          "base": "main",
+          "merged": "2026-11-27T06:52:08Z"
+        },
+        {
+          "number": 603,
+          "head": "work/ui-596-geometry-20261127",
+          "base": "main",
+          "merged": "2026-11-27T06:43:44Z"
+        },
+        {
+          "number": 602,
+          "head": "qa/oneplus-isolated-current-main-2026-11-27",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 600,
+          "head": "work/search-family-identity",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 599,
+          "head": "work/search-to-inventory-body",
+          "base": "main",
+          "merged": "2026-11-26T22:07:40Z"
+        },
+        {
+          "number": 598,
+          "head": "work/family-history-view",
+          "base": "main",
+          "merged": "2026-11-26T22:16:58Z"
+        },
+        {
+          "number": 597,
+          "head": "fix/p0-first-external-backup-guide-20261127",
+          "base": "main",
+          "merged": "2026-11-27T06:18:25Z"
+        },
+        {
+          "number": 595,
+          "head": "fix/ui-187-honeycomb-overview-20261127",
+          "base": "main",
+          "merged": "2026-11-27T06:29:06Z"
+        },
+        {
+          "number": 594,
+          "head": "docs/post-merge-593-ux-status-20261127",
+          "base": "main",
+          "merged": "2026-11-26T21:22:00Z"
+        },
+        {
+          "number": 593,
+          "head": "fix/ui-a11y-selective-187-20261127",
+          "base": "main",
+          "merged": "2026-11-26T21:17:23Z"
+        },
+        {
+          "number": 592,
+          "head": "docs/post-merge-591-root-triage-20261127",
+          "base": "main",
+          "merged": "2026-11-26T21:10:05Z"
+        },
+        {
+          "number": 591,
+          "head": "fix/p1-brood-frame-strip-dynamic-20261126",
+          "base": "main",
+          "merged": "2026-11-26T21:04:10Z"
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 3,
+      "count": 20,
+      "items": [
+        {
+          "number": 590,
+          "head": "docs/finalize-root-audit-n-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:53:57Z"
+        },
+        {
+          "number": 589,
+          "head": "audit/root-33-line-diff-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:51:56Z"
+        },
+        {
+          "number": 588,
+          "head": "docs/ui187-partial-port-checkpoint-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:39:24Z"
+        },
+        {
+          "number": 587,
+          "head": "fix/ui-hive-accessible-labels-from187-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:36:35Z"
+        },
+        {
+          "number": 586,
+          "head": "docs/qa-pr532-partial-port-checkpoint-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:31:24Z"
+        },
+        {
+          "number": 585,
+          "head": "fix/qa-failclosed-tap-summary-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:28:29Z"
+        },
+        {
+          "number": 584,
+          "head": "audit/root-33-unique-code-matrix-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:19:12Z"
+        },
+        {
+          "number": 583,
+          "head": "fix/p1-honey-pair-staged-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:15:30Z"
+        },
+        {
+          "number": 582,
+          "head": "fix/b05-debug-signer-reference-compare-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:08:10Z"
+        },
+        {
+          "number": 581,
+          "head": "fix/b05-keytool-metadata-preflight-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T20:03:44Z"
+        },
+        {
+          "number": 580,
+          "head": "docs/pr-audit-final-sync-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:58:56Z"
+        },
+        {
+          "number": 579,
+          "head": "docs/governance-wip-stop-selective-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:56:28Z"
+        },
+        {
+          "number": 578,
+          "head": "audit/pr-live-graph-census-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:54:50Z"
+        },
+        {
+          "number": 577,
+          "head": "fix/b01-tar-header-audit-selective-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:51:49Z"
+        },
+        {
+          "number": 576,
+          "head": "docs/pr-audit-i-code-merge-finalize-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:48:15Z"
+        },
+        {
+          "number": 575,
+          "head": "fix/b04-existing-java-locator-main-port-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:46:43Z"
+        },
+        {
+          "number": 574,
+          "head": "audit/pr-root-safety-reconcile-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:43:39Z"
+        },
+        {
+          "number": 573,
+          "head": "audit/pr-portfolio-reconcile-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:37:31Z"
+        },
+        {
+          "number": 572,
+          "head": "fix/p0-previous-use-startup-marker-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:32:19Z"
+        },
+        {
+          "number": 571,
+          "head": "docs/audit-p1-journal-p0-startup-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:22:12Z"
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 4,
+      "count": 20,
+      "items": [
+        {
+          "number": 570,
+          "head": "fix/p1-journal-physical-brood-capacity-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:20:53Z"
+        },
+        {
+          "number": 569,
+          "head": "docs/pr-audit-cycle-f-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:04:21Z"
+        },
+        {
+          "number": 568,
+          "head": "fix/p1-cloudflare-bounded-body-ci-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T19:00:34Z"
+        },
+        {
+          "number": 567,
+          "head": "test/p1-legacy-body-reference-audit-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:57:12Z"
+        },
+        {
+          "number": 566,
+          "head": "test/p1-body-frame-history-guards-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:55:51Z"
+        },
+        {
+          "number": 565,
+          "head": "docs/pr-portfolio-audit-cycle-d-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:53:56Z"
+        },
+        {
+          "number": 564,
+          "head": "docs/b06-two-licensed-research-tracks-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:49:17Z"
+        },
+        {
+          "number": 563,
+          "head": "fix/p1-safe-physical-body-swap-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:51:44Z"
+        },
+        {
+          "number": 562,
+          "head": "docs/source-docx-recovery-protocol-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:45:16Z"
+        },
+        {
+          "number": 561,
+          "head": "docs/pr-portfolio-audit-cycle-c-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:43:57Z"
+        },
+        {
+          "number": 560,
+          "head": "fix/p1-gps-pesticide-provenance-main-port-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:40:53Z"
+        },
+        {
+          "number": 559,
+          "head": "fix/p1-json-family-hive-review-main-port-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:39:54Z"
+        },
+        {
+          "number": 558,
+          "head": "test/p1-farrar-profile-180mm-regression-main-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:37:24Z"
+        },
+        {
+          "number": 557,
+          "head": "test/p1-b09-blocked-upgrade-main-port-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:36:31Z"
+        },
+        {
+          "number": 556,
+          "head": "audit/pr-portfolio-checkpoint-2026-11-26-b",
+          "base": "main",
+          "merged": "2026-11-26T18:34:37Z"
+        },
+        {
+          "number": 555,
+          "head": "docs/pr-audit-qa-553-checkpoint-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:29:01Z"
+        },
+        {
+          "number": 554,
+          "head": "docs/pr-audit-final-post-b01-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:17:18Z"
+        },
+        {
+          "number": 553,
+          "head": "qa/e2e-journal-browser-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:22:16Z"
+        },
+        {
+          "number": 552,
+          "head": "audit/pr-complete-filepaths-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:03:58Z"
+        },
+        {
+          "number": 551,
+          "head": "audit/pr-portfolio-triage-20261126",
+          "base": "main",
+          "merged": "2026-11-26T17:52:04Z"
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 5,
+      "count": 20,
+      "items": [
+        {
+          "number": 550,
+          "head": "docs/completed-journal-csv-performance-cycle-20261126",
+          "base": "main",
+          "merged": "2026-11-26T17:28:26Z"
+        },
+        {
+          "number": 549,
+          "head": "docs/integration-equipment-voice-20261126",
+          "base": "main",
+          "merged": "2026-11-26T16:39:47Z"
+        },
+        {
+          "number": 548,
+          "head": "feat/p1-journal-filtered-csv-export-20261126",
+          "base": "main",
+          "merged": "2026-11-26T17:20:19Z"
+        },
+        {
+          "number": 547,
+          "head": "work/spoken-frame-symbols",
+          "base": "main",
+          "merged": "2026-11-26T16:38:29Z"
+        },
+        {
+          "number": 546,
+          "head": "work/voice-feeding-spoken-fields",
+          "base": "main",
+          "merged": "2026-11-26T16:46:12Z"
+        },
+        {
+          "number": 545,
+          "head": "work/p1-equipment-label-prefix",
+          "base": "main",
+          "merged": "2026-11-26T16:35:55Z"
+        },
+        {
+          "number": 544,
+          "head": "work/p1-nectar-planning-window",
+          "base": "main",
+          "merged": "2026-11-26T16:52:36Z"
+        },
+        {
+          "number": 543,
+          "head": "feat/p0-b01-oneplus-run-as-cold-sandbox-backup-20261126",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 542,
+          "head": "feat/p0-b01-unified-readonly-recovery-audit-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:13:04Z"
+        },
+        {
+          "number": 541,
+          "head": "feat/p0-b01-readonly-local-media-copy-audit-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:08:35Z"
+        },
+        {
+          "number": 540,
+          "head": "research/b06-bee-detector-permissive-feasibility-2026-11-26",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 539,
+          "head": "research/b06-licensed-bee-detector-v0-20261126",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 538,
+          "head": "test/b09-quota-atomic-rollback-2026-11-26",
+          "base": "main",
+          "merged": "2026-11-26T16:13:57Z"
+        },
+        {
+          "number": 536,
+          "head": "test/b09-blocked-upgrade-retry-2026-11-26",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 535,
+          "head": "test/b05-debug-apk-provenance-failclosed-20261126",
+          "base": "main",
+          "merged": "2026-11-26T18:31:38Z"
+        },
+        {
+          "number": 533,
+          "head": "governance/finish-scenarios-limit-wip-20261125",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 531,
+          "head": "perf/p2-journal-family-lookup-map-20261125",
+          "base": "main",
+          "merged": "2026-11-26T17:26:12Z"
+        },
+        {
+          "number": 530,
+          "head": "fix/p1-sw-reject-redirected-shell-20261125",
+          "base": "main",
+          "merged": "2026-11-26T16:31:59Z"
+        },
+        {
+          "number": 522,
+          "head": "fix/b01-oneplus-safe-shellv2-backup-v9",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 520,
+          "head": "ci/b05-debug-apk-signature-evidence-20261125",
+          "base": "main",
+          "merged": null
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 6,
+      "count": 20,
+      "items": [
+        {
+          "number": 519,
+          "head": "security/b05-signing-key-provenance-readonly-20261125",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 517,
+          "head": "fix/p0-apksigner-java-runtime-discovery-20261125",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 516,
+          "head": "fix/p1-json-preflight-cross-hive-20261125",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 515,
+          "head": "fix/p1-sw-refuse-partial-shell-20261125",
+          "base": "main",
+          "merged": "2026-11-26T16:27:58Z"
+        },
+        {
+          "number": 514,
+          "head": "fix/p1-entrance-video-list-stale-response-20261125",
+          "base": "main",
+          "merged": "2026-11-26T16:23:21Z"
+        },
+        {
+          "number": 512,
+          "head": "fix/p0-block-entrance-original-video-delete-main-20261125",
+          "base": "main",
+          "merged": "2026-11-25T18:42:37Z"
+        },
+        {
+          "number": 511,
+          "head": "perf/p2-entrance-video-metadata-main-20261125",
+          "base": "main",
+          "merged": "2026-11-26T17:39:12Z"
+        },
+        {
+          "number": 510,
+          "head": "perf/p2-journal-filter-first-20261125",
+          "base": "main",
+          "merged": "2026-11-26T17:22:39Z"
+        },
+        {
+          "number": 509,
+          "head": "test/b01-local-tar-header-audit-20261125",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 508,
+          "head": "docs/p0-b01-local-verifier-json-pair-f7-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T05:55:32Z"
+        },
+        {
+          "number": 507,
+          "head": "port/p0-b01-legacy-json-preflight-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T05:52:10Z"
+        },
+        {
+          "number": 506,
+          "head": "fix/p0-b01-bounded-file-read-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T05:49:19Z"
+        },
+        {
+          "number": 505,
+          "head": "docs/p0-startup-write-gate-f7-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T04:54:58Z"
+        },
+        {
+          "number": 504,
+          "head": "fix/p0-b01-first-launch-write-gate-main-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T04:52:54Z"
+        },
+        {
+          "number": 503,
+          "head": "docs/p0-b01-b04-op13-cycle-f7-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T04:44:25Z"
+        },
+        {
+          "number": 502,
+          "head": "docs/p1-op13-regular-vs-honey-source-contract-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T04:42:32Z"
+        },
+        {
+          "number": 501,
+          "head": "feat/p0-b01-offline-archive-verifier-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T04:39:29Z"
+        },
+        {
+          "number": 500,
+          "head": "port/p0-b04-readonly-installed-signer-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-25T04:40:53Z"
+        },
+        {
+          "number": 499,
+          "head": "docs/parallel-7-track-cycle-status-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T23:08:03Z"
+        },
+        {
+          "number": 498,
+          "head": "fix/p0-b01-backup-scope-labels-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T23:02:23Z"
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 7,
+      "count": 20,
+      "items": [
+        {
+          "number": 497,
+          "head": "fix/p1-b15-cloudflare-manual-release-main-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T23:05:42Z"
+        },
+        {
+          "number": 496,
+          "head": "audit/p0-b04-signer-device-gates-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:56:56Z"
+        },
+        {
+          "number": 495,
+          "head": "test/p1-b08-cloudflare-stream-error-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T23:04:13Z"
+        },
+        {
+          "number": 494,
+          "head": "test/p1-b11-sw-failclosed-install-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T23:01:01Z"
+        },
+        {
+          "number": 493,
+          "head": "test/p1-b08-readonly-pr-metadata-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:59:00Z"
+        },
+        {
+          "number": 492,
+          "head": "test/p0-b01-archive-request-error-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:57:43Z"
+        },
+        {
+          "number": 491,
+          "head": "port/p1-b08-readonly-pr-triage-after489-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:49:25Z"
+        },
+        {
+          "number": 490,
+          "head": "docs/integration-ledger-post-485-488-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:51:33Z"
+        },
+        {
+          "number": 489,
+          "head": "port/p1-b11-safe-sw-v318-after485-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:46:16Z"
+        },
+        {
+          "number": 488,
+          "head": "port/p1-legacy-inventory-audit-after485-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:44:43Z"
+        },
+        {
+          "number": 487,
+          "head": "port/p1-cloudflare-byte-limit-after485-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:43:30Z"
+        },
+        {
+          "number": 486,
+          "head": "port/p1-b09-idb-read-gates-after485-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:42:11Z"
+        },
+        {
+          "number": 485,
+          "head": "test/p0-b01-export-read-abort-2026-11-25",
+          "base": "main",
+          "merged": "2026-11-24T22:37:40Z"
+        },
+        {
+          "number": 484,
+          "head": "fix/p1-b08-legacy-body-ref-audit-2026-11-25",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 483,
+          "head": "test/p1-b09-existing-idb-read-abort-2026-11-25",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 482,
+          "head": "fix/p1-b08-cloudflare-bounded-stream-main-2026-11-25",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 481,
+          "head": "audit/p1-b08-open-pr-triage-readonly-2026-11-25",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 480,
+          "head": "fix/p1-b15-cloudflare-explicit-release-gates-2026-11-25",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 479,
+          "head": "docs/p0-b01-oneplus-snapshot-candidate-gate-2026-11-24",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 478,
+          "head": "test/p1-b11-cold-offline-upgrade-lifecycle-2026-11-24",
+          "base": "main",
+          "merged": null
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 8,
+      "count": 20,
+      "items": [
+        {
+          "number": 477,
+          "head": "fix/p1-b11-service-worker-install-private-response-gate-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T20:03:33Z"
+        },
+        {
+          "number": 476,
+          "head": "test/p1-b09-legacy-idb-upgrade-proofs-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T19:51:24Z"
+        },
+        {
+          "number": 475,
+          "head": "fix/p1-main-journal-varroa-rollback-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T19:48:15Z"
+        },
+        {
+          "number": 474,
+          "head": "fix/p1-governance-docs-push-main-gate-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T19:44:48Z"
+        },
+        {
+          "number": 473,
+          "head": "fix/p1-idb-required-stores-open-gate-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T19:11:39Z"
+        },
+        {
+          "number": 472,
+          "head": "fix/p0-main-based-disaster-archive-reconciliation-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T19:04:48Z"
+        },
+        {
+          "number": 471,
+          "head": "docs/blocker-registry-lifecycle-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T19:13:32Z"
+        },
+        {
+          "number": 470,
+          "head": "docs/governance-f0-f7-compact-status-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T17:26:49Z"
+        },
+        {
+          "number": 468,
+          "head": "feat/p0-g0-readonly-source-inventory-2026-11-24",
+          "base": "main",
+          "merged": "2026-11-24T09:51:16Z"
+        },
+        {
+          "number": 465,
+          "head": "feat/p1-op13-early-honey-separation-preflight-2026-11-24",
+          "base": "feat/p1-op11-guided-winter-merge-preview-2026-11-24",
+          "merged": null
+        },
+        {
+          "number": 450,
+          "head": "docs/checkpoint-merged-strategy-varroa-2026-11-23",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 449,
+          "head": "integrate/varroa-journal-main-2026-11-23",
+          "base": "main",
+          "merged": "2026-11-23T09:04:27Z"
+        },
+        {
+          "number": 448,
+          "head": "integrate/strategy-main-2026-11-23",
+          "base": "main",
+          "merged": "2026-11-23T09:00:31Z"
+        },
+        {
+          "number": 447,
+          "head": "fix/pages-manual-release-gate-2026-11-23",
+          "base": "main",
+          "merged": "2026-11-23T08:33:26Z"
+        },
+        {
+          "number": 446,
+          "head": "docs/strategy-evidence-first-delivery-2026-11-23",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 445,
+          "head": "feat/varroa-actual-treatment-journal-entry-2026-11-23",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 443,
+          "head": "fix/p1-sw-safe-cache-main-2026-11-23",
+          "base": "main",
+          "merged": "2026-11-23T06:50:38Z"
+        },
+        {
+          "number": 425,
+          "head": "perf/p2-video-metadata-cursor-2026-11-23",
+          "base": "perf/p2-render-hotpaths-2026-11-23",
+          "merged": null
+        },
+        {
+          "number": 304,
+          "head": "work/fan-iou-association",
+          "base": "work/fan-track-evaluator",
+          "merged": null
+        },
+        {
+          "number": 200,
+          "head": "fix/honey-pairs-2-or-4-validator-2026-11-20",
+          "base": "main",
+          "merged": null
+        }
+      ]
+    },
+    {
+      "kind": "branches",
+      "page": 1,
+      "count": 100,
+      "items": [
+        "audit/all-branches-priority-matrix-2026-11-22",
+        "audit/android-product-permissions-network-surface-2026-11-22",
+        "audit/full-backup-archive-pr9-40-2026-11-18",
+        "audit/p0-b04-signer-device-gates-2026-11-25",
+        "audit/p1-b08-open-pr-triage-readonly-2026-11-25",
+        "audit/pr-branch-graph-20261128",
+        "audit/pr-complete-filepaths-20261126",
+        "audit/pr-live-graph-census-20261126",
+        "audit/pr-portfolio-checkpoint-2026-11-26-b",
+        "audit/pr-portfolio-reconcile-20261126",
+        "audit/pr-portfolio-triage-20261126",
+        "audit/pr-root-safety-reconcile-20261126",
+        "audit/root-33-line-diff-20261126",
+        "audit/root-33-unique-code-matrix-20261126",
+        "audit/sectional-physical-equipment-model-2026-11-16",
+        "audit/sectional-physical-equipment-model-docs-2026-11-16",
+        "audit/techprocess-safety-review-2026-11-16",
+        "chore/npm-lockfile-bootstrap-2026-11-14",
+        "chore/security-and-emulator-hardening-2026-11-14",
+        "ci/android-build-on-test-changes-2026-11-15",
+        "ci/b05-debug-apk-signature-evidence-20261125",
+        "ci/p1-emulator-npm-cache-lockfile-2026-11-23",
+        "ci/pin-npm-dependencies-reproducible-2026-11-22",
+        "ci/pr-first-single-run-fast-feedback-2026-11-22",
+        "ci/run-android-validation-on-pull-requests-2026-11-17",
+        "docs/accessory-inventory-model-checkpoint-2026-11-17",
+        "docs/add-root-project-status-journal-2026-11-17",
+        "docs/android-a09-device-permission-audit-2026-11-22",
+        "docs/android-archive-physical-preflight-plan-2026-11-22",
+        "docs/android-oneplus-offline-force-stop-phone-only-2026-11-23",
+        "docs/android-phone-only-test-matrix-2026-11-22",
+        "docs/android-test-device-oneplus-10-pro-2026-11-18",
+        "docs/archive-release-safety-gates-2026-11-19",
+        "docs/audit-p1-journal-p0-startup-20261126",
+        "docs/b01-archive-zip-fail-postmerge-20261127",
+        "docs/b01-qa-saf-built-device-gate-20261127",
+        "docs/b06-two-licensed-research-tracks-main-20261126",
+        "docs/b07-649-merged-evidence-20261128",
+        "docs/blocker-registry-lifecycle-2026-11-24",
+        "docs/chatgpt-plus-development-policy-2026-11-19",
+        "docs/checkpoint-merged-strategy-varroa-2026-11-23",
+        "docs/completed-journal-csv-performance-cycle-20261126",
+        "docs/confirm-two-large-excluders-2026-11-17",
+        "docs/correct-frame-height-confirmation-2026-11-17",
+        "docs/development-workflow-2026-11-17",
+        "docs/family-layout-architecture-audit-2026-11-17",
+        "docs/family-lineage-guards-and-layout-next-step-2026-11-17",
+        "docs/family-lineage-model-checkpoint-2026-11-17",
+        "docs/finalize-root-audit-n-20261126",
+        "docs/frame-history-guard-checkpoint-2026-11-17",
+        "docs/free-only-tools-and-ai-collaboration",
+        "docs/governance-f0-f7-compact-status-2026-11-24",
+        "docs/governance-wip-stop-selective-20261126",
+        "docs/hive-deletion-rollback-checkpoint-2026-11-17",
+        "docs/hive-family-mutation-rollback-checkpoint-2026-11-17",
+        "docs/integration-equipment-voice-20261126",
+        "docs/integration-ledger-post-485-488-2026-11-25",
+        "docs/inventory-atomicity-checkpoint-2026-11-17",
+        "docs/media-storage-migration-plan-2026-11-14",
+        "docs/merge-chain-148-154-status-2026-11-18",
+        "docs/merge-release-authority-2026-11-17",
+        "docs/offseason-large-cycle-roadmap-2026-11-22",
+        "docs/oneplus-qa-binary-ready-20261127",
+        "docs/oneplus-qa-cycle1-pass-cycle2-20261127",
+        "docs/oneplus-qa-cycle2-pass-cycle3-20261127",
+        "docs/p0-b01-b04-op13-cycle-f7-2026-11-25",
+        "docs/p0-b01-local-verifier-json-pair-f7-2026-11-25",
+        "docs/p0-b01-oneplus-snapshot-candidate-gate-2026-11-24",
+        "docs/p0-full-backup-disaster-recovery-gates-2026-11-23",
+        "docs/p0-startup-write-gate-f7-2026-11-25",
+        "docs/p1-op13-regular-vs-honey-source-contract-2026-11-25",
+        "docs/p1-p2-independent-review-matrix-20261125",
+        "docs/p1-pr-dependency-audit-2026-11-23",
+        "docs/p1-refresh-pr-lineage-359-2026-11-23",
+        "docs/p3-readiness-gates-2026-11-23",
+        "docs/parallel-7-track-cycle-status-2026-11-25",
+        "docs/parallel-work-ownership-2026-11-19",
+        "docs/persist-snapshot-pr-checkpoint-2026-11-17",
+        "docs/persistence-commit-integration-checkpoint-2026-11-17",
+        "docs/persistence-integration-checkpoint-2026-11-17",
+        "docs/physical-accessory-registry-status-2026-11-16",
+        "docs/post-merge-591-root-triage-20261127",
+        "docs/post-merge-593-ux-status-20261127",
+        "docs/pr-audit-cycle-e-20261126",
+        "docs/pr-audit-cycle-f-20261126",
+        "docs/pr-audit-final-post-b01-20261126",
+        "docs/pr-audit-final-sync-20261126",
+        "docs/pr-audit-i-code-merge-finalize-20261126",
+        "docs/pr-audit-qa-553-checkpoint-20261126",
+        "docs/pr-inventory-and-current-state-2026-11-17",
+        "docs/pr-portfolio-audit-cycle-c-20261126",
+        "docs/pr-portfolio-audit-cycle-d-20261126",
+        "docs/project-control-post-merge-2026-11-16",
+        "docs/project-control-system-2026-11-16",
+        "docs/project-status-autosave-2026-11-16",
+        "docs/project-status-autosave-main-2026-11-16",
+        "docs/qa-pr532-partial-port-checkpoint-20261126",
+        "docs/r4-two-grid-geometry-2026-11-16",
+        "docs/record-pr146-merge-next-steps-2026-11-17",
+        "docs/record-project-status-journal-merge-2026-11-17"
+      ]
+    },
+    {
+      "kind": "branches",
+      "page": 2,
+      "count": 100,
+      "items": [
+        "docs/record-release-authority-finalization-2026-11-17",
+        "docs/record-status-journal-checkpoint-pr140-2026-11-17",
+        "docs/refresh-audit-and-status-2026-11-16",
+        "docs/refresh-live-project-state-2026-11-19",
+        "docs/reliable-docx-source-reading-2026-11-16",
+        "docs/resolve-b03-main-archive-integration-20261127",
+        "docs/sectional-layout-contract-checkpoint-2026-11-17",
+        "docs/sectional-profile-equipment-audit-2026-11-16",
+        "docs/source-docx-recovery-protocol-main-20261126",
+        "docs/storage-protection-audit-2026-11-14",
+        "docs/strategy-evidence-first-delivery-2026-11-23",
+        "docs/ui187-partial-port-checkpoint-20261126",
+        "docs/ui-603-604-post-merge-status-20261127",
+        "docs/ui-607-postmerge-checkpoint-20261127",
+        "docs/ui-search-postmerge-final-20261127",
+        "docs/varroa-treatment-sublimation-2026-11-17",
+        "docs/verify-lineage-guard-ci-and-source-limitations-2026-11-17",
+        "docs/video-archive-v2-contract-2026-11-20",
+        "docs/video-author-response-watch-and-retention-audit-2026-11-21",
+        "docs/video-bee-model-license-candidate-audit-2026-11-20",
+        "docs/video-ephemeral-until-recognition-2026-11-20",
+        "docs/video-lila-provenance-gate-2026-11-20",
+        "docs/video-mendeley-v6-tracking-evidence-2026-11-20",
+        "docs/video-open-bee-dataset-candidates-2026-11-20",
+        "docs/video-permissive-detector-training-path-2026-11-20",
+        "docs/video-recognition-cleanup-state-contract-2026-11-20",
+        "docs/workflow-merge-checkpoint-2026-11-17",
+        "feat/android-archive-preflight-copy-report-2026-11-22",
+        "feat/android-archive-preflight-share-report-2026-11-22",
+        "feat/b01-isolated-android-indexeddb-reopen-probe",
+        "feat/b01-isolated-export-recovery-proof",
+        "feat/b01-oneplus-private-store-metadata-inventory",
+        "feat/b01-qa-saf-archive-export-20261127",
+        "feat/b01-two-daily-archives",
+        "feat/check-hub-oneplus-private-db-access-gate",
+        "feat/check-hub-oneplus-readonly-usb-probe",
+        "feat/equipment-frame-identity-capacity-2026-11-17",
+        "feat/equipment-items-domain-model-2026-11-17",
+        "feat/equipment-items-registry-clean-2026-11-17",
+        "feat/equipment-items-runtime-validation-2026-11-17",
+        "feat/ergonomic-interface-four-honey-boxes-2026-11-18",
+        "feat/family-events-runtime-integration-2026-11-17",
+        "feat/family-lineage-model-2026-11-16",
+        "feat/family-lineage-model-clean-2026-11-17",
+        "feat/full-frame-inventory-traceability-2026-11-17",
+        "feat/full-installed-corpus-frame-capacity-2026-11-17",
+        "feat/full-media-backup-restore-main-2026-11-18",
+        "feat/honey-second-pair-readonly-preflight-2026-11-20",
+        "feat/honeycomb-navigation-ui-2026-11-18",
+        "feat/inventory-filtered-csv-export-20261127",
+        "feat/journal-video-v2-source-evidence-2026-11-20",
+        "feat/legacy-entrance-media-migration-2026-11-18",
+        "feat/local-ai-review-pilot-2026-11-19",
+        "feat/media-ai-vision-2026-11-18",
+        "feat/media-job-capture-ui-2026-11-18",
+        "feat/media-job-indexeddb-store-2026-11-18",
+        "feat/media-job-lifecycle-contract-2026-11-18",
+        "feat/offline-speech-recognition-2026-11-18",
+        "feat/offline-voice-vosk-2026-11-18",
+        "feat/p0-b01-offline-archive-verifier-2026-11-25",
+        "feat/p0-b01-oneplus-run-as-cold-sandbox-backup-20261126",
+        "feat/p0-b01-readonly-local-media-copy-audit-20261126",
+        "feat/p0-b01-unified-readonly-recovery-audit-20261126",
+        "feat/p0-g0-readonly-source-inventory-2026-11-24",
+        "feat/p1-isolated-oneplus-smoke-2026-11-24",
+        "feat/p1-journal-filtered-csv-export-20261126",
+        "feat/p1-op01-op14-technology-audit-guards-2026-11-23",
+        "feat/p1-op06-atomic-frame-exchange-2026-11-23",
+        "feat/p1-op11-guided-winter-merge-preview-2026-11-24",
+        "feat/p1-op12-guided-target-preview-2026-11-24",
+        "feat/p1-op13-early-honey-separation-preflight-2026-11-24",
+        "feat/p1-op13-guided-spring-separation-2026-11-24",
+        "feat/p1-op14-guided-early-honey-merge-2026-11-24",
+        "feat/p1-physical-movement-manifest-2026-11-23",
+        "feat/p1-physical-op11-14-capability-bound-commit-bridge-2026-11-24",
+        "feat/p1-season-ledger-v2-contract-2026-11-23",
+        "feat/p1-season-physical-manifest-source-bound-2026-11-23",
+        "feat/qa-isolated-current-main-20261127",
+        "feat/queen-absence-confirmation-event-2026-11-17",
+        "feat/r4-physical-excluder-links-2026-11-16",
+        "feat/sectional-inventory-bridge-2026-11-17",
+        "feat/sectional-late-honey-pair-2026-11-20",
+        "feat/sectional-layout-contract-v1-2026-11-17",
+        "feat/sectional-lineage-ui-2026-11-17-r2",
+        "feat/sectional-lineage-ui-2026-11-17",
+        "feat/sectional-op04-atomic-coordinator-2026-11-17",
+        "feat/sectional-op05-atomic-mesh-plug-install-2026-11-17",
+        "feat/sectional-op06-atomic-queen-laying-removal-2026-11-17",
+        "feat/sectional-op07-atomic-honey-stage-2026-11-17",
+        "feat/sectional-physical-accessories-registry-2026-11-16",
+        "feat/sectional-physical-layout-contract-2026-11-17",
+        "feat/sectional-physical-layout-validator-2026-11-17",
+        "feat/two-large-excluder-footprint-2026-11-16",
+        "feat/ui-596-bee-honeycomb-20261127",
+        "feat/ui-global-search-reset-a11y-20261127",
+        "feat/ui-search-family-history-safe-20261127",
+        "feat/unified-offline-check-hub",
+        "feat/validate-six-installed-brood-bodies-2026-11-16",
+        "feat/varroa-actual-treatment-journal-entry-2026-11-23",
+        "feat/varroa-last-treatment-hive-card-2026-11-19"
+      ]
+    }
+  ]
+}
