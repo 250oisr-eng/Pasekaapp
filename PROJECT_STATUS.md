@@ -8,7 +8,7 @@
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
-**B08 #653:** 407 PR/674 ветки; 260 без open refs (176 merged/61 closed/23 no PR). 90 compare: 7 ahead=0/83 unique. 8 orphan bases, depth 143, dup #13/#14; #639→main. Node 1114/1114, Android/Gov PASS. NO_DELETE/MERGE.
+**B08 #653:** 407 PR/674 ветки, 260 без open refs (176/61/23); 90 compare: 7 ahead=0/83 unique. 8 orphan bases, depth 143, dup #13/#14; 15 root PR→25 пересечений. #639→main. 1114/1114 Node на предыдущем SHA; новый CI pending. No delete/merge.
 
 ## План работ и журнал
 
