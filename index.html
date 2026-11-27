@@ -4543,7 +4543,6 @@ function askPlantAI(){
  const prompt='Помоги разобрать текстовое наблюдение о медоносных и пыльценосных растениях. Фотографии, если они прикреплены к форме, тебе не передаются — не делай вид, что анализировал их. Не добавляй это в журнал и не утверждай вид без достаточных признаков. Отделяй сообщённые мной факты от предположений; если названия недостаточно для определения, задай уточняющий вопрос. Укажи возможные источники нектара и пыльцы только с оговоркой об их региональной и сезонной изменчивости.\n\nДата: '+(date||'не указана')+'\nНазвание, как я его знаю: '+(name||'не указано')+'\nСтадия по моему наблюдению: '+phase+'\nМесто: '+(location||'не указано')+'\nОписание: '+(note||'нет дополнительного описания')+'\n\nПомоги оценить, достаточно ли данных, какие поля наблюдения стоит уточнить и какие похожие растения можно перепутать.';
  const field=$('aiQuestion');if(!field)return;field.value=prompt;showTab('ai');field.focus();
 }
-async 
 let dailyArchiveStore=null,dailyArchiveBusy=false,dailyArchiveCheckedDay=null,dailyRestoreBusy=false,dailyRestoreChoices=[];
 async function getDailyArchiveStore(){
  if(!dailyArchiveStore)dailyArchiveStore=await PasekaDailyArchives.openStore();
@@ -4679,7 +4678,7 @@ function startDailyArchiveScheduler(){
  setInterval(()=>void checkDailyArchives(),15*60*1000);
 }
 
-function requestStoragePersistence(){try{if(!navigator.storage||!navigator.storage.persist){storagePersisted=false;return}storagePersisted=await navigator.storage.persisted();if(!storagePersisted)storagePersisted=await navigator.storage.persist()}catch(e){storagePersisted=false}}
+async function requestStoragePersistence(){try{if(!navigator.storage||!navigator.storage.persist){storagePersisted=false;return}storagePersisted=await navigator.storage.persisted();if(!storagePersisted)storagePersisted=await navigator.storage.persist()}catch(e){storagePersisted=false}}
 async function updateStorageEstimate(){const host=$('storageUsage');if(!host)return;try{if(!navigator.storage?.estimate){host.textContent='Оценка занятого места браузером недоступна.';return}const e=await navigator.storage.estimate();storageEstimate=e;if(!Number.isFinite(e.usage)||!Number.isFinite(e.quota)||e.quota<=0){host.textContent='Браузер не предоставил оценку объёма хранилища.';return}const mb=n=>Math.round(n/1024/1024*10)/10,free=Math.max(0,e.quota-e.usage),pct=Math.round(e.usage/e.quota*100);host.textContent='Занято приложениями этого сайта: '+mb(e.usage)+' МБ из '+mb(e.quota)+' МБ · свободно примерно '+mb(free)+' МБ'+(pct>=85?' · мало свободного места':'')+'. Оценка приблизительная.';host.style.color=pct>=85?'#a33':''}catch(e){host.textContent='Не удалось получить оценку хранилища.'}}
 (async()=>{
  try{
