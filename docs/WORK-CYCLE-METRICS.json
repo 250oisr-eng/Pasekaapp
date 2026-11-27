@@ -1358,7 +1358,7 @@
     "qaPackage": "ru.paseka.journal.qa",
     "ci": "NOT_VERIFIED",
     "binarySha": null,
-    "device": "NOT_TESTED",
+    "device": "CYCLE_1_USER_REPORTED_PASS",
     "productionTouched": false,
     "merged": true,
     "pr": 613,
@@ -1374,6 +1374,32 @@
     "artifactId": 15183717921,
     "artifactExpiresAt": "2026-12-04T08:46:12Z",
     "apkSha256": "e0651987d176e6a45f6a03b2ae2c39f613a9725463942d5583f63b49158eeca6",
-    "published": false
+    "published": false,
+    "cycle1": {
+      "status": "USER_REPORTED_PASS",
+      "date": "2026-11-27",
+      "reportedPassCount": 8,
+      "reportedTotal": 8,
+      "remarks": "none",
+      "device": "OnePlus Android 15+",
+      "conditions": [
+        "isolated QA install",
+        "empty QA start",
+        "4-3-4 nonoverlap",
+        "tab access",
+        "AI tab",
+        "Back and resume",
+        "rotation",
+        "reported production unchanged"
+      ],
+      "independentDeviceLogs": false
+    },
+    "cycle2": {
+      "status": "AWAITING_USER_PHYSICAL_TEST",
+      "syntheticDataOnly": true,
+      "coldOffline": "NOT_TESTED",
+      "indexedDbPersistence": "NOT_TESTED",
+      "familySearchHistory": "NOT_TESTED"
+    }
   }
 }
