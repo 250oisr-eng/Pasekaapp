@@ -90,3 +90,25 @@ test('CSV file name isolates hives and repeated local exports with safe characte
  assert.ok(!(/[\\/]/.test(functions.journalCsvFilename('../../private','2026-11-26',1234))));
  assert.match(html,/journalCsvFilename\(activeJournalHive,today\(\),Date\.now\(\)\)/);
 });
+
+test('journal period includes both dates and exports the same selection',()=>{
+ const records=[
+  {id:'before',hive:'h1',date:'2026-11-09',type:'Осмотр'},
+  {id:'start',hive:'h1',date:'2026-11-10',type:'Осмотр'},
+  {id:'middle',hive:'h1',date:'2026-11-11',type:'Осмотр'},
+  {id:'end',hive:'h1',date:'2026-11-12',type:'Осмотр'},
+  {id:'after',hive:'h1',date:'2026-11-13',type:'Осмотр'},
+  {id:'unknown',hive:'h1',type:'Осмотр'},
+  {id:'archived',hive:'h1',date:'2026-11-11',archivedAt:'2026-11-13'},
+  {id:'other',hive:'h2',date:'2026-11-11'}
+ ];
+ const x=setup({records,filters:{journalDateFilter:'2026-11-10',journalEndDateFilter:'2026-11-12'}});
+ const ids=()=>x.functions.filteredJournalRows().map(row=>row.id);
+ assert.deepEqual(ids(),['end','middle','start']);
+ const csv=x.functions.buildFilteredJournalCsv(x.functions.filteredJournalRows(),'h1');
+ for(const id of ['start','middle','end'])assert.ok(csv.includes('"'+id+'"'));
+ for(const id of ['before','after','unknown','archived','other'])assert.ok(!csv.includes('"'+id+'"'));
+ x.values.journalEndDateFilter='2026-11-09';assert.deepEqual(ids(),[]);
+ x.values.journalEndDateFilter='';assert.deepEqual(ids(),['start']);
+ x.values.journalDateFilter='';x.values.journalEndDateFilter='2026-11-10';assert.deepEqual(ids(),['start','before']);
+});

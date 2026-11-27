@@ -76,6 +76,17 @@ async function journey(browser,origin,name,viewport){
     await page.locator('#rtext').fill(secondText);
     await page.locator('#recordForm button.primary').click();
     await page.locator('#recordDlg').waitFor({state:'hidden'});
+    const dates=await page.evaluate(()=>({today:today(),yesterday:dateShift(today(),-1),tomorrow:dateShift(today(),1)}));
+    await page.locator('#journalDateFilter').fill(dates.yesterday);
+    assert.equal(await page.locator('#records .journal-entry').count(),0);
+    await page.locator('#journalEndDateFilter').fill(dates.today);
+    assert.equal(await page.locator('#records .journal-entry').count(),2);
+    await page.locator('#journalDateFilter').fill(dates.tomorrow);
+    assert.match(await page.locator('#journalResultCount').textContent(),/Конец периода раньше начала/);
+    assert.equal(await page.locator('#records .journal-entry').count(),0);
+    await page.locator('#journal').getByRole('button',{name:'Сбросить',exact:true}).click();
+    assert.equal(await page.locator('#journalEndDateFilter').inputValue(),'');
+    assert.equal(await page.locator('#records .journal-entry').count(),2);
     await page.locator('button[data-tab="home"]').click();
     await page.locator('#globalSearch').fill(note);
     const matches=page.locator('#globalSearchResults [data-kind="record"]');
