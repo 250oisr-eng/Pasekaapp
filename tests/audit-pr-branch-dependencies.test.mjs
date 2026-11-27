@@ -9,6 +9,8 @@ test('detects stacked links, unreferenced branches and bases without an open par
  assert.deepEqual(r.stackedWithoutOpenParentPr,[{number:3,base:'closed-parent',baseExists:true}]);
  assert.deepEqual(r.missingLocalBases,[]);
  assert.equal(r.proof,'STRUCTURAL_ONLY_NOT_MERGE_OR_DELETE_SAFETY');
+ assert.equal(r.maxOpenPrChainDepth,2);
+ assert.deepEqual(r.duplicateHeads,[]);
 });
 test('reports genuinely missing branches without equating them with deleted code',()=>{
  const r=analyzePrBranchGraph([p(1,'unknown-head','unknown-base')],['main']);
@@ -38,4 +40,23 @@ test('collects paginated branches and pull requests with no write calls',async()
 test('finds cyclic parent links for human review only',()=>{
  const r=analyzePrBranchGraph([p(1,'a','b'),p(2,'b','a')],['main','a','b']);
  assert.equal(r.cycles.length,1);
+ assert.equal(r.maxOpenPrChainDepth,null);
+});
+
+test('reports duplicate PR heads separately from identical base/unique-commit evidence',()=>{
+ const r=analyzePrBranchGraph([
+  p(1,'root'),p(2,'child','root'),p(3,'grandchild','child'),
+  p(14,'shared-archive','main'),p(13,'shared-archive','root')
+ ],['main','root','child','grandchild','shared-archive']);
+ assert.equal(r.maxOpenPrChainDepth,3);
+ assert.deepEqual(r.duplicateHeads,[{head:'shared-archive',prs:[13,14]}]);
+ assert.equal(r.cycles.length,0);
+ assert.equal(r.missingLocalHeads.length,0);
+ // The two PRs can have different diffs because their target bases differ.
+ assert.equal(r.proof,'STRUCTURAL_ONLY_NOT_MERGE_OR_DELETE_SAFETY');
+});
+test('empty open graph has depth zero, never an imagined dependency',()=>{
+ const r=analyzePrBranchGraph([],['main']);
+ assert.equal(r.maxOpenPrChainDepth,0);
+ assert.deepEqual(r.duplicateHeads,[]);
 });
