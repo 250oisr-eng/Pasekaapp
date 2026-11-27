@@ -1,4 +1,20 @@
 {
+  "videoEntranceResumed20261128": {
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "branch": "feat/video-entrance-resume-safe-20261128",
+    "status": "IMPLEMENTED_DRAFT",
+    "targetedRegressionAdded": 1,
+    "fullNodeTests": null,
+    "ci": "NOT_VERIFIED",
+    "physicalAndroid": "NOT_TESTED",
+    "beeRecognition": "FROZEN_V0_V2_UNVERIFIED",
+    "originalVideoDeletion": false,
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "mergeAuthorized": false
+  },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 638,
