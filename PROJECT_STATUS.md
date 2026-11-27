@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · verified main `3af572224749da72cb5e2080557a0f17bb59bff5` after approved #616.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · verified main `6859e1082e213ce7141fa983f453fb9011e7c74b` after approved #617.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 ## Основные интегрированные функции
 
@@ -18,7 +18,7 @@
 ## Аппаратный цикл 3 — FAIL: ZIP выбран вместо JSON или ошибка скачивания
 
 - **CYCLE_3 USER_REPORTED_PARTIAL:** загрузка файла и наличие ~330000 байт PASS; read-only проверка **FAIL** с `Unexpected token 'P', "PK"...is not valid JSON`; SHA/записи не получены, вторая копия NOT_TESTED, restore/delete NOT_TESTED. Сигнатура `PK` характерна для ZIP, но фактическое имя и содержимое выбранного файла не представлены: неверный выбор наиболее вероятен, ошибка WebView-загрузки не исключена. B01 остаётся BLOCKED.
-- **Активный исправляющий Draft:** `fix/b01-qa-archive-zip-misselect-20261127`. Только пред-проверка ZIP PK, пустого/не-JSON файла с понятной ошибкой; новый Node negative regression. Это **не меняет уже установленный QA APK** и не разрешает его обновление. Безопасный повтор на старом QA — выбрать именно существующий `paseka-full-idb-*.json` в загрузках, **не ZIP APK**, без восстановления/удаления; если JSON отсутствует, остановиться и сообщить. [Подробности](docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md).
+- **#617 MERGED / CODE_VERIFIED:** ZIP `PK`, пустой и не-JSON файлы теперь отклоняются с понятным сообщением до парсинга; корректная проверка SHA/структуры сохранена. PR head `616c5f81c99e6ad613afee4a0ead2459896b0cc6`: **1032/1032 Node PASS**, Android build SUCCESS (#45973966819), Chromium E2E SUCCESS (#45973966889), Governance SUCCESS (#45973966811). Merge `6859e1082e213ce7141fa983f453fb9011e7c74b`. Это **не меняет уже установленный QA APK** и не разрешает его обновление. В имеющемся QA выбрать именно `paseka-full-idb-*.json`, не ZIP; если JSON нет, STOP и отчёт. [Подробности](docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md).
 
 ## Блокировки до физических доказательств
 
