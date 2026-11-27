@@ -1323,5 +1323,19 @@
     },
     "chromiumAllPassed": true,
     "published": false
+  },
+  "searchFamilyHistory20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "branch": "feat/ui-search-family-history-safe-20261127",
+    "sourceDraft": 600,
+    "baseMainSha": "f67ca3427fd6c352011b8628d7359ebdaa8e0d3d",
+    "runtimeChanges": [
+      "index.html"
+    ],
+    "dataWrites": false,
+    "codeCi": "NOT_VERIFIED",
+    "chromiumCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "merged": false
   }
 }

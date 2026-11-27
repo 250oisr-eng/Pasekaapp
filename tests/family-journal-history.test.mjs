@@ -64,3 +64,26 @@ test('family card preserves #599 direct search and inventory navigation',()=>{
  assert.ok(html.includes("if(kind==='corpus'){openEquipmentInventory(button.dataset.id);return}"),
    'inventory result must open the selected physical body');
 });
+
+
+test('stale or ambiguous family search results never switch hives or open another family',()=>{
+ const start=html.indexOf('function openFamilyHistory('),end=html.indexOf('function openFamilyHistoryRecord(',start);
+ const source=html.slice(start,end);
+ const state={families:[{id:'moved',hive:'h2'},{id:'dup',hive:'h1'},{id:'dup',hive:'h2'},{id:'orphan',hive:'gone'}],
+  hives:[{id:'h1'},{id:'h2'}]};
+ let warnings=0,refreshes=0;
+ const run=new Function('S','renderGlobalSearch','alert',source+';return openFamilyHistory')(
+  state,()=>refreshes++,()=>warnings++);
+ for(const [id,hive] of [['moved','h1'],['dup','h1'],['orphan','gone'],['deleted','h1']])run(id,hive);
+ assert.equal(warnings,4);
+ assert.equal(refreshes,4);
+});
+
+test('direct family search preserves record and physical inventory routes',()=>{
+ const at=html.indexOf('function openGlobalSearchResult(');
+ const fn=html.slice(at,html.indexOf('function inventoryConditionLabel(',at));
+ assert.match(fn,/if\(kind==='family'\)\{openFamilyHistory\(button.dataset.id,hiveId\);return\}/);
+ assert.match(fn,/if\(kind==='hive'\)\{openHive\(hiveId\);return\}/);
+ assert.match(fn,/if\(kind==='corpus'\)\{openEquipmentInventory\(button.dataset.id\);return\}/);
+ assert.match(fn,/const matches=S.records.filter\(r=>r.id===id\)/);
+});
