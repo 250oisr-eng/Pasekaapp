@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "REAL_BASELINE_MEASURED_ROI_RETRY",
+    "stage": "ROI_AND_ACTUAL_TRACKING_MEASURED_COMPACT_AND_RANGE_ACTIVE",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -46,7 +46,48 @@
     "roiTrialCodeSha": "3bc4c2ca923b6e998659b7e16502f78c142be33e",
     "roiTrialRun": 46073802221,
     "roiTrialConclusion": "DEPENDENCY_APT_403_TESTS_SKIPPED",
-    "roiMetrics": null
+    "roiMetrics": {
+      "selected": "qa",
+      "threshold": 0.65,
+      "julyA": {
+        "tp": 48,
+        "fp": 225,
+        "fn": 7,
+        "precision": 0.17582417582417584,
+        "recall": 0.8727272727272727,
+        "f1": 0.2926829268292683
+      },
+      "julyB": {
+        "tp": 93,
+        "fp": 582,
+        "fn": 85,
+        "precision": 0.13777777777777778,
+        "recall": 0.5224719101123596,
+        "f1": 0.21805392731535755
+      },
+      "tracking": {
+        "frames": 12,
+        "switches": 20,
+        "transitions": 62
+      },
+      "artifactId": 15234467516
+    },
+    "roiRetryCodeSha": "07327a675e89ecb8919dffe33d8108c4746df781",
+    "roiRetryRun": 46074002841,
+    "roiRetryConclusion": "success",
+    "roiTestsPassed": 4,
+    "compactCodeSha": "2de6f7faf25a1528a87a02d8fd634347319a04bf",
+    "compactRun": 46074461207,
+    "compactConclusion": "pending",
+    "zenodo": {
+      "versionDoi": "10.5281/zenodo.14929560",
+      "license": "CC BY 4.0",
+      "archiveBytes": 11909319247,
+      "publisherMd5": "1750347f386c8c7bef7a5c8d53a2be72",
+      "metadataRun": 46074461207,
+      "trainingAdmission": false,
+      "fullArchiveVerified": false
+    }
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
