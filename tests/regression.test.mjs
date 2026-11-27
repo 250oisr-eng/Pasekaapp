@@ -3790,3 +3790,28 @@ test('save integrity gate validates physical body inventory before persisting',(
  assert.match(saveSource,/PasekaInventory\.inspect\(S,PasekaLabels,profileForHive\)/);
  assert.match(saveSource,/if\(physicalLayoutErrors\.length\)/);
 });
+
+test('feeding ledger attributes historical snapshot-only family and quarantines conflicting identity',()=>{
+ const build=loadFunction('buildFeedingLedger');
+ const rows=[
+  {id:'legacy',type:'Подкормка',hive:'h',familySnapshotAtTime:{id:'f1',name:'Семья в момент выдачи'},date:'2026-10-10',feedingAmount:'200 г'},
+  {id:'normal',type:'Подкормка',hive:'h',family:'f1',date:'2026-10-11',feedingAmount:'100 г'},
+  {id:'conflict',type:'Подкормка',hive:'h',family:'f1',familySnapshotAtTime:{id:'f2'},date:'2026-10-12',feedingAmount:'999 г'},
+  {id:'no-family',type:'Подкормка',hive:'h',date:'2026-10-13',feedingAmount:'50 г'},
+  {id:'archived',type:'Подкормка',hive:'h',family:'f2',date:'2026-10-14',feedingAmount:'20 г',archivedAt:'2026-10-15'}
+ ];
+ const original=structuredClone(rows);
+ const groups=build(rows,[{id:'f1',name:'Первая'},{id:'f2',name:'Вторая'}],'h');
+ const linked=groups.find(g=>g.familyId==='f1');
+ assert.equal(linked.count,2);
+ assert.deepEqual(linked.totals,[{unit:'г',amount:300,count:2}]);
+ assert.equal(linked.name,'Семья в момент выдачи','keep historical family name');
+ const conflict=groups.find(g=>g.familyId==='__conflicted__');
+ assert.equal(conflict.count,1);
+ assert.equal(conflict.ambiguousCount,1);
+ assert.deepEqual(conflict.totals,[],'conflicting family identity cannot silently inflate totals');
+ const unknown=groups.find(g=>g.familyId==='__unassigned__');
+ assert.deepEqual(unknown.totals,[{unit:'г',amount:50,count:1}]);
+ assert.equal(groups.some(g=>g.familyId==='f2'),false,'archived record is excluded');
+ assert.deepEqual(rows,original,'feeding ledger remains read-only');
+});
