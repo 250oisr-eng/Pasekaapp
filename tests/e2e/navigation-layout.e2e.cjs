@@ -162,6 +162,17 @@ const measure=()=> {
         await page.screenshot({path:'e2e-nav-'+name+'-failure.png'}).catch(()=>{});
       }
     }
+    // One shared navigation must persist unchanged across each existing tab.
+    await page.setViewportSize({width:390,height:844});
+    for(const tab of expected){
+      const selector='main>nav[aria-label="Основные разделы"] button[data-tab="'+tab+'"]';
+      await page.locator(selector).click();
+      const m=await page.evaluate(measure);
+      if(JSON.stringify(m.buttons.map(button=>button.tab))!==JSON.stringify(expected))
+        failures.push('navigation changed after opening '+tab);
+      if(m.rowTracks!==3||m.layoutProblems.length||Math.abs(m.aiDelta)>3)
+        failures.push('4-3-4 layout changed on tab '+tab+': '+JSON.stringify(m.layoutProblems));
+    }
     assert.deepEqual(errors,[],'unexpected JS errors or dialogs');
     assert.deepEqual(failures,[],'nav geometry regression across supported viewports');
   }finally{if(context)await context.close();if(browser)await browser.close();
