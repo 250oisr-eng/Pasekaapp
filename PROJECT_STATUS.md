@@ -1,6 +1,10 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · main `94f883be631d5bb205a1c4bbcfbea20fed554f48` after approved #623; identical tree to CI-verified PR head.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · main `9b570ad1ff20c7e6cc440ecf8556b14e848667c9` after approved docs-only #626, exact-main Governance #46015718186 SUCCESS.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+
+**B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
+
+**Учёт без видео [#627 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, физические операции и откат откачки. Код `c7dd88c2` блокирует повторное переключение медовой пары до завершения записи. Локально 1068/1068 Node. CI финального SHA в PR. OnePlus/B07 не аттестованы. Следующий независимый этап — проверка актуального #621.
 
 ## Work · план работ и журнал
 
