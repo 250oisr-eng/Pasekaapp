@@ -406,6 +406,16 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
 }
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-symbol{font-size:22px;line-height:1}
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-label{font-size:10px;line-height:1.1}
+/* #596: the single central AI honeycomb has a translucent rim and an offline inline bee. */
+main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
+ border:2px solid rgba(255,235,180,.66);
+ background:linear-gradient(145deg,rgba(49,93,60,.91),rgba(22,59,38,.96));
+ box-shadow:inset 0 0 0 2px rgba(255,255,255,.13),0 0 0 2px rgba(235,204,137,.16);
+ clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);
+}
+main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-bee{
+ display:block;width:30px;height:30px;flex:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.24));
+}
 main>nav[aria-label="Основные разделы"] button[data-tab="forage"]{grid-row:2;grid-column:4}
 main>nav[aria-label="Основные разделы"] button[data-tab="varroa"]{grid-row:2;grid-column:5}
 main>nav[aria-label="Основные разделы"] button[data-tab="incidents"]{grid-row:3;grid-column:2}
@@ -456,7 +466,7 @@ main{padding-bottom:calc(220px + env(safe-area-inset-bottom,0px))!important}
 
 </style></head><body>
 <header class="home-header"><div class="home-brand"><div><h1 id="currentSectionTitle" class="home-brand-title" aria-live="polite" style="margin:0">Обзор</h1></div></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
-<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки" aria-current="page">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="entrance">Лёток</button><button data-tab="journal">Журнал</button><button data-tab="settings">Ещё</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><span class="nav-ai-symbol" aria-hidden="true">✦</span><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="varroa">Клещ</button><button data-tab="incidents">Инцидент</button><button data-tab="planning">План</button><button data-tab="deadout">Потери</button></nav>
+<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки" aria-current="page">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="entrance">Лёток</button><button data-tab="journal">Журнал</button><button data-tab="settings">Ещё</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><svg class="nav-ai-bee" aria-hidden="true" focusable="false" viewBox="0 0 64 64" width="30" height="30"><ellipse class="bee-wing" cx="23" cy="21" rx="12" ry="15" transform="rotate(-32 23 21)" fill="#eff9ef" fill-opacity=".72"/><ellipse class="bee-wing" cx="41" cy="21" rx="12" ry="15" transform="rotate(32 41 21)" fill="#eff9ef" fill-opacity=".72"/><path d="M25 14 21 9M39 14 43 9" fill="none" stroke="#fbe6a6" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="32" cy="38" rx="16" ry="19" fill="#ffce55"/><path d="M21 27q11 6 22 0M17 37q15 7 30 0M22 48q10 6 20 0" fill="none" stroke="#493726" stroke-width="5"/><circle cx="27" cy="22" r="2.2" fill="#493726"/><circle cx="37" cy="22" r="2.2" fill="#493726"/><path d="M29 56 32 62 35 56" fill="#493726"/></svg><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="varroa">Клещ</button><button data-tab="incidents">Инцидент</button><button data-tab="planning">План</button><button data-tab="deadout">Потери</button></nav>
 <section id="home" class="panel active">
  <div class="card home-intro-card" style="border-left:4px solid #547b5d"><b>Виртуальная модель пасеки</b><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></div>
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" oninput="renderGlobalSearch()"><div id="globalSearchResults" class="global-search-results" aria-live="polite"></div></div>
