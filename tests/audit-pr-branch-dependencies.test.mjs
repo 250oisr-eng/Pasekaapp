@@ -23,7 +23,7 @@ test('rejects duplicates, malformed input, missing main',()=>{
  assert.throws(()=>analyzePrBranchGraph(null,[]),/Complete/);
 });
 test('fails closed on full last page and incomplete remote results',async()=>{
- await assert.rejects(collectGraph(async(kind,page)=>kind==='pulls'?[p(page,'a'+page)]:[{name:'main'}]),/Pagination incomplete/);
+ await assert.rejects(collectGraph(async(kind,page,size)=>kind==='pulls'?Array.from({length:size},(_,i)=>p((page-1)*size+i+1,'a'+((page-1)*size+i+1))):[{name:'main'}]),/Pagination incomplete/);
 });
 test('collects paginated branches and pull requests with no write calls',async()=>{
  const calls=[];const fetcher=async(kind,page,size)=>{
