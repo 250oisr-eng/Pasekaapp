@@ -64,10 +64,9 @@ const measure=()=> {
   const aiVisual={beePresent:!!bee,beePathCount:bee?.querySelectorAll('path,ellipse').length||0,
     rimColor:aiStyle?.borderTopColor||null,hexagonButtons};
   const ai=buttons.find(b=>b.tab==='ai');
-  const compact=innerWidth<700&&!(innerWidth>=560&&innerHeight<520);
-  const mobileRows=compact?[['entrance','hives'],
+  const mobileRows=[['entrance','hives'],
     ['home','journal','ai','planning','forage'],
-    ['incidents','deadout','varroa','settings']]:null;
+    ['incidents','deadout','varroa','settings']];
   const layoutProblems=[];
   if(mobileRows){
     const ordered=mobileRows.flatMap((row,index)=>row.map(tab=>({tab,row:index})));
@@ -132,7 +131,7 @@ const measure=()=> {
         if(!m.aiVisual.hexagonButtons)problems.push('all nav cells must be hexagons');
         if(!/rgba\(/.test(m.aiVisual.rimColor||''))
           problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
-        if(width<700&&!(height<520&&width>=560)&&m.rowTracks!==3)
+        if(m.rowTracks!==3)
           problems.push('2-5-4 mobile honeycomb rows changed');
         problems.push(...m.layoutProblems);
         const ai=m.buttons.find(b=>b.tab==='ai');
