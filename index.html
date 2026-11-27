@@ -1459,10 +1459,17 @@ function filterEquipmentInventory(){
  const result=$('inventoryFilterResult');if(result)result.textContent='Показано: '+visible+' из '+total;
 }
 
+function inventoryCsvCell(value){
+ let text=String(value??'');
+ // CSV is for external spreadsheets: never let a leading formula survive invisible
+ // Unicode direction/spacing controls, BOM or ordinary whitespace.
+ if(/^[\\x00-\\x20\\s\\u200B-\\u200F\\u2060\\uFEFF\\u202A-\\u202E\\u2066-\\u2069]*[=+\\-@]/u.test(text))text="'"+text;
+ return '"'+text.replace(/"/g,'""')+'"';
+}
 function buildInventoryCsv(rows){
  if(!Array.isArray(rows)||!rows.length)throw new Error('Нет корпусов для экспорта.');
  const header=['Код корпуса','Тип','Состояние','Местонахождение','Рамок','Комплект','ID корпуса','Примечание'];
- const lines=[header.map(journalCsvCell).join(';')],seen=new Set();
+ const lines=[header.map(inventoryCsvCell).join(';')],seen=new Set();
  for(const r of rows){
   if(!r||typeof r!=='object'||typeof r.id!=='string'||!r.id.trim()||seen.has(r.id)||
      typeof r.labelCode!=='string'||!r.labelCode.trim()||!['brood','honey'].includes(r.kind)||
@@ -1474,7 +1481,7 @@ function buildInventoryCsv(rows){
   seen.add(r.id);
   const fields=[r.labelCode,inventoryKindLabel(r.kind),inventoryConditionLabel(r.condition),
    r.location,r.frameCount===null?'не учитываются':r.frameCount,r.pairId||'',r.id,r.notes||''];
-  lines.push(fields.map(journalCsvCell).join(';'));
+  lines.push(fields.map(inventoryCsvCell).join(';'));
  }
  return '\uFEFF'+lines.join('\r\n')+'\r\n';
 }
