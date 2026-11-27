@@ -131,6 +131,16 @@ const measure=()=> {
         await page.screenshot({path:'e2e-nav-'+name+'-failure.png'}).catch(()=>{});
       }
     }
+    // Rotation/resizing must not strand the focused control or change the tab destination.
+    await page.setViewportSize({width:320,height:640});
+    await page.locator('main>nav button[data-tab="ai"]').focus();
+    assert.equal(await page.evaluate(()=>document.activeElement?.dataset.tab),'ai');
+    for(const viewport of [{width:700,height:960},{width:320,height:640}]){
+      await page.setViewportSize(viewport);
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      assert.equal(await page.evaluate(()=>document.activeElement?.dataset.tab),'ai',
+        'responsive DOM reorder dropped keyboard focus on AI');
+    }
     assert.deepEqual(errors,[],'unexpected JS errors or dialogs');
     assert.deepEqual(failures,[],'nav geometry regression across supported viewports');
   }finally{if(context)await context.close();if(browser)await browser.close();
