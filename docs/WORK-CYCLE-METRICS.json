@@ -1578,12 +1578,13 @@
     "scope": "FAMILY_ID_INSPECTION_PREFILL_AND_FEEDING_LEDGER",
     "baseMain": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
     "draftPr": 627,
-    "codeSha": "f4b933c94850d6eb09734f3c4bde8de0fa49a015",
+    "codeSha": "d031e9f7d76864624a32005080cf7634f996e3d4",
     "nodeTests": {
       "tests": 1057,
       "pass": 1057,
       "fail": 0,
-      "runId": 46017055419
+      "runId": 46017055419,
+      "verifiedOnSha": "f4b933c94850d6eb09734f3c4bde8de0fa49a015"
     },
     "android": "PENDING",
     "chromium": "PENDING",
@@ -1601,6 +1602,8 @@
       "inspection_reopen",
       "honey_harvest",
       "wintering"
-    ]
+    ],
+    "latestCodeNodeTests": "PENDING_EXACT_SHA",
+    "queenFutureDateGuard": "IMPLEMENTED_DRAFT_REGRESSION_ADDED"
   }
 }
