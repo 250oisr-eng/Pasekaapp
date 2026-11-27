@@ -1,5 +1,7 @@
 # PROJECT_STATUS — Пасека 2.0
 
+**B08 / аудит веток 28.11.2026:** [10 тематических циклов](docs/PR-BRANCH-TEN-CYCLES-2026-11-28.md), 80 compare-запросов: 79 ответов (20 ahead=0, 59 ahead>0), 1 ref 404. Это НЕ полный поимённый аудит 170 merged-only. Следующее: проверить ветки по merged-PR ownership, затем точечно сверить два однокоммитных теста и CSV инвентаря. Merge/удаления/release нет; CI для этого docs-only HEAD не подтверждён.
+
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 **UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 исправления 1096/1096, Android/Chromium PASS; #650 separate QA built. **[#649 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/649):** OP07/08 full harvest, stock regroup, screen/atomic IndexedDB. `ac614a6a` 1100/1101 (only status length FAIL), new frame-history regression PASS; Chromium pending. Profile gate closed, B07 BLOCKED. Detailed history in journal/metrics. No release.
