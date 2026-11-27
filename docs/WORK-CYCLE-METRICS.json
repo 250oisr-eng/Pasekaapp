@@ -1,13 +1,13 @@
 {
   "publicBeePilot20261128": {
-    "stage": "PUBLIC_INPUT_VERIFIED_EXPERIMENT_RUNNING",
+    "stage": "REAL_BASELINE_MEASURED_ROI_RETRY",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "e65233f7d07ef2ad7030415d7eba5c545312dff1",
+    "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
     "inputCodeSha": "8daea4898a5c5b8e4358c24754aecef0e580f77f",
     "inputRun": 46072648209,
     "inputConclusion": "success",
-    "targetedTestsPassed": 4,
+    "targetedTestsPassed": 6,
     "weightsBytes": 121926336,
     "tensors": 465,
     "videoBytes": 128747654,
@@ -15,14 +15,38 @@
     "annotatedFrames": 6000,
     "referenceBoxes": 127452,
     "namedSourcePairs": 5,
-    "experimentRun": 46073069194,
-    "experimentConclusion": "IN_PROGRESS",
-    "detectorMetrics": null,
+    "experimentRun": 46073407228,
+    "experimentConclusion": "success",
+    "detectorMetrics": {
+      "scope": "tile-level author annotation agreement",
+      "reference": 55,
+      "proposalMatched": 55,
+      "score50": {
+        "tp": 53,
+        "fp": 1534,
+        "fn": 2,
+        "precision": 0.03339634530560807,
+        "recall": 0.9636363636363636,
+        "f1": 0.06455542021924482
+      },
+      "score80": {
+        "tp": 48,
+        "fp": 592,
+        "fn": 7,
+        "precision": 0.075,
+        "recall": 0.8727272727272727,
+        "f1": 0.1381294964028777
+      }
+    },
     "device": "NOT_TESTED",
     "storageChanges": false,
     "serviceWorkerChanges": false,
     "releaseAuthorized": false,
-    "completedVerifiedUserScenarios": 0
+    "completedVerifiedUserScenarios": 0,
+    "roiTrialCodeSha": "3bc4c2ca923b6e998659b7e16502f78c142be33e",
+    "roiTrialRun": 46073802221,
+    "roiTrialConclusion": "DEPENDENCY_APT_403_TESTS_SKIPPED",
+    "roiMetrics": null
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
