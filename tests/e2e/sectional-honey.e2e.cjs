@@ -51,7 +51,7 @@ async function journey(browser,origin){
    const fixture=p.fixture.state,previous=S.meta.revisionId;
    const candidate={...structuredClone(S),...fixture,meta:{...S.meta,...fixture.meta,revisionId:'sectional-qa-seed'}};
    candidate.hives[0].number=1;candidate.meta.nextHiveNumber=2;
-   PasekaLabels.migrateFrameUids(candidate);
+   if(PasekaLabels.migrateFrameUids(candidate)!==0)throw Error('Fixture permanent frame identities must be established before OP-07');
    const validation=sectionalHoneyValidate(candidate);
    if(validation.length)throw Error('Synthetic fixture fails actual validation: '+JSON.stringify(validation));
    await writeMainWithBackup(candidate,previous);
@@ -68,7 +68,7 @@ async function journey(browser,origin){
   for(const [i,id] of ['cover1','riser1','cover2','riser2','cover3','riser3'].entries())await form.locator('select').nth(i).selectOption(id);
   await form.locator('input[type=checkbox]').check();
   await form.getByRole('button',{name:'Записать откачку'}).click();
-  await page.waitForFunction(()=>S.extractions.length===1&&S.sectionalLayouts[0].honeyStack==null);
+  await page.waitForFunction(()=>S.extractions.length===1&&S.sectionalLayouts[0].honeyStack==null).catch(async e=>{throw Error('Harvest did not commit: '+await panel.textContent()+'; '+e.message)});
   const harvested=await state();
   assert.equal(harvested.backupRevision,before.revision);assert.equal(harvested.bodyIds.length,0);assert.equal(harvested.covers.length,6);
   assert.equal(harvested.extractions[0].items[0].frameIds.length,40);assert.equal(harvested.extractions[0].items[0].kilograms,22);assert.equal(harvested.legacy,null);
@@ -85,7 +85,7 @@ async function journey(browser,origin){
   await install.locator('select').nth(7).selectOption('ex-right');
   await install.locator('input[type=checkbox]').check();
   await install.getByRole('button',{name:'Записать установку'}).click();
-  await page.waitForFunction(()=>S.sectionalLayouts[0].honeyStack?.bodyIds?.length===2);
+  await page.waitForFunction(()=>S.sectionalLayouts[0].honeyStack?.bodyIds?.length===2).catch(async e=>{throw Error('Installation did not commit: '+await panel.textContent()+'; '+e.message)});
   const installed=await state();
   assert.equal(installed.backupRevision,harvested.revision);assert.deepEqual(installed.bodyIds,['honey1','honey3']);
   assert.equal(installed.extractions.length,1);assert.equal(installed.transitions.length,2);assert.equal(installed.legacy,null);

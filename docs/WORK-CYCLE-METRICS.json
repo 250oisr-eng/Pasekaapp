@@ -2080,7 +2080,17 @@
     "stage": "IMPLEMENTED_DRAFT",
     "baseSha": "67ba55bf416f5752047255ee4967dfe3381c7b47",
     "scope": "localhost only compiled test gate, actual screen and IndexedDB 4-0-2",
+    "ci": "FAILED_SEED_FRAME_COMPOSITION",
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "sha": "1aa0db76511cdabe9b29402112ba2991050eb5a9",
+    "run": 46067900251
+  },
+  "b07SectionalFixtureIdentity20261128": {
+    "baseSha": "1aa0db76511cdabe9b29402112ba2991050eb5a9",
+    "stage": "IMPLEMENTED_DRAFT",
     "ci": "PENDING",
+    "reason": "Assign permanent frame identities before recording OP07 evidence; no validator bypass",
     "physicalDeviceVerified": false,
     "releaseAuthorized": false
   }

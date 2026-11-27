@@ -254,6 +254,8 @@ function setupFour(){
   s.equipmentLabels.bodies[id]=i===0?'ААЧ':'ААШ';
  }
  p.layout.honeyStack.bodyIds.push('honey3','honey4');
+ // Permanent frame identities must exist before OP-07 takes its evidence snapshot.
+ Labels.migrateFrameUids(s);
  const result=Coordinator.completeOP07(s,op07Request(p),p.deps);
  assert.equal(result.ok,true,JSON.stringify(result));s.meta.revisionId='r0';s.extractions=[];s.records=[];
  for(const id of p.layout.honeyStack.bodyIds)for(const f of s.equipmentInventory.bodies[id].frames)f.status='sealed';
