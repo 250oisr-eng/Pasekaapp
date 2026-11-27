@@ -1966,16 +1966,22 @@ function useLastSavedInspection(){
  const status=$('inspectionPrefillStatus'),hive=$('inspectionHiveSelect')?.value;
  if(!status)return;
  if(!hive){status.textContent='Выбери улей для поиска последнего сохранённого осмотра.';return;}
+ const families=(Array.isArray(S.families)?S.families:[]).filter(f=>f?.hive===hive&&f.recordStatus!=='historical');
+ if(families.length>1){
+  if($('inspectionLastDate').dataset.fromJournal)resetInspectionReminder();
+  status.textContent='В улье несколько семей. Нельзя считать осмотр одной семьи осмотром всех. Укажи дату вручную.';return;
+ }
+ const familyId=families.length===1?families[0].id:null;
  try{
-  const result=PasekaSeasonPlanning.latestSavedInspection(S.records,hive,today());
+  const result=PasekaSeasonPlanning.latestSavedInspection(S.records,hive,today(),familyId);
   if(!result){
    if($('inspectionLastDate').dataset.fromJournal)resetInspectionReminder();
-   status.textContent='Для этого улья нет сохранённого осмотра за сегодня или раньше.';return;
+   status.textContent=familyId?'Для текущей семьи нет подтверждённого сохранённого осмотра за сегодня или раньше. Не используем осмотры других семей и записи без идентификатора.':'Для этого улья нет сохранённого осмотра за сегодня или раньше.';return;
   }
   $('inspectionLastDate').value=result.date;
   $('inspectionLastDate').dataset.fromJournal=hive;
   const previous=$('inspectionReminderResult');if(previous)previous.textContent='';
-  status.textContent='Из журнала подставлена дата '+result.date+' ('+hname(hive)+'). Теперь нажми «Рассчитать дату следующего контроля». Никакая операция не создаётся.';
+  status.textContent='Из журнала подставлена дата '+result.date+' ('+hname(hive)+(familyId?', текущая семья':', связь с семьёй не установлена')+'). Теперь нажми «Рассчитать дату следующего контроля». Никакая операция не создаётся.';
  }catch(error){status.textContent=error.message||'Дата осмотра не найдена.';}
 }
 function renderNectarBackwardPlan(){
