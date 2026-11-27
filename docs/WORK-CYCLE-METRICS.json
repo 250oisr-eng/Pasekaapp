@@ -2106,9 +2106,19 @@
   "b07SectionalFrameLocation20261128": {
     "baseSha": "dbc485ee7727ec2d82357cff96311064a706b609",
     "stage": "IMPLEMENTED_DRAFT",
-    "ci": "PENDING",
+    "ci": "FAILED_GOVERNANCE_STATUS_LENGTH",
     "reason": "Sectional frame history uses physical body IDs, not legacy layoutFor; new regression and fail-fast startup diagnostics",
     "physicalDeviceVerified": false,
-    "releaseAuthorized": false
+    "releaseAuthorized": false,
+    "sha": "ac614a6adeb222e5f36190cff56577074da3465f",
+    "nodeTests": {
+      "passed": 1100,
+      "total": 1101,
+      "failed": 1,
+      "run": 46068534129
+    },
+    "governance": "FAIL",
+    "android": "FAIL_SAME_GOVERNANCE_TEST",
+    "browser": "PENDING"
   }
 }
