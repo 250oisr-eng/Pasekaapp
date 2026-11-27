@@ -75,3 +75,15 @@
 - Следующее безопасное действие на **старом** диагностическом пакете — отменить только его продолжающийся JobScheduler после сбора данных (без `pm clear`, `uninstall`, изменения часов или `force-stop` рабочего пакета). Запускать дополнительные forced retries без содержательного исправления запрещено.
 
 До нового CI: `PROBE_CODE_DRAFT`, `PROBE_APK_NOT_VERIFIED`, `DEVICE_NOT_TESTED`, `B01_G4_NOT_VERIFIED`. Отдельный Draft #629 не сливать и ничего не публиковать.
+
+## 27.11.2026 — на устройстве `JS_PROBE_NO_INLINE` после `PAGE_FINISHED`
+
+На OnePlus NE2213 Android 16 в отдельном подписанном `ru.paseka.journal.qa.daily.probe` (SHA APK в [Draft #629](https://github.com/250oisr-eng/Pasekaapp/pull/629)): локальный SHA подтверждён перед установкой, ADB сообщил `Success`. Принудительный запуск дал `START`, `ASSET_READY`, `LOAD_REQUESTED`, два `PAGE_FINISHED phase=START`, оба с `JS_PROBE_NO_INLINE`; к 30 секундам JobScheduler оставался `active ready`. **Нет ни одного `JS_PHASE`, `BRIDGE_FINISH` и нового проверенного ZIP.** Это физическое доказательство отсутствия глобального inline-маркера **на момент двух callback**, а не доказательство конкретной причины (CSP, main-frame fallback, навигация, WebView lifecycle).
+
+F0–F2: следующая минимальная граница — **только диагностические метки**:
+- HTML-генератор даёт статический `id=paseka-qa-inline-marker` первому исполняемому тегу; проба различает `HTML_ABSENT` (в DOM нет целевого тега) и `INLINE_NOT_RUN` (тег присутствует, но JS-маркер отсутствует).
+- Android ограниченно классифицирует без URL `PAGE_STARTED_{BLANK,LOCALHOST,LOCAL_PATH,OTHER}` и аналогично `PAGE_FINISHED_*`; отдельные статические `MAIN_FRAME_INTERCEPTED_*` и `MAIN_HTTP_ERROR`. Содержимое HTML, путей, response body, консоли, IndexedDB и SHA не журналируется.
+- **Семантика функции неизменна:** CSP, `setBlockNetworkLoads(true)`, отказ любых сетевых запросов 403, существующие `loadDataWithBaseURL`, `OK/SKIP/RETRY`, watchdog и контейнер ZIP остаются прежними. Исправление первопричины до аппаратного доказательства не выдумывать.
+- Следующая QA-сборка исключительно новый `ru.paseka.journal.qa.daily.dom`; прежние `.qa.daily`, `.qa.daily.diag`, `.qa.daily.probe` с нестабильными debug-подписями сохраняются без `-r`, `uninstall`, `pm clear`. Новый пакет требует точного SHA/CI и физического пробного запуска. Если HTML отсутствует — исследовать навигацию/перехват, если HTML есть и inline не исполнен — исследовать JS/CSP/WebView. `DEVICE_NOT_TESTED` для `.dom` до реального лога.
+
+**Эксплуатационная мера:** не запускать повторные G4-попытки до содержательного изменения. При необходимости остановить только зависшие job IDs тестовых пакетов адресным `adb shell cmd jobscheduler cancel -u 0 PACKAGE 1346458437`, не трогая рабочее приложение или первоначальные два ZIP.
