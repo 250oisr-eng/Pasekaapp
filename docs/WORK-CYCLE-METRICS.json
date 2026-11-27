@@ -1735,7 +1735,12 @@
     "latestJobRetry": false,
     "mainFrameDataAllowedOnceObserved": true,
     "unattendedSchedulerVerified": false,
-    "archiveSlotScreenshotForFix": "NOT_TESTED",
-    "syntheticRestoreForFix": "NOT_TESTED"
+    "archiveSlotScreenshotForFix": "FIRST_ARCHIVE_2026-11-27_VERIFIED_BY_APP_UI",
+    "syntheticRestoreForFix": "NOT_TESTED",
+    "latestArchiveDayForFix": "2026-11-27",
+    "previousArchiveForFix": "MISSING_EXPECTED_FIRST_DAY",
+    "firstArchiveCreatedInFixQa": true,
+    "firstArchiveSource": "UNKNOWN_BACKGROUND_OR_FOREGROUND_CATCHUP",
+    "secondNaturalDayArchiveVerified": false
   }
 }
