@@ -4112,8 +4112,17 @@ function openExtractionDialog(){
  $('extractDlg').showModal();
 }
 function toggleExtractRow(el){const box=document.querySelector('[data-options="'+el.dataset.hive+'"]');if(box)box.style.display=el.checked?'block':'none'}
+let extractionCommitPending=false;
 async function saveExtraction(){
+ if(extractionCommitPending)return false;
+ extractionCommitPending=true;
+ try{return await saveExtractionOnce()}
+ finally{extractionCommitPending=false}
+}
+async function saveExtractionOnce(){
  const date=$('extractDate').value;if(!date)return alert('Укажи дату откачки');
+ const parsed=PasekaSeasonPlanning?.parseDate?.(date);
+ if(!parsed||date>today())return alert('Дата фактической откачки должна быть существующей и не позднее сегодняшнего дня');
  const selected=[...document.querySelectorAll('.extract-select:checked')];if(!selected.length)return alert('Выбери хотя бы один улей');
  const plans=[];
  for(const ch of selected){
@@ -4128,25 +4137,42 @@ async function saveExtraction(){
   const extractionFrames=['H1','H2'].flatMap(key=>frameArray(l,key).filter(fr=>['nectar','sealed'].includes(fr.status)));
   const frameIds=extractionFrames.map(fr=>fr?.frameId);
   if(frameIds.some(id=>typeof id!=='string'||!id)||new Set(frameIds).size!==frameIds.length)return alert('В медовой паре обнаружены рамки без номера или с повторяющимися номерами. Откачка отменена; сначала исправь учёт.');
-  plans.push({hiveId:hid,kg,l,frameIds});
+  plans.push({hiveId:hid,kg,frameIds});
  }
+ const originalState=S;
+ let draft;
+ try{draft=cloneApiaryState()}catch(error){alert('Откачка отменена: не удалось подготовить безопасную копию данных. '+(error.message||error));return false}
+ S=draft;
+ try{
  const items=[];
  for(const plan of plans){
-  ['H1','H2'].forEach(key=>frameArray(plan.l,key).forEach(fr=>{
+  const l=S.layouts?.[plan.hiveId];
+  if(!l||l.mode==='winter'||!l.honeyBoxInstalled?.every(Boolean))throw new Error('Состояние корпусов изменилось во время подготовки откачки');
+  ['H1','H2'].forEach(key=>frameArray(l,key).forEach(fr=>{
    if(['nectar','sealed'].includes(fr.status)){
     fr.history=fr.history||[];
     PasekaLabels.appendFrameEvent(fr,'extraction',{from:fr.status,to:'extracted'},date);
     fr.status='extracted';
    }
   }));
-  plan.l.honeyBoxInstalled=[false,false];plan.l.honeyInstalled=false;
+  l.honeyBoxInstalled=[false,false];l.honeyInstalled=false;
   items.push({hiveId:plan.hiveId,boxes:['H1','H2'],kilograms:plan.kg,frameIds:plan.frameIds,returnedAt:null});
   logAudit('honey_extracted',{hiveId:plan.hiveId,date,kilograms:plan.kg,frameCount:plan.frameIds.length,frameIds:plan.frameIds});
  }
  const event={id:uid(),date,items,createdAt:new Date().toISOString()};
  S.extractions=S.extractions||[];S.extractions.push(event);
  items.forEach(x=>S.records.push({id:uid(),date,type:'Откачка мёда',hive:x.hiveId,family:'',text:x.kilograms+' кг · '+x.boxes.map(frameLocationName).join(', '),extractionId:event.id,media:[]}));
- $('extractDlg').close();await save();
+  const persisted=await save();
+  if(!persisted)throw new Error(S.meta?.saveError||'Данные откачки не записаны');
+ }catch(error){
+  const reason=error?.message||'Ошибка сохранения';
+  S=originalState;
+  S.meta=S.meta||{};S.meta.saveError=reason;
+  try{render()}catch(renderError){console.error('Не удалось показать состояние после отмены откачки',renderError)}
+  alert('Откачка не сохранена: '+reason+'. Исходные данные не изменены.');
+  return false;
+ }
+ $('extractDlg').close();return true;
 }
 function renderHiveExtractionActions(){
  const host=$('hiveExtractionActions');if(!host||!selectedHiveId)return;
