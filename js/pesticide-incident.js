@@ -44,7 +44,8 @@ function buildPesticideIncidentDraft(input,hives,media,makeId,now){
   if(capturedRaw&&!validGpsTimestamp(capturedRaw))throw new Error('Проверь время фиксации GPS.');
  }
  const gpsCapturedAt=latitude==null?null:(String(input.gpsCapturedAt??'').trim()||null);
- const files=Array.isArray(media)?media:[];
+ if(media!=null&&!Array.isArray(media))throw new Error('Список фотографий инцидента повреждён; сведения не сохранены.');
+ const files=media||[];
  if(files.length>MAX_MEDIA)throw new Error('Можно прикрепить не более трёх фотографий.');
  for(const file of files){if(!file||file.kind!=='image'||typeof file.name!=='string'||file.name.length>180||!['image/jpeg','image/png','image/webp','image/heic'].includes(file.type)||typeof file.data!=='string'||!/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(file.data)||file.data.length>MAX_MEDIA_DATA)throw new Error('Фотография имеет неподдерживаемый формат или превышает лимит размера.')}
  const snapshots=affected.map(h=>({id:h.id,number:Number.isInteger(Number(h.number))?Number(h.number):null,label:Number.isInteger(Number(h.number))?'Улей №'+Number(h.number):'Улей'}));
