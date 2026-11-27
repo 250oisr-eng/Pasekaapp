@@ -3,11 +3,7 @@
 **27.11.2026 · verified main `eda81f8ffbf7491dba7b973373248f28cf19450a` after approved #619.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 
-## 27.11.2026 · OnePlus комплексный QA — подготовленный инструмент, физические ворота открыты
-
-- **PR #624 Draft**, текущий scope B01 G0–G8. Предыдущий код `7f25d442`: [Fast #46005700185](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46005700185) **1063/1063 PASS**, [Android #46005699883](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46005699883) **SUCCESS**. Первичный тест ложного порядка HTML-атрибутов исправлен без изменения приложения.
-- Добавлен `scripts/oneplus-daily-qa.mjs` и `tests/oneplus-daily-qa.test.mjs`: безопасный OnePlus ADB preflight, единственный авторизованный device, проверка SHA/signing и package именно старого независимо проверенного QA APK, запрет установки поверх существующего QA и запрет production. Только явный `--install-qa` может поставить новый QA package. Скрипт не читает IndexedDB и не подтверждает фон по одному dumpsys.
-- Новая серия тестов и документация ждут **exact HEAD CI**; не переносить PASS старого SHA на новую версию. Реальные G0–G8 для `ru.paseka.journal.qa.daily` = **DEVICE_NOT_TESTED**. Необходим физический запуск владельцем с телефоном/ADB, естественные календарные дни и только синтетические данные. B01/B04/B05/B06/B10/B07/B09/B11/P2 не сняты; no merge/release/production restore/video deletion.
+**OnePlus QA #624:** безопасный ADB preflight `scripts/oneplus-daily-qa.mjs`, негативные тесты, G0–G8 протокол. Кодовые Node/Android-проверки на `feb3f5c8` PASS; финальный SHA проверить отдельно. Физические OnePlus G0–G8 NOT_TESTED; B01/B04/B05/B06/B10 не сняты. Подробности — журнал и протокол B01.
 
 ## Основные интегрированные функции
 
