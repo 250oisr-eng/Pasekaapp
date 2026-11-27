@@ -4079,3 +4079,14 @@ test('rendering extraction history never passes Array.map index as hive ID',()=>
  assert.match(host.innerHTML,/Корпуса после откачки/);
  assert.match(host.innerHTML,/H1, H2/);
 });
+
+test('queen registration allocates immutable decimal number and replacement obtains a new number',()=>{
+ const apply=loadFunction('applyQueenChange');let seq=0;const makeId=()=> 'queen-numeric-'+(++seq);
+ const s={families:[{id:'f',hive:'h'}],queens:[],queenEvents:[]};
+ const q=apply(s,{familyId:'f',date:null},makeId).queen;
+ assert.equal(q.code,'М-1');assert.equal(s.meta.nextQueenNumber,2);
+ const before=JSON.stringify(s);assert.throws(()=>apply(s,{familyId:'f',queenId:q.id,code:'М-2'},makeId),/нельзя менять/);assert.equal(JSON.stringify(s),before);
+ const replacement=apply(s,{familyId:'f',date:null},makeId).queen;
+ assert.equal(replacement.code,'М-2');assert.equal(s.queens[0].code,'М-1');
+ assert.throws(()=>apply(s,{familyId:'f',code:'М-1'},makeId),/зарезервирован/);
+});

@@ -70,6 +70,7 @@ function parseSpokenNumber(value){
  if(/^[1-9][0-9]{0,5}$/.test(s))return s;
  const words=s.split(/\s+/u),k=words.findIndex(x=>/^тысяч(?:а|и)?$/.test(x));
  if(k<0){const n=numberBelowThousand(words);return n?String(n):null;}
+ if(k===0&&words[0]!=='тысяча')return null;
  if(words.slice(k+1).some(x=>/^тысяч(?:а|и)?$/.test(x)))return null;
  const n=k===0?1:numberBelowThousand(words.slice(0,k)),r=k===words.length-1?0:numberBelowThousand(words.slice(k+1));
  return n&&r!==null?String(n*1000+r):null;
@@ -84,18 +85,23 @@ function normalizeSpokenFrameCodes(value){
   const codes=chunks.flatMap(s=>{const n=parseSpokenNumber(s);return n?[n]:s.split(/\s+/u).map(parseSpokenNumber);});
   return {raw,codes,issues:[],canNormalize:true,preview:codes.join(', ')};
  }
- // Mixed historic and numeric labels require explicit separators. If a
- // numeric fragment could be a digit in a legacy spoken label, keep legacy mode.
- const hasExplicitNumeric=chunks.some(s=>/^(?:Р[\s\u2010-\u2015\u2212-]+)?[1-9][0-9]{0,5}$/iu.test(s)&&(/[0138]/.test(s)||s.length>3||s.length===1&&/^р/i.test(s)));
- if(hasExplicitNumeric){
+ // A valid historical letter stream must retain its old interpretation,
+ // including punctuation inserted between individual spoken symbols.
+ const legacy=normalizeLegacyFrameCodes(raw);
+ if(legacy.canNormalize)return legacy;
+ // If the historical reading is incomplete, accept explicitly separated
+ // whole decimal numbers alongside complete historical codes, not fragments.
+ if(chunks.length>1&&chunks.some(s=>parseSpokenNumber(s)||directList(s))){
   const codes=[],issues=[];
-  for(const chunk of chunks){const n=parseSpokenNumber(chunk);
+  for(const chunk of chunks){
+   const n=parseSpokenNumber(chunk);
    if(n){codes.push(n);continue;}
    if(directList(chunk)){codes.push(...chunk.split(/\s+/u).map(parseSpokenNumber));continue;}
-   const l=normalizeLegacyFrameCodes(chunk);codes.push(...l.codes);issues.push(...l.issues);}
-  return {raw,codes,issues,canNormalize:codes.length>0&&issues.length===0,preview:codes.join(', ')};
+   const l=normalizeLegacyFrameCodes(chunk);codes.push(...l.codes);issues.push(...l.issues);
+  }
+  if(!issues.length&&codes.length)return {raw,codes,issues,canNormalize:true,preview:codes.join(', ')};
  }
- return normalizeLegacyFrameCodes(raw);
+ return legacy;
 }
 
 function validateEditedFrameCodes(codes){

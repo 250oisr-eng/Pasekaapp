@@ -59,3 +59,29 @@ test('QR reserve payload has no current location and is not activated in UI',asy
 test('section addresses distinguish side-by-side positions from vertical winter positions',()=>{
  assert.equal(L.sectionLabel('left'),'А · левая');assert.equal(L.sectionLabel('middle'),'Б · средняя');assert.equal(L.sectionLabel('right'),'В · правая');assert.equal(L.sectionLabel('middle','alternative_wintering_column'),'средняя');
 });
+
+test('numeric labels cannot be rewritten via separators or negative legacy-digit aliases',()=>{
+ for(const bad of ['-245','2-4-5','2 4 5','Р--245'])assert.equal(L.normalizeCode(bad,'frame'),null,bad);
+ assert.equal(L.normalizeCode('Р-245','frame'),'245');
+});
+test('mixed numeric/legacy speech accepts complete labels and refuses incomplete historical fragment',()=>{
+ for(const [text,expected] of [['7КМ, Р-7',['7КМ','7']],['семь ка эм, сто тридцать семь',['7КМ','137']],['сто тридцать семь, 7КМ',['137','7КМ']]]){
+  const result=V.normalizeSpokenFrameCodes(text);assert.equal(result.canNormalize,true,text);assert.deepEqual(result.codes,expected,text);
+ }
+ assert.equal(V.normalizeSpokenFrameCodes('семь, ка, 137').canNormalize,false);
+ assert.equal(V.parseSpokenNumber('тысяч'),null);
+});
+test('manual standardized identity reservation advances durable highwater and rejects reuse',()=>{
+ const s={families:[],queens:[]};
+ assert.equal(L.nextIdentityCode(s,'queen',true,'М-8'),'М-8');
+ assert.equal(s.meta.nextQueenNumber,9);
+ assert.throws(()=>L.nextIdentityCode(s,'queen',true,'М-8'),/зарезервирован/);
+ assert.equal(L.nextIdentityCode(JSON.parse(JSON.stringify(s)),'queen',true),'М-9');
+});
+test('standardized family and queen duplicate identifiers are integrity errors; legacy remains unchanged',()=>{
+ const s={families:[{id:'a',name:'С-2'},{id:'b',code:'С-2'},{id:'c',name:'26-1'},{id:'d',name:'26-1'}],queens:[{id:'q1',code:'М-3'},{id:'q2',code:'М-3'}]};
+ assert.deepEqual(L.inspectIdentityMarking(s).map(x=>x.code),['duplicate_family_numeric_label','duplicate_queen_numeric_label']);
+ assert.deepEqual(L.inspectLabelIntegrity(s).map(x=>x.code),['duplicate_family_numeric_label','duplicate_queen_numeric_label']);
+ assert.equal(L.sectionLabel('middle','ALTERNATIVE_WINTERING_COLUMN'),'средняя');
+ assert.equal(L.sectionLabel('middle','UNKNOWN'),'Позиция не указана');
+});

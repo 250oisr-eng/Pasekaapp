@@ -9,6 +9,9 @@ function normalizeCode(value,type){
  if(prefix && input.startsWith(prefix) && (code.length===4 || /[\s\u2010-\u2015\u2212-]/u.test(input.charAt(1)))){
   code=code.slice(1);
  }
+ // Historical canonical all-digit codes are accepted by the strict numeric path above.
+ // Do not turn negative or separated numeric tokens into a different identity.
+ if(/^\d+$/u.test(code))return null;
  return code.length===3 && [...code].every(char=>ALPHABET.includes(char)) ? code : null;
 }
 function formatLabelCode(t,v){const c=normalizeCode(v,t);return c?(t==='frame'?'Р-':t==='body'?'К-':'')+c:''}
@@ -36,7 +39,7 @@ function next(s,t){
  if(typeof c!=='object'||Array.isArray(c))throw Error('Повреждён счётчик маркировки.');
  const n=nextSerial([...used(s,t)].map(x=>serial(x)),c[t]);c[t]=n+1;return String(n);
 }
-function nextIdentityCode(state,type,reserve=false){
+function nextIdentityCode(state,type,reserve=false,requestedCode=null){
  if(type!=='family'&&type!=='queen')throw Error('Неизвестный тип маркировки.');
  const prefix=type==='family'?'С':'М',key=type==='family'?'nextFamilyNumber':'nextQueenNumber';
  const values=[];
@@ -52,8 +55,36 @@ function nextIdentityCode(state,type,reserve=false){
   for(const row of state.families||[])add(row?.queen?.code);
   for(const snapshot of state.snapshots||[])for(const row of snapshot?.families||[])add(row?.queen?.code);
  }
- const n=nextSerial(values,state.meta?.[key]);if(reserve)(state.meta||(state.meta={}))[key]=n+1;
+ const next=nextSerial(values,state.meta?.[key]);
+ let n=next;
+ if(requestedCode!==null){
+  n=serial(requestedCode,prefix);if(!n||n<next)throw Error('Постоянный номер уже использован или зарезервирован.');
+ }
+ if(reserve)(state.meta||(state.meta={}))[key]=n+1;
  return prefix+'-'+n;
+}
+function inspectIdentityMarking(state){
+ const errors=[],add=(code,details)=>errors.push({code,details});
+ for(const [type,rows,prefix] of [['family',state?.families||[],'С'],['queen',state?.queens||[],'М']]){
+  const seen=new Map();
+  for(const row of rows){
+   const values=type==='family'?[row?.name,row?.code]:[row?.code],numbers=[...new Set(values.map(value=>serial(value,prefix)).filter(Boolean))];
+   if(numbers.length>1)add('conflicting_'+type+'_numeric_labels',{id:row?.id,codes:values});
+   for(const number of numbers){
+    if(seen.has(number)&&seen.get(number)!==row?.id)add('duplicate_'+type+'_numeric_label',{id:row?.id,firstId:seen.get(number),labelCode:prefix+'-'+number});
+    else seen.set(number,row?.id);
+   }
+  }
+ }
+ for(const key of ['nextFamilyNumber','nextQueenNumber']){
+  const n=state?.meta?.[key];if(n!=null&&(!Number.isSafeInteger(n)||n<1||n>MAX_SERIAL+1))add('invalid_numeric_identity_counter',{key});
+ }
+ const counters=state?.meta?.nextNumericLabelNumber;
+ if(counters!=null&&(typeof counters!=='object'||Array.isArray(counters)))add('invalid_numeric_identity_counter',{key:'nextNumericLabelNumber'});
+ else for(const key of ['frame','body']){
+  const n=counters?.[key];if(n!=null&&(!Number.isSafeInteger(n)||n<1||n>MAX_SERIAL+1))add('invalid_numeric_identity_counter',{key});
+ }
+ return errors;
 }
 // Reserved, not surfaced: stable offline QR payload, no camera/encoder/network.
 // Contains only object type and immutable internal ID, never a current position.
@@ -61,9 +92,11 @@ function futureQrPayload(type,id){
  if(!['hive','family','body','frame','queen'].includes(type)||typeof id!=='string'||!id.trim()||id.length>160||/[\u0000-\u001f\u007f]/u.test(id))return null;
  return 'paseka:1:'+type+':'+encodeURIComponent(id);
 }
-function sectionLabel(position,mode='side_by_side'){
- if(mode==='alternative_wintering_column'||position==='lower'||position==='upper')return ({lower:'нижняя',middle:'средняя',upper:'верхняя'})[position]||'Позиция не указана';
- return ({left:'А · левая',middle:'Б · средняя',right:'В · правая',combined:'объединённая'})[position]||'Позиция не указана';
+function sectionLabel(position,mode='SIDE_BY_SIDE'){
+ if(String(mode).toUpperCase()==='ALTERNATIVE_WINTERING_COLUMN'||position==='lower'||position==='upper')return ({lower:'нижняя',middle:'средняя',upper:'верхняя'})[position]||'Позиция не указана';
+ if(position==='combined')return 'объединённая';
+ if(String(mode).toUpperCase()!=='SIDE_BY_SIDE')return 'Позиция не указана';
+ return ({left:'А · левая',middle:'Б · средняя',right:'В · правая'})[position]||'Позиция не указана';
 }
 function ensureFrameUid(frame){if(typeof frame.frameUid!=='string'||!frame.frameUid.trim())frame.frameUid=window.crypto?.randomUUID?.()||'frame-'+Date.now()+'-'+Math.random();return frame.frameUid}
 function migrateFrameUids(state){const entries=frames(state);if(entries.some(entry=>!entry.frame||typeof entry.frame!=='object'||Array.isArray(entry.frame)))throw Error('В реестре обнаружена некорректная запись рамки; миграция остановлена.');const conflicts=inspect(state);if(conflicts.length)throw Error('Обнаружены конфликты идентификации рамок: '+conflicts.map(row=>row.code).join(', '));const historyIds=new Set();for(const entry of entries){const history=entry.frame.history;if(history!=null&&!Array.isArray(history))throw Error('Повреждена история рамки; миграция остановлена.');for(const event of Array.isArray(history)?history:[]){if(!event||typeof event!=='object'||Array.isArray(event))throw Error('Повреждена запись истории рамки; миграция остановлена.');if(event.id&&historyIds.has(event.id))throw Error('Повторяется ID события истории рамок; миграция остановлена.');if(event.id)historyIds.add(event.id)}}const missing=entries.filter(entry=>!entry.frame.labelCode).length;if(missing>CAPACITY-used(state,'frame').size)throw Error('Недостаточно свободных постоянных кодов для маркировки всех рамок.');let changed=0;for(const entry of entries){const frame=entry.frame,hadCode=!!frame.labelCode,hadUid=typeof frame.frameUid==='string'&&!!frame.frameUid.trim(),hadHistory=Array.isArray(frame.history);assignFrame(state,frame);if(frame.history==null)frame.history=[];for(const event of frame.history)if(!event.id){event.id=window.crypto?.randomUUID?.()||'frame-history-'+Date.now()+'-'+Math.random();changed++}if(!hadCode||!hadUid||!hadHistory)changed++}return changed}
@@ -75,4 +108,4 @@ function assignFrame(s,f,r){if(!s||!f||typeof f!=='object')throw Error('Не н�
 function assignBody(s,id,r){if(!s||!id)throw Error('Не найден ID корпуса.');s.equipmentLabels=s.equipmentLabels||{};s.equipmentLabels.bodies=s.equipmentLabels.bodies||{};const b=s.equipmentLabels.bodies;if(b[id]){const old=normalizeCode(b[id],'body');if(!old)throw Error('У корпуса некорректный код.');if(r!=null&&normalizeCode(r,'body')!==old)throw Error('Постоянный код корпуса нельзя менять.');reserve(s,'body',old);return old}const v=r==null||String(r).trim()===''?next(s,'body'):normalizeCode(r,'body');if(!v)throw Error('Код корпуса: положительный номер или ранее выданный трёхсимвольный код.');if(used(s,'body').has(v))throw Error('Этот код корпуса уже занят.');b[id]=v;reserve(s,'body',v);return v}
 function inspect(s){const e=[],seen=new Map(),seenIds=new Map();for(const x of frames(s)){const f=x.frame,frameId=typeof f?.frameId==='string'?f.frameId.trim():'',frameUid=typeof f?.frameUid==='string'?f.frameUid.trim():'',identityKey=frameUid?'uid:'+frameUid:frameId?x.identityScope+'\\u0000'+frameId:'';const location={hiveId:x.hiveId,box:x.box,position:x.position,bodyId:x.bodyId||null,frameUid:frameUid||null};if(identityKey){if(seenIds.has(identityKey))e.push({code:'duplicate_frame_identity',details:{frameId,frameUid:frameUid||null,labelCode:f.labelCode||null,identityScope:x.identityScope,first:seenIds.get(identityKey),duplicate:location}});else seenIds.set(identityKey,location)}const raw=f?.labelCode;if(raw==null||raw==='')continue;const c=normalizeCode(raw,'frame');if(!c||c!==raw)e.push({code:'invalid_frame_label_code',details:{hiveId:x.hiveId,box:x.box,position:x.position,labelCode:raw}});else if(seen.has(c))e.push({code:'duplicate_frame_label_code',details:{labelCode:c,first:seen.get(c),duplicate:{hiveId:x.hiveId,box:x.box,position:x.position}}});else seen.set(c,{hiveId:x.hiveId,box:x.box,position:x.position})}const bs=new Map();for(const [id,raw] of Object.entries(s?.equipmentLabels?.bodies||{})){const c=normalizeCode(raw,'body');if(!c||c!==raw)e.push({code:'invalid_body_label_code',details:{corpusId:id,labelCode:raw}});else if(bs.has(c))e.push({code:'duplicate_body_label_code',details:{labelCode:c,firstCorpusId:bs.get(c),duplicateCorpusId:id}});else bs.set(c,id)}return e}
 function auditFrameRegistry(s){const entries=frames(s),labelled=entries.filter(x=>x.frame&&typeof x.frame==='object'&&x.frame.labelCode!=null&&String(x.frame.labelCode).trim()!==''),issues=inspect(s).map(x=>({severity:'error',code:x.code,details:x.details})),seenIssues=new Set(),seenHistoryEventIds=new Map();const add=(severity,code,details)=>{const key=severity+'|'+code+'|'+JSON.stringify(details);if(!seenIssues.has(key)){seenIssues.add(key);issues.push({severity,code,details})}};for(const x of entries){const f=x.frame;if(!f||typeof f!=='object'||Array.isArray(f)){add('error','invalid_frame_record',{hiveId:x.hiveId,box:x.box,position:x.position});continue}const code=normalizeCode(f.labelCode,'frame'),place={hiveId:x.hiveId,box:x.box,position:x.position,bodyId:x.bodyId||null,labelCode:f.labelCode||null,frameUid:f.frameUid||null};if(!code)add('error','missing_frame_label_code',place);if(!f.frameUid||typeof f.frameUid!=='string'||!f.frameUid.trim())add('error','missing_frame_uid',place);if(f.history!=null&&!Array.isArray(f.history))add('error','invalid_frame_history',place);if(Array.isArray(f.history))for(const event of f.history){if(!event||typeof event!=='object'||Array.isArray(event))add('error','invalid_frame_history_event',place);else if(!event.id)add('error','frame_history_event_id_missing',place);else if(seenHistoryEventIds.has(event.id))add('error','duplicate_frame_history_event_id',{...place,eventId:event.id,first:seenHistoryEventIds.get(event.id)});else seenHistoryEventIds.set(event.id,place)}if(x.hiveId==='storage'&&(!x.bodyId||!s?.equipmentInventory?.bodies?.[x.bodyId]))add('error','frame_storage_location_missing',place);else if(x.hiveId==='retired'){const record=x.retiredRecord;if(!record||record.labelCode!==code||record.id!==code||f.lifecycle!=='retired')add('error','retired_frame_record_mismatch',{...place,recordId:record?.id||null,lifecycle:f.lifecycle||null});if(!f.retiredAt&&!record?.retiredAt)add('warning','retired_frame_date_missing',place)}else if(!x.hiveId||!x.box)add('error','frame_location_missing',place);const history=Array.isArray(f.history)?f.history:[],last=history[history.length-1];if(last){let expected=null;if(['family_transfer','corpus_transfer','box_frames_swapped'].includes(last.action)&&last.to)expected={hiveId:last.to.hiveId,box:String(last.to.box)};else if(last.action==='move'&&last.to)expected={box:String(last.to.location)};else if(last.action==='corpus_to_storage')expected={storage:true};else if(last.action==='corpus_from_storage'&&last.to)expected={hiveId:last.to.hiveId,box:String(last.to.box)};else if(last.action==='retired')expected={retired:true};if(expected){const mismatch=expected.retired?x.hiveId!=='retired':expected.storage?x.hiveId!=='storage':expected.hiveId&&expected.hiveId!==x.hiveId||expected.box&&expected.box!==String(x.box);if(mismatch)add('warning','frame_history_location_mismatch',{...place,lastAction:last.action,expected,historyDate:last.date||null})}}}const summary={labelled:labelled.length,active:labelled.filter(x=>x.hiveId!=='storage'&&x.hiveId!=='retired').length,stored:labelled.filter(x=>x.hiveId==='storage').length,retired:labelled.filter(x=>x.hiveId==='retired').length,withoutPermanentCode:entries.filter(x=>x.frame&&typeof x.frame==='object'&&(!x.frame.labelCode||String(x.frame.labelCode).trim()==='')).length,errors:issues.filter(x=>x.severity==='error').length,warnings:issues.filter(x=>x.severity==='warning').length};return {summary,issues}}
-window.PasekaLabels={ALPHABET,CAPACITY,normalizeCode,formatLabelCode,nextCode:next,nextLegacyCode:nextLegacy,nextIdentityCode,futureQrPayload,sectionLabel,MAX_SERIAL,assignFrameCode:assignFrame,assignBodyCode:assignBody,migrateFrameUids,listLabelledFrames,retireFrame,appendFrameEvent,auditFrameRegistry,inspectLabelIntegrity:inspect}})();
+window.PasekaLabels={ALPHABET,CAPACITY,normalizeCode,formatLabelCode,nextCode:next,nextLegacyCode:nextLegacy,nextIdentityCode,futureQrPayload,sectionLabel,MAX_SERIAL,assignFrameCode:assignFrame,assignBodyCode:assignBody,migrateFrameUids,listLabelledFrames,retireFrame,appendFrameEvent,auditFrameRegistry,inspectIdentityMarking,inspectLabelIntegrity:state=>[...inspect(state),...inspectIdentityMarking(state)]}})();

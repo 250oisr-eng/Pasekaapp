@@ -13,3 +13,7 @@ F4: first vertical equipment/family registration + numeric reconciliation, label
 F5: новые доменные тесты, сохранены legacy fixtures, pure smoke (JS module compilation and sample numeric/legacy lookup). Full CI, Android, Chromium, actual device/restore NOT_TESTED until evidence.
 
 F6/F7: Draft only, merge/release separate permissions; no production install.
+
+## Второй проход F4
+
+Первый exact SHA 3fb5d7d1a3a6cf0a06e99d05d17a3cac2b47816b: Fast 1093/1093, Governance PASS. Уточнены uppercase физические mode, запрещены неоднозначные numeric aliases, смешанные полные legacy/numeric labels, глобальная проверка числовых семей/маток и counters, immutable family code при назначении корпуса, immutable queen code из старой формы. Split/merge assigns separate new С-N inside existing transaction preserving supplied descriptive name/code in registrationName/registrationCode; confirmed new queen gets М-N when no previous marking. Existing OP validators/gates remain. Numeric queen manually supplied only if not historically used/reserved, old external nonnumeric remains as legacy. No invented queen from optional family metadata. Repeat full CI on exact new SHA, B07 remains blocked. #644 dialogue integration still pending. QR no UI.
