@@ -1688,7 +1688,7 @@
     "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
     "pr": 629,
     "codeStatus": "IMPLEMENTED_DRAFT",
-    "ci": "NOT_VERIFIED_NEW_HEAD",
+    "ci": "PENDING_EXACT_NEW_HEAD",
     "diagnosticApk": "NOT_BUILT",
     "device": "NE2213_API36_USER_ADB_EVIDENCE",
     "forcedJobStarted": true,
@@ -1707,10 +1707,14 @@
       "PAGE_FINISHED"
     ],
     "javascriptPhaseReached": false,
-    "nextProbePackage": "ru.paseka.journal.qa.daily.dom",
-    "rootCause": "UNKNOWN",
+    "nextProbePackage": "ru.paseka.journal.qa.daily.fix",
+    "rootCause": "UNCONDITIONAL_403_BLOCKED_INTERNAL_MAIN_FRAME_HTML",
     "firstInlineScriptReached": false,
     "physicalProbeCode": "JS_PROBE_NO_INLINE",
-    "physicalProbeObservedTwice": true
+    "physicalProbeObservedTwice": true,
+    "deviceObservedMainFrameIntercepted": true,
+    "deviceObservedMainFrameHttpError": true,
+    "deviceObservedWorkerHtmlAbsent": true,
+    "minimalFix": "ONE_SHOT_DATA_MAIN_FRAME_ONLY"
   }
 }
