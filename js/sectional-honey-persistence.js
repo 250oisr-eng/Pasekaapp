@@ -23,5 +23,37 @@ async function commitCandidate(candidate,adapter){
   return {ok:true,revisionId:next,committedState:draft};
  });
 }
-window.PasekaSectionalHoneyPersistence=Object.freeze({commitCandidate});
+// Bind to the application's existing store/queue and compare-and-swap
+// implementation. Caller must supply a real exclusive mutation gate; no
+// unsafe direct IndexedDB put, parallel write or automatic fallback.
+function createRuntimeCommitter(runtime){
+ const methods=['withExclusiveMutation','enqueue','getState','getPersistedRevision','isWriteReady','validate','newRevision','writeMainIfUnchanged','writeAutoBackup','publishCommitted','buildSnapshot'];
+ if(methods.some(key=>typeof runtime?.[key]!=='function'))throw Error('sectional_runtime_bridge_incomplete');
+ return async function commit(candidate,baseState){
+  if(candidate?.ok!==true||candidate.kind!=='unsaved_candidate'||!baseState||candidate.expectedRevisionId!==baseState.meta?.revisionId)return {ok:false,error:'invalid_candidate'};
+  const fingerprint=JSON.stringify(baseState);
+  let draft;try{draft=structuredClone(candidate.draft)}catch{return {ok:false,error:'clone_failed'}}
+  return runtime.withExclusiveMutation(()=>runtime.enqueue(async()=>{
+   if(!runtime.isWriteReady()||runtime.getPersistedRevision()!==candidate.expectedRevisionId||JSON.stringify(runtime.getState())!==fingerprint)return {ok:false,error:'revision_or_unsaved_state_changed'};
+   let snapshot,previous,next;
+   try{
+    const errors=await runtime.validate(draft);
+    if(!Array.isArray(errors)||errors.length)return {ok:false,error:'candidate_validation_failed'};
+    next=runtime.newRevision();if(typeof next!=='string'||!next.trim()||next===candidate.expectedRevisionId)return {ok:false,error:'new_revision_invalid'};
+    draft.meta.revisionId=next;draft.meta.updatedAt=new Date().toISOString();
+    snapshot=await runtime.buildSnapshot(draft);
+    if(snapshot?.meta?.revisionId!==next)return {ok:false,error:'snapshot_invalid'};
+    const finalErrors=await runtime.validate(snapshot);if(!Array.isArray(finalErrors)||finalErrors.length)return {ok:false,error:'snapshot_validation_failed'};
+    previous=await runtime.writeMainIfUnchanged(snapshot,candidate.expectedRevisionId);
+   }catch{return {ok:false,error:'transaction_not_confirmed'}}
+   // Main write already succeeded. Backup/publish failures cannot turn it
+   // into a failed operation or invite an unsafe repeat.
+   const warnings=[];
+   try{await runtime.publishCommitted(snapshot,next)}catch{warnings.push('committed_refresh_required')}
+   try{if(!await runtime.writeAutoBackup(previous||snapshot,next))warnings.push('backup_not_confirmed')}catch{warnings.push('backup_not_confirmed')}
+   return {ok:true,revisionId:next,warnings};
+  }));
+ };
+}
+window.PasekaSectionalHoneyPersistence=Object.freeze({commitCandidate,createRuntimeCommitter});
 })();
