@@ -74,3 +74,13 @@ test('damaged hive registry and malformed inspection IDs report integrity errors
  const malformed=deadout.inspectDeadoutIntegrity({hives,deadoutReviews:[[]]});
  assert.ok(malformed.some(x=>x.code==='deadout_invalid_or_duplicate_id'));
 });
+
+
+test('mortality review rejects duplicate hive identifiers before any observation is drafted',()=>{
+ const duplicates=[{id:'h1',number:1},{id:'h1',number:2}];
+ const before=JSON.stringify(duplicates);
+ assert.throws(()=>deadout.buildDeadoutReviewDraft(base,duplicates,[],()=> 'id','2027-03-10T10:00:00Z'),/однозначным ID/);
+ assert.equal(JSON.stringify(duplicates),before);
+ const unique=deadout.buildDeadoutReviewDraft(base,hives,[],()=> 'safe','2027-03-10T10:00:00Z');
+ assert.equal(unique.hiveNumberAtTime,1);
+});
