@@ -1325,7 +1325,7 @@
     "published": false
   },
   "searchFamilyHistory20261127": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "IN_MAIN",
     "branch": "feat/ui-search-family-history-safe-20261127",
     "sourceDraft": 600,
     "baseMainSha": "f67ca3427fd6c352011b8628d7359ebdaa8e0d3d",
@@ -1336,6 +1336,30 @@
     "codeCi": "NOT_VERIFIED",
     "chromiumCi": "NOT_VERIFIED",
     "device": "NOT_TESTED",
+    "merged": true,
+    "pr": 612,
+    "mergeSha": "14b398c97354800062b170e835a97bf7c76b7eb5",
+    "nodeTests": {
+      "pass": 1023,
+      "fail": 0
+    },
+    "verifiedPrSha": "4ab891f3c7cfbf26dc4feffc1499f23686c8b560",
+    "ciRuns": {
+      "android": 45967365737,
+      "chromium": 45967366165,
+      "governance": 45967365751
+    }
+  },
+  "oneplusCurrentQa20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "branch": "feat/qa-isolated-current-main-20261127",
+    "baseMainSha": "14b398c97354800062b170e835a97bf7c76b7eb5",
+    "sourcePr": 602,
+    "qaPackage": "ru.paseka.journal.qa",
+    "ci": "NOT_VERIFIED",
+    "binarySha": null,
+    "device": "NOT_TESTED",
+    "productionTouched": false,
     "merged": false
   }
 }

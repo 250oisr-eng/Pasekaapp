@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · live main `f67ca3427fd6c352011b8628d7359ebdaa8e0d3d` after #611.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · live main `14b398c97354800062b170e835a97bf7c76b7eb5` after user-approved #612.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 ## Основные интегрированные функции
 
@@ -10,10 +10,10 @@
 - **#609–#610 MERGED:** одно касание «Очистить» в глобальном поиске, Escape/фокус, aria-live статус числа результатов; 12 результатов и прежние ссылки не изменены. PR `b243e510`: Node **1021/1021**, Android/Chromium 11 viewport и search 320/390/768/Governance PASS.
 - **#608/#611 MERGED:** постинтеграционный статус, история и метрики. Физические OnePlus/TalkBack не проверялись. Публикация не запускалась.
 
-## Активная предметная задача
+## Последняя интеграция и текущий QA-цикл
 
-- **P1 selective #600 / IMPLEMENTED_DRAFT:** отдельная ветка `feat/ui-search-family-history-safe-20261127` от указанного main. Поиск семьи → существующая история → возврат к улью; при устаревшем, перемещённом или повторяющемся ID обновление выдачи и отказ от перехода. Добавлены Node negative/regression и Chromium E2E mobile/desktop. **CI exact SHA и устройство пока NOT_VERIFIED.** Контракт: [UI search family](docs/UI-SEARCH-FAMILY-HISTORY-2026-11-27.md).
-- После прохождения CI и разрешённой безопасной интеграции переходить к следующему независимому UX пункту. Никаких миграций/видео/OP/production-операций для этой задачи.
+- **#612 MERGED:** история выбранной семьи открывается непосредственно из быстрого поиска (выборочный перенос старого #600); устаревшие/перенесённые/неоднозначные ID блокируются. Squash main `14b398c97354800062b170e835a97bf7c76b7eb5`. PR code+docs head `4ab891f3c7cfbf26dc4feffc1499f23686c8b560`: Node **1023/1023**, Android build SUCCESS (#45967365737), Chromium E2E mobile/desktop SUCCESS (#45967366165), Governance SUCCESS (#45967365751). Реальные данные не изменены.
+- **P1 OnePlus isolated QA / IMPLEMENTED_DRAFT:** отдельная ветка `feat/qa-isolated-current-main-20261127` от #612 main. Временная CI-песочница `ru.paseka.journal.qa`, тестовый APK, проверка фактических package/signature/SHA, обособленные 4 цикла тестов без production/видео. Портируется только безопасная сборка из исторического #602. **Новый CI exact SHA и устройство NOT_VERIFIED.** План: [ONEPLUS QA](docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md).
 
 ## Блокировки до физических доказательств
 
