@@ -129,6 +129,23 @@ async function journey(browser,origin,name,viewport){
     await card.getByRole('button',{name:'Вернуться к улью'}).click();
     await page.locator('#selectedHivePanel').waitFor({state:'visible'});
     assert.deepEqual(await capture(),before,'history navigation mutated journal data');
+    // #600 selective port: global family result opens this family's history directly.
+    await page.locator('button[data-tab="home"]').click();
+    const familySearch=await page.evaluate(()=>{
+      const family=S.families[0];
+      return [family?.name,family?.code,family?.breed].find(v=>typeof v==='string'&&v.trim())||'';
+    });
+    assert.ok(familySearch,'synthetic family has searchable name/code');
+    await page.locator('#globalSearch').fill(familySearch);
+    const familyResult=page.locator('#globalSearchResults [data-kind="family"][data-id="'+before.families[0].id+'"]');
+    assert.equal(await familyResult.count(),1,'expected one family search result');
+    await familyResult.click();
+    await card.waitFor({state:'visible'});
+    assert.equal(await card.getAttribute('data-family-id'),before.families[0].id);
+    assert.equal(await card.locator('article').filter({hasText:note}).count(),1);
+    await card.getByRole('button',{name:'Вернуться к улью'}).click();
+    await page.locator('#selectedHivePanel').waitFor({state:'visible'});
+    assert.deepEqual(await capture(),before,'search-to-family-history altered records');
     // Approved UX: one canonical AI entry in bottom nav; keep one-tap record creation on home.
     await page.locator('button[data-tab="home"]').click();
     assert.equal(await page.locator('#home .home-ai-card').count(),0);
