@@ -1433,13 +1433,28 @@
     }
   },
   "qaArchiveFileSelection20261127": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "IN_MAIN_CODE_VERIFIED",
     "branch": "fix/b01-qa-archive-zip-misselect-20261127",
     "scope": "READ_ONLY_PRESCAN_PK_JSON_AND_ERROR_MESSAGE",
     "sourceMainSha": "3af572224749da72cb5e2080557a0f17bb59bff5",
     "codeCI": "NOT_VERIFIED",
     "noRestore": true,
     "noDataWrites": true,
-    "installedQaUnaffected": true
+    "installedQaUnaffected": true,
+    "merged": true,
+    "pr": 617,
+    "mergeSha": "6859e1082e213ce7141fa983f453fb9011e7c74b",
+    "codeSha": "616c5f81c99e6ad613afee4a0ead2459896b0cc6",
+    "tests": {
+      "passed": 1032,
+      "failed": 0
+    },
+    "ci": {
+      "android": 45973966819,
+      "chromium": 45973966889,
+      "governance": 45973966811,
+      "all": "success"
+    },
+    "cycle3Still": "USER_REPORTED_ARCHIVE_VERIFY_FAIL"
   }
 }
