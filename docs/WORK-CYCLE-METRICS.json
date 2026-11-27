@@ -1358,7 +1358,7 @@
     "qaPackage": "ru.paseka.journal.qa",
     "ci": "NOT_VERIFIED",
     "binarySha": null,
-    "device": "CYCLES_1_AND_2_USER_REPORTED_PASS",
+    "device": "CYCLES_1_2_PASS_CYCLE_3_VERIFY_FAIL",
     "productionTouched": false,
     "merged": true,
     "pr": 613,
@@ -1415,11 +1415,31 @@
       "androidForceStopNotEstablished": true
     },
     "cycle3": {
-      "status": "AWAITING_USER_PHYSICAL_TEST",
-      "scope": "QA_IDB_FULL_JSON_EXPORT_READ_ONLY_VERIFY_SECOND_COPY",
-      "fileExists": "NOT_TESTED",
+      "status": "USER_REPORTED_ARCHIVE_VERIFY_FAIL",
+      "reportedDate": "2026-11-27",
+      "downloadReported": "PASS",
+      "downloadedFileReported": "PASS",
+      "sizeNonzeroReported": "PASS",
+      "reportedApproxFileBytes": 330000,
+      "verify": "FAIL",
+      "message": "Unexpected token 'P', \"PK\"...is not valid JSON",
+      "fileSignatureHypothesis": "ZIP_PK_MISSELECT_OR_DOWNLOAD_MISMATCH_UNCONFIRMED",
       "sha256": "NOT_TESTED",
-      "independentRestore": "NOT_TESTED"
+      "recordsCount": "NOT_TESTED",
+      "externalSecondCopy": "NOT_TESTED",
+      "restoreOrDelete": "NOT_TESTED",
+      "productionImpact": "NOT_REPORTED",
+      "doNotClearOrReinstall": true
     }
+  },
+  "qaArchiveFileSelection20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "branch": "fix/b01-qa-archive-zip-misselect-20261127",
+    "scope": "READ_ONLY_PRESCAN_PK_JSON_AND_ERROR_MESSAGE",
+    "sourceMainSha": "3af572224749da72cb5e2080557a0f17bb59bff5",
+    "codeCI": "NOT_VERIFIED",
+    "noRestore": true,
+    "noDataWrites": true,
+    "installedQaUnaffected": true
   }
 }
