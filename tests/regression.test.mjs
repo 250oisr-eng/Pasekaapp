@@ -3832,3 +3832,86 @@ test('queen actual introduction or replacement rejects future dates before any s
  assert.equal(valid.replaced,true);
  assert.equal(state.queenEvents[0].date,null,'unknown historical introduction day is not invented');
 });
+
+test('honey-pair state and audit both roll back when storage fails or rejects',async()=>{
+ for(const failure of ['return_false','throws']){
+  const deps={
+   S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[],meta:{}},
+   selectedStructureHive:()=> 'h',renders:0,messages:[],
+   alert(text){this.messages.push(text)},render(){this.renders++},
+   save:async()=>{if(failure==='throws')throw new Error('test interrupted write');return false}
+  };
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction('toggleHoneyPair',deps)(),false);
+  assert.deepEqual(deps.S.layouts,old.layouts,'never display installed boxes after failed commit');
+  assert.deepEqual(deps.S.auditLog,old.auditLog,'unsaved physical event must be removed');
+  assert.equal(deps.renders,1,'restore UI from durable state');
+  assert.equal(deps.messages.length,1);
+ }
+});
+test('honey-pair pre-commit audit rejection restores old layout without persisting',async()=>{
+ let called=0;
+ const deps={S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[]},
+  selectedStructureHive:()=> 'h',save:async()=>{called++;return true},render(){},alert(){}};
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.logAudit=()=>{throw new Error('audit unavailable')};
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ assert.equal(await loadFunction('toggleHoneyPair',deps)(),false);
+ assert.equal(called,0,'never try saving after audit failure');
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+});
+test('winter and summer transitions restore layout and history on rejected IndexedDB save',async()=>{
+ for(const mode of ['winter','summer']){
+  const currentMode=mode==='winter'?'summer':'winter';
+  const base={mode:currentMode,installedBoxes:mode==='winter'?[1,2]:[1,3,4],
+   winterOrder:currentMode==='winter'?[1,3,4]:[],
+   honeyBoxInstalled:currentMode==='winter'?[false,false]:[true,true],honeyInstalled:currentMode!=='winter',
+   boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}])),assemblies:[]};
+  const form={modeTransition:{style:{display:'block'}},
+   winterSlot0:{value:'1'},winterSlot1:{value:'3'},winterSlot2:{value:'4'}};
+  const deps={S:{layouts:{h:base},auditLog:[]},pendingAssemblyMode:mode,
+   selectedStructureHive:()=> 'h', $:id=>form[id],
+   document:{querySelectorAll:()=>[{value:'1'},{value:'3'}],querySelector:()=>({checked:false})},
+   render(){this.rendered=(this.rendered||0)+1},alert(){},
+   save:async()=>false};
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.rememberCurrentAssembly=l=>l.assemblies.push({mode:l.mode,installedBoxes:l.installedBoxes.slice()});
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction(mode==='winter'?'commitWinter':'commitSummer',deps)(),false);
+  assert.deepEqual(deps.S.layouts,old.layouts,'discard uncommitted physical and assembly history');
+  assert.deepEqual(deps.S.auditLog,[]);
+  assert.equal(form.modeTransition.style.display,'block','do not announce completed mode change before save');
+  assert.equal(deps.pendingAssemblyMode,mode);
+ }
+});
+test('physical assembly transition commits once after a successful save',async()=>{
+ let saves=0;
+ const layout={mode:'summer',installedBoxes:[1,2],winterOrder:[],honeyBoxInstalled:[true,true],
+  honeyInstalled:true,boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}])),assemblies:[]};
+ const form={modeTransition:{style:{display:'block'}},winterSlot0:{value:'1'},winterSlot1:{value:'3'},winterSlot2:{value:'4'}};
+ const deps={S:{layouts:{h:layout},auditLog:[]},pendingAssemblyMode:'winter',
+  selectedStructureHive:()=> 'h',$:id=>form[id],render(){},alert(){},
+  save:async()=>{saves++;return true}};
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.rememberCurrentAssembly=l=>l.assemblies.push({mode:l.mode,installedBoxes:l.installedBoxes.slice()});
+ deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+ deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ assert.equal(await loadFunction('commitWinter',deps)(),true);
+ assert.equal(saves,1);assert.equal(deps.S.layouts.h.mode,'winter');
+ assert.deepEqual(deps.S.layouts.h.installedBoxes,[1,3,4]);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+ assert.equal(deps.S.auditLog.length,1);assert.equal(deps.S.layouts.h.assemblies.length,1);
+ assert.equal(form.modeTransition.style.display,'none');
+ assert.equal(deps.pendingAssemblyMode,null);
+});
