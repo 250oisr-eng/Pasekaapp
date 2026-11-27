@@ -1298,7 +1298,7 @@
     "published": false
   },
   "globalSearchChromium20261127": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "IN_MAIN",
     "branch": "test/ui-global-search-browser-proof-20261127",
     "viewports": [
       320,
@@ -1307,6 +1307,21 @@
     ],
     "ci": "NOT_VERIFIED",
     "device": "NOT_TESTED",
-    "noDataWrites": true
+    "noDataWrites": true,
+    "merged": true,
+    "pr": 610,
+    "mergeSha": "1c0ff2390898b8c0fd17063569749bbdf38d98c2",
+    "ciVerifiedExactSha": "b243e5103adc7dae8d4fe6d211b86f0df8c7ebaa",
+    "nodeTests": {
+      "pass": 1021,
+      "fail": 0
+    },
+    "ciRuns": {
+      "android": 45965870658,
+      "chromium": 45965870612,
+      "governance": 45965870605
+    },
+    "chromiumAllPassed": true,
+    "published": false
   }
 }
