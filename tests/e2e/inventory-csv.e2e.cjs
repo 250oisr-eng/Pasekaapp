@@ -38,10 +38,16 @@ async function journey(browser,origin,label,viewport){
   await page.locator('#hiveDlg').waitFor({state:'visible'});
   await page.locator('#hiveForm button.primary').click();
   await page.locator('#hiveDlg').waitFor({state:'hidden'});
+  await page.waitForFunction(()=>S.hives.length===1);
   await page.locator('button[data-tab="settings"]').click();
   await page.locator('#settings').getByRole('button',{name:'Открыть инвентарь'}).click();
   const dlg=page.locator('#equipmentInventoryDlg');
   await dlg.waitFor({state:'visible'});
+  const template=page.locator('#inventoryTemplateHive');
+  const templateOptions=await template.locator('option').count();
+  assert.ok(templateOptions>=1,'new hive must be selectable as a stock template');
+  await template.selectOption({index:0});
+  assert.ok(await template.inputValue(),'inventory template hive must have a physical ID');
   async function addStock(location,note){
    await page.locator('#inventoryStoragePlace').fill(location);
    await page.locator('#inventoryStockNotes').fill(note);
