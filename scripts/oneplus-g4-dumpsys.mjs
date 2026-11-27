@@ -3,6 +3,19 @@
 // Registration, runnable and even scheduler completion are not ZIP proof.
 import {readFileSync} from 'node:fs';
 const QA='ru.paseka.journal.qa.daily';
+// PowerShell 5.1 redirects native stdout as UTF-16LE.
+export function decodeDump(bytes){
+ if(!Buffer.isBuffer(bytes))throw Error('G4_BLOCKED: diagnostic input must be bytes');
+ if(bytes.length===0)throw Error('G4_BLOCKED: empty JobScheduler dump');
+ if(bytes[0]===0xff && bytes[1]===0xfe){
+   if(bytes.length%2)throw Error('G4_BLOCKED: invalid UTF-16LE length');
+   return bytes.subarray(2).toString('utf16le');
+ }
+ if(bytes[0]===0xfe && bytes[1]===0xff)throw Error('G4_BLOCKED: unsupported UTF-16BE');
+ const decoded=bytes.toString('utf8').replace(/^\uFEFF/,'');
+ if(decoded.includes('\0'))throw Error('G4_BLOCKED: unknown encoding');
+ return decoded;
+}
 export function inspectG4(source){
  if(typeof source!=='string'||!source.trim())throw Error('G4_BLOCKED: empty JobScheduler dump');
  const lines=source.split(/\r?\n/);
@@ -29,6 +42,6 @@ if(process.argv[1]&&import.meta.url.endsWith('/'+process.argv[1].replace(/\\/g,'
  try{
   const args=process.argv.slice(2);
   if(args.length!==1||args[0].startsWith('-'))throw Error('Usage: node scripts/oneplus-g4-dumpsys.mjs path-to-full-dumpsys.txt');
-  console.log(JSON.stringify(inspectG4(readFileSync(args[0],'utf8')),null,2));
+  console.log(JSON.stringify(inspectG4(decodeDump(readFileSync(args[0]))),null,2));
  }catch(e){console.error(e.message);process.exitCode=2;}
 }
