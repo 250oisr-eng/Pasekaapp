@@ -1540,13 +1540,13 @@
     "archiveLimitMiB": 256
   },
   "b01ComprehensiveLocalQa20261127": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "DEVICE_QA_TOOLKIT_PREPARED_PENDING_EXACT_SHA_CI",
     "branch": "test/b01-comprehensive-device-acceptance-20261127",
     "baseMainSha": "94f883be631d5bb205a1c4bbcfbea20fed554f48",
     "scope": "two daily local ZIPs + one restore button, no external JSON/SAF requirement",
-    "nodeTests": "NOT_VERIFIED",
+    "nodeTests": "OLD_HEAD_7f25d442_1063_PASS_NEW_HEAD_PENDING",
     "chromium": "NOT_VERIFIED",
-    "android": "NOT_VERIFIED",
+    "android": "OLD_HEAD_7f25d442_SUCCESS_NEW_HEAD_PENDING",
     "knownPriorEvidence": {
       "verifiedCodeSha": "70216c734e91831fe09cc7d98e777814d1a5116d",
       "nodePass": 1054,
@@ -1569,6 +1569,15 @@
     "naturalDayRequired": true,
     "noTimeManipulation": true,
     "noRealData": true,
-    "productionUnchanged": true
+    "productionUnchanged": true,
+    "adbPreflight": {
+      "script": "scripts/oneplus-daily-qa.mjs",
+      "tests": "tests/oneplus-daily-qa.test.mjs",
+      "physicalDevice": "NOT_TESTED",
+      "deviceDataAccess": false,
+      "productionInstall": false,
+      "qaInstallRequiresExplicitFlag": true,
+      "binaryShaPinned": "b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa"
+    }
   }
 }
