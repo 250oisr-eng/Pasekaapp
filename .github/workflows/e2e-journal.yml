@@ -5,11 +5,16 @@ on:
       - 'index.html'
       - 'tests/e2e/**'
       - '.github/workflows/e2e-journal.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'tests/e2e/**'
+      - '.github/workflows/e2e-journal.yml'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: journal-e2e-synthetic
+  group: journal-e2e-synthetic-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   journal-browser:

@@ -4,39 +4,40 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const nav = html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/)?.[1] || '';
-const cssStart = html.indexOf('/* Scoped, accessible honeycomb navigation ported selectively from historical #187.');
+const cssStart = html.indexOf('/* #596: approved 4-3-4 seamless hexagonal navigation');
 const cssEnd = html.lastIndexOf('</style>');
 const css = cssStart >= 0 && cssEnd > cssStart ? html.slice(cssStart, cssEnd) : '';
 
 test('all eleven navigation routes retain consistent visible and keyboard order', () => {
   const tabs = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(m => m[1]);
-  assert.deepEqual(tabs, ['home','hives','entrance','journal','settings','ai','forage','varroa','incidents','planning','deadout']);
+  assert.deepEqual(tabs, ['entrance','hives','home','planning','journal','ai','forage','incidents','deadout','varroa','settings']);
   assert.equal(new Set(tabs).size, 11);
   assert.equal((nav.match(/data-tab="ai"/g) || []).length, 1, 'one AI entry');
-  assert.match(nav, /<button class="active" data-tab="home"[^>]*aria-current="page"/);
+  assert.match(nav, /<button data-tab="home" class="active"[^>]*aria-current="page"/);
   assert.ok(!/onkeydown=/.test(nav), 'do not reinstate legacy inline key events');
 });
 
-test('responsive honeycomb places AI in true center with unique grid cells', () => {
+test('approved 4-3-4 honeycomb keeps eleven unique positions and accessible central AI', () => {
   assert.ok(css, 'honeycomb styles must be declared after current main rules');
-  const grid = [['home',1,2],['hives',1,3],['entrance',1,4],
-    ['journal',2,1],['settings',2,2],['ai',2,3],['forage',2,4],['varroa',2,5],
-    ['incidents',3,2],['planning',3,3],['deadout',3,4]];
-  const cells = new Set(grid.map(([,row,col]) => row + ':' + col));
-  assert.equal(cells.size, 11, 'mobile cells must not overlap');
-  for (const [tab,row,col] of grid) {
-    const re = new RegExp('button\\[data-tab="' + tab + '"\\]\\s*\\{[^}]*grid-row:' + row + ';grid-column:' + col);
-    assert.match(css, re, 'mobile slot: ' + tab);
+  const grid = [['entrance',1,2],['hives',1,4],['home',1,6],['planning',1,8],
+    ['journal',2,3],['ai',2,5],['forage',2,7],
+    ['incidents',3,2],['deadout',3,4],['varroa',3,6],['settings',3,8]];
+  const cells=new Set(grid.map(([,row,col])=>row+':'+col));
+  assert.equal(cells.size,11,'unique grid slots');
+  for(const [tab,row,col] of grid){
+    const re=new RegExp('button\\[data-tab="'+tab+'"\\]\\s*\\{[^}]*grid-row:'+row+';grid-column:'+col+'/span 2');
+    assert.match(css,re,'4-3-4 slot '+tab);
   }
   for(const token of [
-    'grid-template-rows:repeat(3,56px)', 'clip-path:polygon(25% 0',
-    'calc(9px + env(safe-area-inset-bottom,0px))',
-    '@media(min-width:700px)', 'grid-template-columns:repeat(11,minmax(0,1fr))',
-    'grid-column:6!important', 'orientation:landscape',
-    'min-height:48px', 'focus-visible', 'prefers-reduced-motion:reduce'
-  ]) assert.ok(css.includes(token), 'missing nav safety constraint: ' + token);
-  assert.match(css, /button\[data-tab="ai"\]\{\s*grid-row:2;grid-column:3/);
-  assert.match(html, /document\.addEventListener\('keydown',event=>\{/);
+    'grid-template-rows:repeat(2,calc(var(--hex-h)*.75)) var(--hex-h)',
+    'gap:0','clip-path:polygon(50% 0',
+    'env(safe-area-inset-bottom,0px)',
+    'focus-visible','prefers-reduced-motion:reduce'
+  ]) assert.ok(css.includes(token),'missing nav safety constraint: '+token);
+  assert.match(css,/button\[data-tab="ai"\]\{\s*grid-row:2;grid-column:5/);
+  assert.match(nav,/<button data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"[^>]*><svg class="nav-ai-bee"/);
+  assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
+  assert.match(html,/document\.addEventListener\('keydown',event=>\{/);
 });
 
 const homeStart = html.indexOf('function renderHome(){');
@@ -93,9 +94,10 @@ test('urgent and today tasks remain visible even for hives beyond preview limit'
 });
 
 
-test('central AI respects its grid cell and never inherits legacy upward translateY', () => {
-  assert.match(css,/grid-row:2;grid-column:3;width:min\(64px,100%\);height:56px;min-height:56px/);
-  assert.match(css,/transform:none!important; \/\* override legacy translateY/);
-  assert.match(css,/grid-column:6!important;width:min\(68px,100%\)/);
-  assert.match(css,/@media\(max-width:340px\)[\s\S]*?width:min\(58px,100%\)/);
+test('central AI has a translucent hex rim and no legacy upward translation', () => {
+  assert.match(css,/grid-row:2;grid-column:5\/span 2;width:100%;height:var\(--hex-h\)/);
+  assert.match(css,/transform:none!important/);
+  assert.match(css,/border:2px solid rgba\(186,242,255,\.74\)/);
+  assert.match(css,/background:radial-gradient\(circle at 50% 48%,#06467f 0%,#087bb8 43%,#56c8ed 73%,#b1f1ff 100%\)/);
+  assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
 });
