@@ -3,7 +3,7 @@
 **27.11.2026 · verified main `eda81f8ffbf7491dba7b973373248f28cf19450a` after approved #619.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 
-**OnePlus QA #624:** Node 1067/1067, Android PASS (`30cf3c3f`); G0/G2/G5/G6/G8 PASS по отчётам, G1 частично, G3 только с ручной датой, G4 scheduler PASS/фон не доказан. Естественный архив не ранее 29.11. B01/B04/B05/B06/B10 открыты. Подробнее — B01 QA.
+**OnePlus QA #624:** Node 1067/1067, Android PASS (`30cf3c3f`); G0/G1/G2/G5/G6/G8 PASS по отчётам, G3 лишь с ручной датой, G4 scheduler PASS/фон не доказан. Естественный архив не ранее 29.11. B01/B04/B05/B06/B10 открыты. Подробнее — B01 QA.
 
 ## Основные интегрированные функции
 
