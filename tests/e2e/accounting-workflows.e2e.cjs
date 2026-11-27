@@ -34,7 +34,7 @@ async function journey(browser,origin){
   if(dialog.type()==='alert'&&/Дата фактического ввода матки не может быть в будущем/.test(message)){
    expectedAlerts.push(message);return dialog.accept();
   }
-  errors.push('Unexpected dialog: '+dialog.type()+' '+message.slice(0,120));
+  errors.push('Unexpected dialog: '+dialog.type()+' '+message);
   await dialog.dismiss();
  });
  const ready=()=>page.waitForFunction(()=>{try{return startupWriteGate.ready===true}catch{return false}},{},{timeout:30000});
@@ -158,6 +158,8 @@ async function journey(browser,origin){
   assert.equal(before.inventory.length,1);
   assert.equal(before.layout.mode,'winter');
   await page.evaluate(()=>saveQueue);
+  const integrity=await page.evaluate(()=>validateRawBackupIntegrity(S));
+  assert.deepEqual(integrity.errors,[],'accounting state must pass raw-backup integrity BEFORE reload');
   await page.reload({waitUntil:'domcontentloaded'});await ready();
   const after=await read();
   const {inventory:stockBefore,...otherBefore}=before;
