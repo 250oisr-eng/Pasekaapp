@@ -132,7 +132,20 @@ async function journey(browser,origin){
   await page.evaluate(()=>saveQueue);
   await page.reload({waitUntil:'domcontentloaded'});await ready();
   const after=await read();
-  assert.deepEqual(after,before,'verified accounting objects changed after real IndexedDB reload');
+  const {inventory:stockBefore,...otherBefore}=before;
+  const {inventory:stockAfter,...otherAfter}=after;
+  assert.deepEqual(otherAfter,otherBefore,'family, queen, feeding, inspection or winter layout changed after reload');
+  // Startup deliberately registers pre-existing layout corpus IDs into inventory.
+  // Never confuse such an additive, source-linked migration with loss of a stock item.
+  const afterById=new Map(stockAfter.map(item=>[item.id,item]));
+  for(const entry of stockBefore)assert.deepEqual(afterById.get(entry.id),entry,'original physical stock body changed during migration');
+  const layoutBodyIds=await page.evaluate(()=>Object.values(S.layouts[S.hives[0].id].corpusIds||{}));
+  const knownBefore=new Set(stockBefore.map(item=>item.id));
+  const additional=stockAfter.filter(item=>!knownBefore.has(item.id));
+  assert.ok(additional.every(item=>layoutBodyIds.includes(item.id)),
+    'startup must not silently invent inventory records unrelated to persisted hive layout');
+  assert.ok(additional.every(item=>item.storageLocation===''),'layout migration must not invent stock locations');
+  assert.equal(stockAfter.filter(item=>item.storageLocation==='QA-СКЛАД').length,1);
   assert.deepEqual(errors,[],'unexpected browser error or confirmation');
   console.log(JSON.stringify({scenario:'accounting-queen-feeding-inspection-inventory-winter-reload',
    status:'PASS',source:'Chromium real IndexedDB synthetic only',qaFamilyId:ids.f,
