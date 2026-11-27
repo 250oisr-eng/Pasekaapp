@@ -37,12 +37,17 @@ MATCH_IOU = 0.50
 POS_IOU, NEG_IOU = 0.30, 0.10
 BATCH = 2
 BASE = f"https://huggingface.co/Roboflow/rf-detr-nano/resolve/{REVISION}/"
+PROCESSOR_REVISION = "9f201577d9415f0378084748d27e68586e6b3600"
 
 
 def load_tracks(path):
     frames = {}
     seen = set()
-    for row in csv.reader(path.open(encoding="ascii", newline="")):
+    with path.open(encoding="ascii", newline="") as stream:
+        raw_rows = list(csv.reader(stream))
+    if len(raw_rows) > 1_000_000:
+        raise ValueError("reference rows exceed bound")
+    for row in raw_rows:
         if len(row) != 6:
             raise ValueError("invalid track row length")
         frame, track = map(int, row[:2])
@@ -159,7 +164,9 @@ def extract_queries(model, processor, items):
         batch = items[start:start+BATCH]
         # Only actual pixel crops are passed to processor/model. No GT geometry.
         images = [item[3] for item in batch]
-        values = processor(images=images, return_tensors="pt")
+        values = processor(images=images, return_tensors="pt", size={"height":384,"width":384})
+        if tuple(values["pixel_values"].shape) != (len(images),3,384,384):
+            raise ValueError("unexpected RF-DETR Nano input dimensions")
         with torch.inference_mode():
             output = model(**values)
         hidden = output.last_hidden_state.detach().float().cpu().numpy()
@@ -292,7 +299,9 @@ def run():
         verify_safetensors(weights)
         report["configs"] = {}
         for name in ("config.json", "preprocessor_config.json"):
-            report["configs"][name] = download(BASE+name, model_dir/name, 65536)
+            url = BASE+name if name == "config.json" else f"https://huggingface.co/Roboflow/rf-detr-nano/resolve/{PROCESSOR_REVISION}/"+name
+            report["configs"][name] = download(url, model_dir/name, 65536)
+            report["configs"][name]["revision"] = REVISION if name == "config.json" else PROCESSOR_REVISION
             config = json.loads((model_dir/name).read_text())
             if not isinstance(config, dict) or config.get("auto_map"):
                 raise ValueError("custom remote model code not allowed")
