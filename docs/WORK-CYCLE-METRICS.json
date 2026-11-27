@@ -1415,7 +1415,7 @@
       "androidForceStopNotEstablished": true
     },
     "cycle3": {
-      "status": "USER_REPORTED_ARCHIVE_VERIFY_FAIL",
+      "status": "USER_REPORTED_JSON_NOT_FOUND_VERIFY_FAIL",
       "reportedDate": "2026-11-27",
       "downloadReported": "PASS",
       "downloadedFileReported": "PASS",
@@ -1429,7 +1429,11 @@
       "externalSecondCopy": "NOT_TESTED",
       "restoreOrDelete": "NOT_TESTED",
       "productionImpact": "NOT_REPORTED",
-      "doNotClearOrReinstall": true
+      "doNotClearOrReinstall": true,
+      "actualFullJsonFound": false,
+      "fullArchiveExistence": "NOT_VERIFIED",
+      "deviceReport": "paseka-full-idb-*.json absent",
+      "noReinstall": true
     }
   },
   "qaArchiveFileSelection20261127": {
@@ -1456,5 +1460,19 @@
       "all": "success"
     },
     "cycle3Still": "USER_REPORTED_ARCHIVE_VERIFY_FAIL"
+  },
+  "b01QaSafArchive20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "branch": "feat/b01-qa-saf-archive-export-20261127",
+    "mainBaseSha": "e5fdb2d295c062795820268b0997ebca01a54fde",
+    "package": "ru.paseka.journal.qa.archive",
+    "installedQaUnchanged": true,
+    "productionUnchanged": true,
+    "exportStrategy": "SAF_CREATE_DOCUMENT_WITH_BYTEWISE_READBACK",
+    "maxBytes": 268435456,
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "fullRestore": "BLOCKED",
+    "mediaDeletion": "FROZEN"
   }
 }
