@@ -11,6 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Offline same-sandbox periodic backup; no primary writes. */
 public final class PasekaDailyArchiveJob extends JobService {
@@ -19,7 +20,7 @@ public final class PasekaDailyArchiveJob extends JobService {
     private static final long PERIOD_MS = 6L * 60L * 60L * 1000L;
     private static final long FLEX_MS = 60L * 60L * 1000L;
     private final Handler main = new Handler(Looper.getMainLooper());
-    private JobParameters active;
+    private volatile JobParameters active;
     private String lastPhase = "idle";
     private boolean consoleErrorLogged;
     private WebView worker;
@@ -52,6 +53,8 @@ public final class PasekaDailyArchiveJob extends JobService {
     }
     private void launch(JobParameters parameters) {
         if (active != parameters) return;
+        // Only the internal document created by loadDataWithBaseURL may bypass the 403 interceptor.
+        final AtomicBoolean allowInternalMainData = new AtomicBoolean(true);
         try (InputStream input = getAssets().open("public/daily-archive-worker.html")) {
             String html = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             Log.i(TAG, "ASSET_READY");
@@ -85,11 +88,21 @@ public final class PasekaDailyArchiveJob extends JobService {
                 }
                 @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return true; }
                 @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                    // Android WebView intercepts data: URLs too. loadDataWithBaseURL() creates
+                    // a main-frame data: document, which our old unconditional 403 destroyed.
+                    // Permit exactly ONE internal main-frame load. Never allow http(s), file,
+                    // content, subframes, other data: requests, or any request after job stop.
+                    if (active == parameters && request.isForMainFrame()
+                            && "data".equals(request.getUrl().getScheme())
+                            && allowInternalMainData.compareAndSet(true, false)) {
+                        Log.i(TAG, "MAIN_FRAME_DATA_ALLOWED_ONCE");
+                        return null; // Only the in-memory data: document, not a network request.
+                    }
                     if (active == parameters && request.isForMainFrame()) {
                         String fixedRoute = routeCode(request.getUrl().toString());
                         Log.w(TAG, "MAIN_FRAME_INTERCEPTED_" + fixedRoute);
                     }
-                    // Fail closed on every resource. No remote fetch or file access.
+                    // Fail closed on every other resource. No remote fetch or file access.
                     return new WebResourceResponse("text/plain", "UTF-8", 403, "Forbidden",
                         Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
                 }
