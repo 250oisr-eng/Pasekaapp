@@ -1,0 +1,1110 @@
+{
+  "repository": "250oisr-eng/Pasekaapp",
+  "part": 3,
+  "source": "github-public-rest",
+  "pages": [
+    {
+      "kind": "open",
+      "page": 1,
+      "count": 20,
+      "items": [
+        {
+          "number": 655,
+          "head": "research/video-public-model-pilot-20261128",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 654,
+          "head": "feat/video-entrance-resume-safe-20261128",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 653,
+          "head": "audit/pr-branch-graph-20261128",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 652,
+          "head": "docs/b07-649-merged-evidence-20261128",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 651,
+          "head": "work/numeric-marking-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 650,
+          "head": "qa/oneplus-ux-followup-20261127",
+          "base": "work/ux-device-acceptance-fixes-20261127",
+          "state": "open"
+        },
+        {
+          "number": 648,
+          "head": "work/ux-device-acceptance-fixes-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 647,
+          "head": "work/daily-accounting-integration-after-ux-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 646,
+          "head": "qa/oneplus-ux-final-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 644,
+          "head": "work/android-voice-isolated-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 642,
+          "head": "work/voice-model-source-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 641,
+          "head": "work/voice-session-lifecycle-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 639,
+          "head": "work/workspace-preview-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 636,
+          "head": "fix/frame-type-status-invariant",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 635,
+          "head": "fix/deadout-review-corrupt-state-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 634,
+          "head": "fix/pesticide-incident-reference-integrity-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 633,
+          "head": "feat/inventory-filtered-csv-export-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 632,
+          "head": "work/queen-registry-navigation",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 631,
+          "head": "work/journal-report-filter",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 630,
+          "head": "work/op02-daily-plan-model",
+          "base": "main",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 2,
+      "count": 20,
+      "items": [
+        {
+          "number": 629,
+          "head": "fix/b01-oneplus-worker-stage-logging-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 628,
+          "head": "work/forage-dictation-retry",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 624,
+          "head": "test/b01-comprehensive-device-acceptance-20261127",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 601,
+          "head": "work/ambiguous-frame-observation",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 537,
+          "head": "test/b09-oneplus-physical-recovery-kit-2026-11-26",
+          "base": "test/b01-isolated-android-recovery-20261125",
+          "state": "open"
+        },
+        {
+          "number": 534,
+          "head": "test/b01-isolated-android-recovery-20261125",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 532,
+          "head": "test/comprehensive-qa-gates-20261125",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 529,
+          "head": "docs/p1-p2-independent-review-matrix-20261125",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 528,
+          "head": "feat/b01-oneplus-private-store-metadata-inventory",
+          "base": "feat/check-hub-oneplus-private-db-access-gate",
+          "state": "open"
+        },
+        {
+          "number": 527,
+          "head": "feat/check-hub-oneplus-private-db-access-gate",
+          "base": "feat/check-hub-oneplus-readonly-usb-probe",
+          "state": "open"
+        },
+        {
+          "number": 526,
+          "head": "feat/check-hub-oneplus-readonly-usb-probe",
+          "base": "feat/unified-offline-check-hub",
+          "state": "open"
+        },
+        {
+          "number": 525,
+          "head": "feat/unified-offline-check-hub",
+          "base": "feat/b01-isolated-export-recovery-proof",
+          "state": "open"
+        },
+        {
+          "number": 524,
+          "head": "feat/b01-isolated-export-recovery-proof",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 523,
+          "head": "feat/b01-isolated-android-indexeddb-reopen-probe",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 521,
+          "head": "recovery/b01-run-as-readonly-backup-20261125",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 518,
+          "head": "test/p0-p2-entrance-three-way-20261125",
+          "base": "test/p0-p2-entrance-combined-premerge-20261125",
+          "state": "open"
+        },
+        {
+          "number": 513,
+          "head": "test/p0-p2-entrance-combined-premerge-20261125",
+          "base": "fix/p0-block-entrance-original-video-delete-main-20261125",
+          "state": "open"
+        },
+        {
+          "number": 469,
+          "head": "fix/p0-first-launch-startup-write-gate-2026-11-24",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 467,
+          "head": "feat/p1-isolated-oneplus-smoke-2026-11-24",
+          "base": "fix/p1-op13-explicit-spring-variant-2026-11-24",
+          "state": "open"
+        },
+        {
+          "number": 466,
+          "head": "fix/p1-op13-explicit-spring-variant-2026-11-24",
+          "base": "feat/p1-physical-op11-14-capability-bound-commit-bridge-2026-11-24",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 3,
+      "count": 20,
+      "items": [
+        {
+          "number": 464,
+          "head": "feat/p1-physical-op11-14-capability-bound-commit-bridge-2026-11-24",
+          "base": "feat/p1-op13-guided-spring-separation-2026-11-24",
+          "state": "open"
+        },
+        {
+          "number": 463,
+          "head": "feat/p1-op13-guided-spring-separation-2026-11-24",
+          "base": "feat/p1-op14-guided-early-honey-merge-2026-11-24",
+          "state": "open"
+        },
+        {
+          "number": 462,
+          "head": "feat/p1-op14-guided-early-honey-merge-2026-11-24",
+          "base": "feat/p1-op11-guided-winter-merge-preview-2026-11-24",
+          "state": "open"
+        },
+        {
+          "number": 461,
+          "head": "feat/p1-op11-guided-winter-merge-preview-2026-11-24",
+          "base": "feat/p1-op12-guided-target-preview-2026-11-24",
+          "state": "open"
+        },
+        {
+          "number": 460,
+          "head": "feat/p1-op12-guided-target-preview-2026-11-24",
+          "base": "fix/p1-manifest-stale-source-revision-2026-11-24",
+          "state": "open"
+        },
+        {
+          "number": 459,
+          "head": "fix/p1-manifest-stale-source-revision-2026-11-24",
+          "base": "feat/p1-physical-movement-manifest-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 458,
+          "head": "feat/p1-physical-movement-manifest-2026-11-23",
+          "base": "feat/p1-op06-atomic-frame-exchange-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 457,
+          "head": "feat/p1-season-physical-manifest-source-bound-2026-11-23",
+          "base": "feat/p1-op06-atomic-frame-exchange-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 456,
+          "head": "feat/p1-op06-atomic-frame-exchange-2026-11-23",
+          "base": "fix/op06-two-queen-recovery-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 455,
+          "head": "fix/op06-two-queen-recovery-2026-11-23",
+          "base": "feat/p1-season-ledger-v2-contract-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 454,
+          "head": "feat/p1-season-ledger-v2-contract-2026-11-23",
+          "base": "feat/p1-op01-op14-technology-audit-guards-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 453,
+          "head": "feat/p1-op01-op14-technology-audit-guards-2026-11-23",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 452,
+          "head": "docs/p0-full-backup-disaster-recovery-gates-2026-11-23",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 451,
+          "head": "fix/journal-varroa-observations-archive-physical-proof-2026-11-23",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 441,
+          "head": "fix/p0-record-video-mime-provenance-2026-11-23",
+          "base": "test/p0-v2-export-stage-quarantine-full-cycle-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 440,
+          "head": "test/p0-v2-export-stage-quarantine-full-cycle-2026-11-23",
+          "base": "fix/p0-v2-reconcile-mime-scanners-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 439,
+          "head": "fix/p0-v2-reconcile-mime-scanners-2026-11-23",
+          "base": "fix/p0-v2-guard-recognized-hash-alias-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 438,
+          "head": "test/p1-android-idb-atomic-fault-isolated-2026-11-23",
+          "base": "fix/p0-v2-guard-recognized-hash-alias-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 437,
+          "head": "fix/p0-v2-guard-recognized-hash-alias-2026-11-23",
+          "base": "docs/android-oneplus-offline-force-stop-phone-only-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 436,
+          "head": "fix/p0-v2-atomic-quarantine-mime-alias-2026-11-23",
+          "base": "docs/android-oneplus-offline-force-stop-phone-only-2026-11-23",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 4,
+      "count": 20,
+      "items": [
+        {
+          "number": 435,
+          "head": "docs/android-oneplus-offline-force-stop-phone-only-2026-11-23",
+          "base": "ci/p1-emulator-npm-cache-lockfile-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 434,
+          "head": "ci/p1-emulator-npm-cache-lockfile-2026-11-23",
+          "base": "test/p1-idb-quota-atomic-reopen-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 433,
+          "head": "test/p1-idb-quota-atomic-reopen-2026-11-23",
+          "base": "fix/p0-recognition-ledger-blob-url-portability-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 432,
+          "head": "fix/p0-recognition-ledger-blob-url-portability-2026-11-23",
+          "base": "docs/p1-refresh-pr-lineage-359-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 431,
+          "head": "docs/p1-refresh-pr-lineage-359-2026-11-23",
+          "base": "fix/p0-v2-codec-restore-video-alias-consistency-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 430,
+          "head": "fix/p0-v2-codec-restore-video-alias-consistency-2026-11-23",
+          "base": "fix/p0-video-data-uri-alias-guard-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 429,
+          "head": "fix/p0-video-data-uri-alias-guard-2026-11-23",
+          "base": "docs/p3-readiness-gates-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 428,
+          "head": "docs/p3-readiness-gates-2026-11-23",
+          "base": "perf/p2-long-history-readonly-render-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 427,
+          "head": "perf/p2-long-history-readonly-render-2026-11-23",
+          "base": "perf/p2-android-runtime-assets-only-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 426,
+          "head": "perf/p2-android-runtime-assets-only-2026-11-23",
+          "base": "perf/p2-video-metadata-cursor-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 424,
+          "head": "perf/p2-render-hotpaths-2026-11-23",
+          "base": "test/p0-v2-multirestart-quarantine-evidence-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 423,
+          "head": "test/p0-v2-multirestart-quarantine-evidence-2026-11-23",
+          "base": "test/p1-crash-and-profile-integrity-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 422,
+          "head": "test/p1-crash-and-profile-integrity-2026-11-23",
+          "base": "docs/p1-pr-dependency-audit-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 421,
+          "head": "docs/p1-pr-dependency-audit-2026-11-23",
+          "base": "test/p1-indexeddb-cross-tab-migration-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 420,
+          "head": "test/p1-indexeddb-cross-tab-migration-2026-11-23",
+          "base": "fix/p1-service-worker-cache-isolation-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 419,
+          "head": "fix/p1-service-worker-cache-isolation-2026-11-23",
+          "base": "test/p1-indexeddb-concurrent-writes-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 418,
+          "head": "test/p1-indexeddb-concurrent-writes-2026-11-23",
+          "base": "test/p0-android-emulator-offline-smoke-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 417,
+          "head": "test/p0-android-emulator-offline-smoke-2026-11-23",
+          "base": "fix/video-manual-delete-failclosed-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 416,
+          "head": "fix/video-manual-delete-failclosed-2026-11-23",
+          "base": "test/archive-v2-durable-recognition-ledger-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 415,
+          "head": "test/archive-v2-durable-recognition-ledger-2026-11-23",
+          "base": "test/archive-v2-pending-quarantine-recovery-2026-11-23",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 5,
+      "count": 20,
+      "items": [
+        {
+          "number": 414,
+          "head": "test/archive-v2-pending-quarantine-recovery-2026-11-23",
+          "base": "test/archive-v2-metadata-atomic-recovery-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 413,
+          "head": "test/archive-v2-metadata-atomic-recovery-2026-11-23",
+          "base": "test/archive-v2-five-store-restore-preflight-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 412,
+          "head": "test/archive-v2-five-store-restore-preflight-2026-11-23",
+          "base": "fix/archive-v2-ledger-provenance-required-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 411,
+          "head": "fix/archive-v2-ledger-provenance-required-2026-11-23",
+          "base": "test/archive-v2-ledger-portable-contract-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 410,
+          "head": "test/archive-v2-ledger-portable-contract-2026-11-23",
+          "base": "fix/archive-v1-export-v2-quarantine-guard-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 409,
+          "head": "fix/archive-v1-export-v2-quarantine-guard-2026-11-23",
+          "base": "fix/archive-v1-v2-protected-copy-bridge-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 408,
+          "head": "fix/archive-v1-v2-protected-copy-bridge-2026-11-23",
+          "base": "fix/archive-staging-session-stale-write-guard-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 407,
+          "head": "fix/archive-staging-session-stale-write-guard-2026-11-23",
+          "base": "fix/archive-ready-session-baseline-idempotency-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 406,
+          "head": "fix/archive-ready-session-baseline-idempotency-2026-11-23",
+          "base": "fix/archive-commit-live-media-metadata-baseline-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 405,
+          "head": "fix/archive-commit-live-media-metadata-baseline-2026-11-23",
+          "base": "fix/archive-rollback-imported-media-metadata-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 404,
+          "head": "fix/archive-rollback-imported-media-metadata-2026-11-23",
+          "base": "fix/archive-staging-entry-nooverwrite-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 403,
+          "head": "fix/archive-staging-entry-nooverwrite-2026-11-23",
+          "base": "fix/archive-null-ledger-failclosed-2026-11-23",
+          "state": "open"
+        },
+        {
+          "number": 402,
+          "head": "fix/archive-null-ledger-failclosed-2026-11-23",
+          "base": "fix/archive-lineage-lookup-failclosed-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 401,
+          "head": "fix/archive-lineage-lookup-failclosed-2026-11-22",
+          "base": "fix/archive-commit-staging-ownership-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 400,
+          "head": "fix/archive-commit-staging-ownership-2026-11-22",
+          "base": "fix/archive-rollback-snapshot-identity-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 399,
+          "head": "fix/archive-rollback-snapshot-identity-2026-11-22",
+          "base": "fix/archive-live-state-shape-guard-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 398,
+          "head": "fix/archive-live-state-shape-guard-2026-11-22",
+          "base": "fix/archive-rollback-discard-identity-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 397,
+          "head": "fix/archive-rollback-discard-identity-2026-11-22",
+          "base": "fix/archive-staging-rows-failclosed-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 396,
+          "head": "fix/archive-staging-rows-failclosed-2026-11-22",
+          "base": "ci/pin-npm-dependencies-reproducible-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 395,
+          "head": "ci/pin-npm-dependencies-reproducible-2026-11-22",
+          "base": "fix/archive-cleanup-key-enumeration-guard-2026-11-22",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 6,
+      "count": 20,
+      "items": [
+        {
+          "number": 394,
+          "head": "fix/archive-cleanup-key-enumeration-guard-2026-11-22",
+          "base": "fix/stabilization-freeze-ci-archive-scope-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 393,
+          "head": "fix/stabilization-freeze-ci-archive-scope-2026-11-22",
+          "base": "fix/archive-restore-enumeration-failclosed-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 392,
+          "head": "fix/archive-restore-enumeration-failclosed-2026-11-22",
+          "base": "ci/pr-first-single-run-fast-feedback-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 391,
+          "head": "ci/pr-first-single-run-fast-feedback-2026-11-22",
+          "base": "fix/archive-export-invalid-video-list-failclosed-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 390,
+          "head": "fix/archive-export-invalid-video-list-failclosed-2026-11-22",
+          "base": "fix/archive-v1-export-race-failclosed-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 389,
+          "head": "audit/all-branches-priority-matrix-2026-11-22",
+          "base": "docs/offseason-large-cycle-roadmap-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 388,
+          "head": "fix/archive-v1-export-race-failclosed-2026-11-22",
+          "base": "review-base/archive-ledger-212-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 387,
+          "head": "docs/offseason-large-cycle-roadmap-2026-11-22",
+          "base": "test/android-unified-runtime-regressions-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 386,
+          "head": "test/android-unified-runtime-regressions-2026-11-22",
+          "base": "test/android-unified-safe-diagnostics-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 385,
+          "head": "test/android-unified-safe-diagnostics-2026-11-22",
+          "base": "test/android-phone-dashboard-persistent-blob-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 384,
+          "head": "test/android-phone-dashboard-persistent-blob-2026-11-22",
+          "base": "test/android-phone-dashboard-pinned-hash-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 383,
+          "head": "test/android-phone-dashboard-pinned-hash-2026-11-22",
+          "base": "test/android-phone-only-safe-dashboard-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 382,
+          "head": "test/android-phone-only-safe-dashboard-2026-11-22",
+          "base": "docs/android-phone-only-test-matrix-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 381,
+          "head": "docs/android-phone-only-test-matrix-2026-11-22",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 380,
+          "head": "test/android-restore335-fixed-source-predicates-v10-2026-11-22",
+          "base": "test/android-restore335-null-delimited-type-v9-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 379,
+          "head": "test/android-restore335-null-delimited-type-v9-2026-11-22",
+          "base": "test/android-restore335-find-output-shape-v8-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 378,
+          "head": "test/android-restore335-find-output-shape-v8-2026-11-22",
+          "base": "test/android-restore335-private-findtype-v7-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 377,
+          "head": "test/android-restore335-private-findtype-v7-2026-11-22",
+          "base": "test/android-restore335-private-metadata-shape-v6-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 376,
+          "head": "test/android-restore335-private-metadata-shape-v6-2026-11-22",
+          "base": "test/android-restore335-private-type-v5-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 375,
+          "head": "test/android-restore335-private-type-v5-2026-11-22",
+          "base": "test/android-restore335-private-readonly-v4-2026-11-22",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 7,
+      "count": 20,
+      "items": [
+        {
+          "number": 374,
+          "head": "test/android-restore335-private-readonly-v4-2026-11-22",
+          "base": "test/video-synthetic-cleanup-negative-matrix-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 373,
+          "head": "test/video-synthetic-cleanup-negative-matrix-2026-11-22",
+          "base": "test/video-synthetic-cleanup-atomicity-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 372,
+          "head": "test/video-synthetic-cleanup-atomicity-2026-11-22",
+          "base": "test/video-managed-copies-byte-audit-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 371,
+          "head": "test/video-managed-copies-byte-audit-2026-11-22",
+          "base": "test/video-cleanup-byte-evidence-readonly-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 370,
+          "head": "test/video-cleanup-byte-evidence-readonly-2026-11-22",
+          "base": "test/video-cleanup-readiness-fail-closed-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 369,
+          "head": "test/video-cleanup-readiness-fail-closed-2026-11-22",
+          "base": "fix/video-ledger-resultid-unique-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 368,
+          "head": "fix/video-ledger-resultid-unique-2026-11-22",
+          "base": "fix/staging-audit-recognition-evidence-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 367,
+          "head": "test/mendeley-split-frame-group",
+          "base": "research/buzzlytics-entrance-weights",
+          "state": "open"
+        },
+        {
+          "number": 366,
+          "head": "test/android-product-installed-permission-audit-2026-11-22",
+          "base": "audit/android-product-permissions-network-surface-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 365,
+          "head": "audit/android-product-permissions-network-surface-2026-11-22",
+          "base": "test/android-a09-installed-permissions-copy-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 364,
+          "head": "test/android-a09-installed-permissions-copy-2026-11-22",
+          "base": "docs/android-a09-device-permission-audit-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 363,
+          "head": "docs/android-a09-device-permission-audit-2026-11-22",
+          "base": "test/android-a08-process-kill-copy-report-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 362,
+          "head": "test/android-a08-process-kill-copy-report-2026-11-22",
+          "base": "fix/android-archive-copy-signature-isolation-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 361,
+          "head": "fix/android-archive-copy-signature-isolation-2026-11-22",
+          "base": "feat/android-archive-preflight-copy-report-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 360,
+          "head": "feat/android-archive-preflight-copy-report-2026-11-22",
+          "base": "feat/android-archive-preflight-share-report-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 359,
+          "head": "feat/android-archive-preflight-share-report-2026-11-22",
+          "base": "test/android-archive-readonly-preflight-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 358,
+          "head": "test/android-archive-readonly-preflight-2026-11-22",
+          "base": "docs/android-archive-physical-preflight-plan-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 357,
+          "head": "docs/android-archive-physical-preflight-plan-2026-11-22",
+          "base": "fix/staging-audit-recognition-evidence-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 356,
+          "head": "fix/staging-audit-recognition-evidence-2026-11-22",
+          "base": "test/video-archive-readonly-transaction-failures-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 355,
+          "head": "test/video-archive-readonly-transaction-failures-2026-11-22",
+          "base": "test/video-copy-evidence-conflict-audit-2026-11-22",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 8,
+      "count": 20,
+      "items": [
+        {
+          "number": 354,
+          "head": "test/video-copy-evidence-conflict-audit-2026-11-22",
+          "base": "research/bee-weights-license-chain-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 353,
+          "head": "research/buzzlytics-entrance-weights",
+          "base": "fix/android-ort-webview-local-module-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 352,
+          "head": "fix/android-ort-webview-local-module-2026-11-22",
+          "base": "test/android-synthetic-onnx-wasm-smoke-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 351,
+          "head": "test/android-synthetic-onnx-wasm-smoke-2026-11-22",
+          "base": "research/bee-model-zoo-primary-license-audit-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 350,
+          "head": "research/bee-model-zoo-primary-license-audit-2026-11-22",
+          "base": "research/bee-weights-license-chain-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 349,
+          "head": "research/bee-weights-license-chain-2026-11-22",
+          "base": "test/bee-detector-evidence-gate-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 348,
+          "head": "test/bee-detector-evidence-gate-2026-11-22",
+          "base": "test/android-synthetic-frame-extraction-isolated-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 347,
+          "head": "test/android-synthetic-frame-extraction-isolated-2026-11-22",
+          "base": "test/android-synthetic-mp4-decoder-isolated-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 346,
+          "head": "test/android-synthetic-mp4-decoder-isolated-2026-11-22",
+          "base": "test/android-self-diagnostics-isolated-2026-11-22",
+          "state": "open"
+        },
+        {
+          "number": 345,
+          "head": "test/android-self-diagnostics-isolated-2026-11-22",
+          "base": "test/android-restore335-stdin-sha-readonly-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 344,
+          "head": "test/decode-picker",
+          "base": "test/restore-picker-from342",
+          "state": "open"
+        },
+        {
+          "number": 343,
+          "head": "test/restore-picker-from342",
+          "base": "test/retire-unsupported-restore335-dd",
+          "state": "open"
+        },
+        {
+          "number": 342,
+          "head": "test/retire-unsupported-restore335-dd",
+          "base": "test/android-restore335-stdin-sha-readonly-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 341,
+          "head": "test/android-restore335-stdin-sha-readonly-2026-11-21",
+          "base": "test/android-restore335-missing-private-path-audit-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 340,
+          "head": "test/android-restore335-missing-private-path-audit-2026-11-21",
+          "base": "test/android-restore335-private65-forensics-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 339,
+          "head": "test/android-restore335-private65-forensics-2026-11-21",
+          "base": "test/android-restore335-private-readback-diagnostic-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 338,
+          "head": "test/android-restore335-private-readback-diagnostic-2026-11-21",
+          "base": "test/android-restore335-safe-device-transfer-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 337,
+          "head": "test/android-restore335-safe-device-transfer-2026-11-21",
+          "base": "test/android-fileproof335-separate-apk-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 336,
+          "head": "test/android-fileproof335-separate-apk-2026-11-21",
+          "base": "test/android-isolated-restore335-browser-gate-2026-11-21",
+          "state": "open"
+        },
+        {
+          "number": 335,
+          "head": "test/android-isolated-restore335-browser-gate-2026-11-21",
+          "base": "test/fileproof329-isolated-restore-commit-2026-11-21",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "branches",
+      "page": 7,
+      "count": 74,
+      "items": [
+        "test/video-fan-iou-association-baseline-2026-11-21",
+        "test/video-fan-occlusion-memory-2026-11-21",
+        "test/video-fan-zone-transition-ambiguity-2026-11-21",
+        "test/video-inventory-hash-alias-evidence-2026-11-21",
+        "test/video-joined-provenance-gate-2026-11-20",
+        "test/video-license-risk-screen-2026-11-20",
+        "test/video-lila-public-byte-range-2026-11-20",
+        "test/video-lila-stratified-sample-2026-11-20",
+        "test/video-lila-voc-range-sample-2026-11-20",
+        "test/video-managed-copies-byte-audit-2026-11-22",
+        "test/video-manual-event-selection-support",
+        "test/video-manual-manifest-evidence-gate-2026-11-21",
+        "test/video-mendeley-v6-public-metadata-audit-2026-11-20",
+        "test/video-mendeley-v6-real-bbox-scale-audit-2026-11-20",
+        "test/video-mendeley-v6-real-jpg-yolo-pair-2026-11-20",
+        "test/video-mendeley-v6-user-16-pairs-2026-11-20",
+        "test/video-model-license-provenance-gate-2026-11-20",
+        "test/video-offline-inference-benchmark-2026-11-20",
+        "test/video-physical-source-sha-verification-2026-11-20",
+        "test/video-public-archive-integrity-2026-11-20",
+        "test/video-public-mendeley-metadata-2026-11-20",
+        "test/video-public-motion-baseline-2026-11-21",
+        "test/video-source-recording-sha-holdout-2026-11-20",
+        "test/video-source-session-manifest-gate-2026-11-20",
+        "test/video-synthetic-cleanup-atomicity-2026-11-22",
+        "test/video-synthetic-cleanup-negative-matrix-2026-11-22",
+        "test/video-v6-cross-label-frame-alignment-2026-11-21",
+        "test/win11-device-automation-2026-11-19",
+        "test/win11-manual-agent-report-2026-11-19",
+        "test/win11-native-downloads-2026-11-19",
+        "test/win11-signature-safe-2026-11-19",
+        "tmp/rebase-archive-rollback-identity-2026-11-22",
+        "work/ambiguous-frame-observation",
+        "work/android-voice-isolated-20261127",
+        "work/daily-accounting-integration-after-ux-20261127",
+        "work/family-history-view",
+        "work/fan-iou-association",
+        "work/fan-track-evaluator",
+        "work/fan-track-ground-truth",
+        "work/forage-dictation-retry",
+        "work/hive-biological-technical-20261127",
+        "work/hive-record-ergonomics-20261127",
+        "work/home-planning-list",
+        "work/home-recent-events",
+        "work/honey-harvest-history",
+        "work/journal-report-filter",
+        "work/mendeley-fan-series",
+        "work/mendeley-first-frame-comparison",
+        "work/mendeley-jpeg-origin-tags",
+        "work/mendeley-v6-publisher-checksums",
+        "work/numeric-marking-20261127",
+        "work/op02-daily-plan-model",
+        "work/overview-model-diagnostics",
+        "work/p1-equipment-label-prefix",
+        "work/p1-nectar-planning-window",
+        "work/queen-registry-navigation",
+        "work/rebase-archive-live-state-on-pr397-2026-11-22",
+        "work/rebase-archive-live-state-on-pr397-final-2026-11-22",
+        "work/recovery-mendeley-provenance",
+        "work/search-family-identity",
+        "work/search-to-inventory-body",
+        "work/seasonal-workspace-ui-20261127",
+        "work/second-honey-pair-current-model-20261127",
+        "work/single-sectional-profile-catalog-20261128",
+        "work/spoken-frame-symbols",
+        "work/ui-596-geometry-20261127",
+        "work/ui-596-two-row-candidate-20261127",
+        "work/ui-home-canonical-ai-20261127",
+        "work/ux-device-acceptance-fixes-20261127",
+        "work/ux-integration-status-20261127",
+        "work/voice-feeding-spoken-fields",
+        "work/voice-model-source-20261127",
+        "work/voice-session-lifecycle-20261127",
+        "work/workspace-preview-20261127"
+      ]
+    },
+    {
+      "kind": "branches",
+      "page": 8,
+      "count": 0,
+      "items": []
+    }
+  ]
+}
