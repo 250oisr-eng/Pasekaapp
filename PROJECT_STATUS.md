@@ -1,8 +1,10 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · main `b520fd32c3be1ae59fc3fd3eb9a7a7302a274169` (one docs-only commit after CI PASS on `94f883be`).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · main `9b570ad1ff20c7e6cc440ecf8556b14e848667c9` после #626.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 **B03 · RESOLVED_INTEGRATION_SCOPE (Draft documentation only):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
+
+**B07 · OP02 (Draft, код `cfd90253`):** из #453 перенесена отдельная модель суточного плана. Дубли ID и записи о состоявшемся выполнении блокируют повтор. 1063/1063 Node локально. Профиль остаётся неактивным. Далее — сверка точек подключения с планом работ и подтверждением факта.
 
 ## Основные интегрированные функции
 
