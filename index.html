@@ -1145,7 +1145,7 @@ function openQueenRegistryFamily(button,edit=false){
 }
 function renderQueenRegistry(){
  const host=$('queenRegistryList');if(!host)return;
- if(!Array.isArray(S.queens)||!Array.isArray(S.families)||!Array.isArray(S.hives)||!Array.isArray(S.queenEvents)){
+ if(!Array.isArray(S.queens)||!Array.isArray(S.families)||!Array.isArray(S.hives)||(S.queenEvents!=null&&!Array.isArray(S.queenEvents))){
   host.textContent='Реестр маток повреждён. Проверь целостность данных; записи не изменены.';
   const count=$('queenRegistryResultCount');if(count)count.textContent='Проверка данных требуется';
   return;
