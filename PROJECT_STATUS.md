@@ -1,10 +1,14 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · verified main `eda81f8ffbf7491dba7b973373248f28cf19450a` after approved #619.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · main `b520fd32c3be1ae59fc3fd3eb9a7a7302a274169` (one docs-only commit after CI PASS on `94f883be`).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+
+**B03 · RESOLVED_INTEGRATION_SCOPE (Draft documentation only):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
 ## Сверка маркировки рамок
 
 Ветка `work/ambiguous-frame-observation`: если код принадлежит нескольким рамкам, сверка показывает конфликт. Доступны все страницы истории, по восемь осмотров, и фильтр по открытым расхождениям. Из сохранённого расхождения можно открыть все точные совпадения в текущем реестре. [Draft #601](https://github.com/250oisr-eng/Pasekaapp/pull/601) ожидает review.
+
+**#601 Draft:** сверка рамок согласована с экраном ежедневных архивов на актуальном main. Node 1057/1057 и локальный Chromium PASS. CI финального SHA в PR. Далее — изолированная оценка B07 по #453–#466.
 
 ## Основные интегрированные функции
 
@@ -19,16 +23,14 @@
 - **#612 MERGED:** история выбранной семьи открывается непосредственно из быстрого поиска (выборочный перенос старого #600); устаревшие/перенесённые/неоднозначные ID блокируются. Squash main `14b398c97354800062b170e835a97bf7c76b7eb5`. PR code+docs head `4ab891f3c7cfbf26dc4feffc1499f23686c8b560`: Node **1023/1023**, Android build SUCCESS (#45967365737), Chromium E2E mobile/desktop SUCCESS (#45967366165), Governance SUCCESS (#45967365751). Реальные данные не изменены.
 - **#613 MERGED / BINARY_PROOF:** отдельный тестовый APK `ru.paseka.journal.qa` с собственным sandbox, без изменения рабочего `ru.paseka.journal`. Main `ab1be71add0e16b20eb47c7a1eaf585411039a46`. CI PR exact source SHA `acd35f567d87c640f2eb620312679cb981d2305f`: **1027/1027 Node**, Android debug build + [isolated QA #45967904156](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45967904156) SUCCESS, Governance SUCCESS. Проверены aapt package ID, apksigner fingerprint и APK SHA256 `e0651987d176e6a45f6a03b2ae2c39f613a9725463942d5583f63b49158eeca6`. QA artifact ID `15183717921`, expires 04.12.2026. **DEVICE_CYCLE_1_USER_REPORTED_PASS (8/8):** пользователь сообщил об успешной установке отдельного QA, пустой стартовой пасеке, навигации 4–3–4 без наложений, доступе к разделам/ИИ, Back/сворачивании и повороте; рабочее приложение и данные не изменились по наблюдению пользователя. **Не независимая техническая аттестация.** **DEVICE_CYCLE_2_USER_REPORTED_PASS (8/8):** тестовый улей/семья/наблюдение, поиск истории, возврат, reopen, авиарежим и отсутствие дубликатов сообщены PASS. Не доказывает force-stop/power-loss/restore. TalkBack и яркий свет NOT_TESTED. [Аппаратный протокол](docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md). Код/production-данные не изменены.
 
-## Аппаратный цикл 3 — JSON не создан на устройстве (FAIL)
+## Исторический внешний QA
 
-- **USER_REPORTED_FAIL:** размер найденного неопознанного файла ≈330000 байт, `Unexpected token 'P', "PK"...is not valid JSON`; затем пользователь подтвердил, что настоящий `paseka-full-idb-*.json` **отсутствует**. Архив **НЕ сохранён/не проверен**, SHA и копия NOT_TESTED. Не удалять ZIP или данные, не переустанавливать QA. B01 остаётся BLOCKED.
-- **#617 MERGED:** ZIP PK/не-JSON теперь отклоняются до парсинга, Node 1032/1032, Android/Chromium/Governance PASS; в установленном QA этого исправления нет. **Корневая причина — Blob `a.download` не гарантирует Android WebView запись**, скачивание физически не подтверждено.
-- **#619 MERGED / BINARY_PROOF:** отдельный `ru.paseka.journal.qa.archive`, системный Android `ACTION_CREATE_DOCUMENT` с посегментной передачей и SHA readback; не обновляет старую QA или production. Точный PR SHA `ad8f183893de7eadfa3f4f696906fafb1948af81`: **1038/1038 Node PASS**, Android build SUCCESS (#45975935822), отдельный SAF QA APK SUCCESS (#45975935838), Governance SUCCESS (#45975935844). CI проверил package/apksigner/SHA. APK SHA256 `83ce0f45cd57acc81f3fd5368b7e13cc8db3057221124b536147336d429ef4d6`; GitHub artifact ID `15187042938` (до 04.12.2026). **DEVICE_NOT_TESTED:** подтверждение файлового диалога, сохранения и повторного чтения на OnePlus отсутствует. Старый QA с данными сохраняется; новую QA нужно испытать с новой синтетикой. [Протокол](docs/ONEPLUS-QA-SAF-ARCHIVE-2026-11-27.md).
+- #617/#619 MERGED: проверка выбранного JSON и отдельный SAF QA `ru.paseka.journal.qa.archive`; ранее реальный JSON не появился. Подробности и SHA — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [протоколе SAF](docs/ONEPLUS-QA-SAF-ARCHIVE-2026-11-27.md). Внешний экспорт больше не является обязательным пользовательским путём локального B01. Установленные QA и production не изменены.
 
 ## Блокировки до физических доказательств
 
 - **#596 P1 / DEVICE_CYCLE_1_USER_REPORTED_PASS:** геометрия 4–3–4, переходы, Back, поворот и первый запуск на OnePlus — PASS по отчёту пользователя 8/8 от 27.11.2026; TalkBack, перчатки, яркое солнце и длительная эксплуатация отдельно NOT_TESTED.
-- **B01 P0 BLOCKED (Draft #452):** полная внешняя реальная копия IndexedDB и независимое восстановление/rollback не доказаны. Отсутствие доступных видео/копий не означает пустую базу. Не менять/удалять записи, копии, оригиналы.
+- **B01 P0 · #623 / IN_MAIN:** [два ZIP и одна кнопка](docs/B01-DAILY-TWO-ARCHIVES-2026-11-27.md). Код `70216c73`: Node **1054/1054**, Android build, Chromium restore + simulated background, Governance PASS. JobScheduler реализован. Изолированный QA #45993522131 PASS, [APK](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993522131/artifacts/15193929646) до 04.12.2026; физический OnePlus/фон и большие ZIP >256 MiB не подтверждены. Draft #452 исторический. #479/#522/#543 CLOSED. B06/B10 не ослаблены.
 - **B04/B05 P0 BLOCKED (Draft #469):** signer и совместимость обновления установленного Android APK, сохранение данных и rollback не доказаны. **Не устанавливать/обновлять производственный APK; установленный отдельный QA пакет не считать доказательством B04/B05.**
 - **B06/B10 #442 FROZEN:** нет всех V0–V6 (права/лицензии весов, реальный видеоконвейер и GT, все копии, независимый restore). Автоудаление оригинальных видео запрещено.
 - **B07 P1 BLOCKED:** секционный профиль/OP11–14 не активировать без полного набора физических моделей/валидаторов/миграций и сверки DOCX.
