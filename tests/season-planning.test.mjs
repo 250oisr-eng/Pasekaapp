@@ -151,3 +151,52 @@ test('changing hive clears the prior inspection, attribution and due date',async
  assert.equal(fields.inspectionReminderResult.textContent,'');
  assert.equal(fields.inspectionPrefillStatus.textContent,'');
 });
+
+test('saved inspection is family-bound after a hive is reused, without changing old API',()=>{
+ const rows=[
+  {id:'old',hive:'h1',family:'prior',type:'Осмотр',date:'2026-11-25'},
+  {id:'current',hive:'h1',family:'active',type:'Осмотр',date:'2026-11-19'},
+  {id:'legacy',hive:'h1',type:'Осмотр',date:'2026-11-26'},
+  {id:'conflict',hive:'h1',family:'active',familySnapshotAtTime:{id:'prior'},type:'Осмотр',date:'2026-11-27'},
+  {id:'moved',hive:'other',family:'active',type:'Осмотр',date:'2026-11-28'},
+  {id:'archived',hive:'h1',family:'active',type:'Осмотр',date:'2026-11-21',archivedAt:'2026-11-22'}
+ ];
+ const original=structuredClone(rows);
+ assert.deepEqual(plan.latestSavedInspection(rows,'h1','2026-11-27','active'),{date:'2026-11-19',recordId:'current'});
+ assert.deepEqual(plan.latestSavedInspection(rows,'h1','2026-11-27','prior'),{date:'2026-11-25',recordId:'old'});
+ assert.equal(plan.latestSavedInspection(rows,'h1','2026-11-27','new-family'),null);
+ assert.deepEqual(plan.latestSavedInspection(rows,'h1','2026-11-27'),{date:'2026-11-27',recordId:'conflict'},
+  'legacy hive-only 3-argument API remains compatible');
+ assert.deepEqual(rows,original,'inspection lookup is read-only');
+ assert.throws(()=>plan.latestSavedInspection(rows,'h1','2026-11-27',''),/идентичность/i);
+});
+test('reminder prefill does not confuse older family records or multiple current families',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const start=html.indexOf('function useLastSavedInspection(){');
+ const end=html.indexOf('function renderNectarBackwardPlan(){',start);
+ const source=html.slice(start,end);
+ const fields={inspectionHiveSelect:{value:'h1'},inspectionLastDate:{value:'',dataset:{}},
+  inspectionPrefillStatus:{textContent:''},inspectionReminderResult:{textContent:'stale'}};
+ const state={records:[
+  {id:'old',hive:'h1',family:'old',type:'Осмотр',date:'2026-11-25'},
+  {id:'now',hive:'h1',family:'new',type:'Осмотр',date:'2026-11-21'},
+  {id:'not-attributed',hive:'h1',type:'Осмотр',date:'2026-11-26'}
+ ],families:[{id:'new',hive:'h1'}]};
+ const run=new Function('$','PasekaSeasonPlanning','S','today','hname',
+   source+';return useLastSavedInspection')(id=>fields[id],plan,state,()=> '2026-11-27',id=>'Улей '+id);
+ run();
+ assert.equal(fields.inspectionLastDate.value,'2026-11-21');
+ assert.equal(fields.inspectionLastDate.dataset.fromJournal,'h1');
+ assert.match(fields.inspectionPrefillStatus.textContent,/текущая семья/);
+ state.families.push({id:'another',hive:'h1'});
+ run();
+ assert.equal(fields.inspectionLastDate.value,'','previous auto-filled date must be cleared on ambiguous assignment');
+ assert.equal(fields.inspectionLastDate.dataset.fromJournal,undefined);
+ assert.match(fields.inspectionPrefillStatus.textContent,/несколько семей/);
+ state.families=[{id:'new',hive:'h1'}];
+ state.records=state.records.filter(r=>r.family!=='new');
+ run();
+ assert.equal(fields.inspectionLastDate.value,'');
+ assert.match(fields.inspectionPrefillStatus.textContent,/нет подтверждённого/);
+ assert.equal(state.records.length,2,'no persistent mutation');
+});
