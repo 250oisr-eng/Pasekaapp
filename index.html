@@ -1037,8 +1037,10 @@ function openFamilyHistory(id,sourceHiveId){
  const hiveId=sourceHiveId??selectedHiveId;
  const matches=S.families.filter(f=>f?.id===id);
  if(!id||matches.length!==1||matches[0].hive!==hiveId||!S.hives.some(h=>h.id===hiveId)){
-  if(sourceHiveId!==undefined)renderGlobalSearch();
-  alert('Не удалось однозначно определить семью в этом улье. Выбери семью ещё раз.');
+  if(sourceHiveId!==undefined){
+   renderGlobalSearch();
+   alert('Не удалось однозначно определить семью в этом улье. Выбери семью ещё раз.');
+  }
   return;
  }
  const family=matches[0];
