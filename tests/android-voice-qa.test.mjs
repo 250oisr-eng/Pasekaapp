@@ -149,24 +149,26 @@ test('native synthesis selects installed Russian non-network voice, and has canc
 });
 
 
-async function commandUiHarness(){
+async function commandUiHarness(natural=false){
  const source=await readFile(new URL('../android-native/voice-qa.js',import.meta.url),'utf8');
  const ids=['qaVoicePanel','qaVoiceText','qaVoiceStatus','qaVoiceStart','qaVoiceStop','qaVoiceInstall','qaVoiceToDraft','qaVoiceCommandMode','qaVoiceFeedback','aiJournalDraftInput','recordDlg','rhive','rtype','rfamily','rtext','aiJournalExtractNotice'];
  const elements=Object.fromEntries(ids.map(id=>[id,{value:'',disabled:false,style:{},focus(){}}]));
+ if(natural)elements.qaVoiceNatural={};
  elements.qaVoiceCommandMode.checked=true;elements.recordDlg.open=false;elements.recordDlg.close=()=>{elements.recordDlg.open=false};
- const events={},starts=[],stops=[],speech=[],tabs=[];
+ const events={},starts=[],stops=[],speech=[],tabs=[],timers=new Map();let nextTimer=0;
  const api={addListener:async(n,fn)=>{events[n]=fn;return{}},getStatus:async()=>({modelInstalled:true}),
    start:async({token})=>{starts.push(token);return {started:true,token}},
    stop:async()=>{stops.push('stop')},
    speakLocal:({text})=>new Promise((resolve,reject)=>speech.push({text,resolve,reject}))};
  const window={Capacitor:{Plugins:{PasekaOfflineSpeech:api}},addEventListener(){}};
  const docEvents={},document={getElementById:id=>elements[id],addEventListener(n,fn){docEvents[n]=fn}};
- const S=sample(),context={window,document,S,startupWriteGate:{ready:true},activeJournalHive:'',showTab:t=>tabs.push(t),toggleOccupancy(){},newRecord(){elements.recordDlg.open=true;elements.rhive.value=context.activeJournalHive;}};
+ const S=sample(),context={window,document,S,startupWriteGate:{ready:true},activeJournalHive:'',showTab:t=>tabs.push(t),toggleOccupancy(){},setTimeout(fn){timers.set(++nextTimer,fn);return nextTimer;},clearTimeout(id){timers.delete(id);},newRecord(){elements.recordDlg.open=true;elements.rhive.value=context.activeJournalHive;}};
  vm.runInNewContext(source,context);await new Promise(resolve=>setImmediate(resolve));
  const flush=()=>new Promise(resolve=>setImmediate(resolve));
  const send=async text=>{events.result({token:starts.at(-1),text});await flush();};
  const done=async()=>{speech.at(-1).resolve();await flush();};
- return {elements,events,starts,stops,speech,tabs,context,docEvents,document,send,done,flush};
+ const fire=async()=>{for(const fn of [...timers.values()])fn();await flush();};
+ return {elements,events,starts,stops,speech,tabs,context,docEvents,document,send,done,flush,timers,fire};
 }
 test('command UI stops microphone for TTS, resumes, opens exact journal form only after confirmation',async()=>{
  const h=await commandUiHarness(),e=h.elements;
@@ -287,4 +289,24 @@ test('explicit common note does not require family and cannot become feeding wit
  assert.equal(s.receive('крышка повреждена').pending.familyId,'');
  s.reset();s.receive('улей три');s.receive('без семьи');
  assert.equal(s.receive('подкормил сиропом').pending,undefined);
+});
+
+test('generated natural dialogue UI groups fragments, reads back and opens form after ordinary yes',async()=>{
+ const h=await commandUiHarness(true),e=h.elements;
+ await e.qaVoiceStart.onclick();
+ assert.match(e.qaVoiceStatus.textContent,/обычными словами/);
+ await h.send('осмотрел третий улей');await h.send('семья альфа матка есть');
+ assert.equal(h.timers.size,1);assert.equal(h.stops.length,0);assert.equal(e.recordDlg.open,false);
+ await h.fire();assert.equal(h.stops.length,1);assert.match(h.speech[0].text,/Улей 3, семья Альфа/);
+ await h.done();assert.equal(h.starts.length,2);
+ await h.send('да');await h.fire();assert.equal(e.recordDlg.open,true);assert.equal(e.rhive.value,'h3');assert.equal(e.rfamily.value,'f1');assert.equal(e.rtype.value,'Осмотр');assert.match(e.rtext.value,/матка есть/);
+ assert.equal(h.context.S.records,undefined);await h.done();assert.equal(h.starts.length,2);
+});
+test('natural grouping cannot execute a delayed phrase after leaving the foreground',async()=>{
+ const h=await commandUiHarness(true),e=h.elements;
+ await e.qaVoiceStart.onclick();await h.send('осмотрел третий улей семья альфа матка есть');
+ const stale=[...h.timers.values()][0];assert.equal(typeof stale,'function');
+ h.document.hidden=true;h.docEvents.visibilitychange();await h.flush();
+ assert.equal(h.timers.size,0);stale();await h.flush();
+ assert.equal(h.speech.length,0);assert.equal(e.recordDlg.open,false);assert.equal(h.starts.length,1);
 });

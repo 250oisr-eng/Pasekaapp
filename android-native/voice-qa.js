@@ -259,11 +259,13 @@
   const note=get('qaVoiceText'),status=get('qaVoiceStatus'),start=get('qaVoiceStart'),stop=get('qaVoiceStop'),install=get('qaVoiceInstall');
   const mode=get('qaVoiceCommandMode'),feedback=get('qaVoiceFeedback'),manualDraft=get('aiJournalDraftCard');
   function showFeedback(message){if(feedback)feedback.textContent=message;else paint(message);}
-  const commands=commandSession(()=>typeof S==='undefined'?{}:S);
+  const naturalMode=!!get('qaVoiceNatural');
+  const commands=(naturalMode?naturalSession:commandSession)(()=>typeof S==='undefined'?{}:S);
   let active='',starting=false,stopping=false,stopFailed=false,installed=false,installing=false,listenersReady=false;
-  let talking=false,openingDraft=false,dialogue=0;
+  let talking=false,openingDraft=false,dialogue=0,phraseTimer=null,phrases=[];
+  function clearPhrase(){if(phraseTimer!==null){clearTimeout(phraseTimer);phraseTimer=null;}phrases=[];}
   const visible=()=>!document.hidden&&(!panel.closest||panel.closest('.panel')?.classList.contains('active')!==false);
-  function invalidateDialogue(){dialogue++;commands.reset();}
+  function invalidateDialogue(){dialogue++;clearPhrase();commands.reset();}
   function paint(message){
     if(message)status.textContent=message;
     start.disabled=!installed||!!active||starting||stopping||stopFailed||installing||talking||!listenersReady;
@@ -274,7 +276,7 @@
   }
   async function end(message){
     if(stopping)return false;
-    active='';starting=false;stopping=true;paint('Останавливаю микрофон…');
+    clearPhrase();active='';starting=false;stopping=true;paint('Останавливаю микрофон…');
     try{await api.stop();stopFailed=false;paint(message||'Сеанс остановлен. Проверь распознанный текст.');return true;}
     catch(e){stopFailed=true;paint('Остановка не подтверждена. Повтори «Стоп» или закрой QA приложение.');return false;}
     finally{stopping=false;paint();}
@@ -286,7 +288,18 @@
   Promise.all([
     api.addListener('result',event=>{
       if(!active||event.token!==active)return;
-      if(mode?.checked){if(!talking)void handleCommand(event.text);return;}
+      if(mode?.checked){
+        if(talking)return;
+        if(!naturalMode){void handleCommand(event.text);return;}
+        const token=active,cycle=dialogue,text=String(event.text||'').trim();
+        if(!text)return;
+        phrases.push(text);
+        // Keep the live buffer bounded even during prolonged ambient speech.
+        if(phrases.join(' ').length>500){clearPhrase();invalidateDialogue();void end('Слишком длинная фраза. Начни запись заново.');return;}
+        if(phraseTimer!==null)clearTimeout(phraseTimer);
+        phraseTimer=setTimeout(()=>{const text=phrases.join(' ');clearPhrase();if(active===token&&dialogue===cycle&&visible()&&!talking)void handleCommand(text);},1300);
+        return;
+      }
       const next=appendDraft(note.value,event.text);
       if(next===null){void end('Предел текста или пустой результат; сеанс остановлен.');return;}
       note.value=next;
@@ -308,12 +321,12 @@
       const answer=await api.start({token});
       if(active!==token)return;
       if(answer.started!==true||answer.token!==token)throw Error('Неверный ответ запуска');
-      starting=false;paint(mode?.checked?'Слушаю локальные команды. Каждую начинай со слова «Пасека».':'Слушаю локально. Нажми «Стоп» перед записью в журнал.');
+      starting=false;paint(mode?.checked?(naturalMode?'Слушаю. Расскажи, что произошло, обычными словами.':'Слушаю локальные команды. Каждую начинай со слова «Пасека».'):'Слушаю локально. Нажми «Стоп» перед записью в журнал.');
     }catch(e){if(active===token)await end('Микрофон не запущен: '+String(e.message||e));}
   }
-  start.onclick=()=>{if(active||starting||stopping||talking||stopFailed||installing)return;invalidateDialogue();if(mode?.checked)showFeedback('Назови улей и семью.');return begin();};
+  start.onclick=()=>{if(active||starting||stopping||talking||stopFailed||installing)return;invalidateDialogue();if(mode?.checked)showFeedback(naturalMode?'Расскажи о работе. Уточню только недостающее.':'Назови улей и семью.');return begin();};
   stop.onclick=()=>{invalidateDialogue();showFeedback('Сеанс отменён. Ничего не сохранено автоматически.');if(!stopping)void end();};
-  if(mode)mode.onchange=()=>{if(active||starting||stopping||talking||stopFailed)return;invalidateDialogue();showFeedback(mode.checked?'Команды начинай со слова Пасека.':'Диктовка: текст можно перенести в ручной черновик.');paint();};
+  if(mode)mode.onchange=()=>{if(active||starting||stopping||talking||stopFailed)return;invalidateDialogue();showFeedback(mode.checked?(naturalMode?'Говори свободно, без обязательных команд.':'Команды начинай со слова Пасека.'):'Диктовка: текст можно перенести в ручной черновик.');paint();};
   get('qaVoiceToDraft').onclick=()=>{
     if(active||starting||stopping||stopFailed||talking||mode?.checked){paint('Сначала останови сеанс и выбери диктовку.');return;}
     const field=get('aiJournalDraftInput'),next=field?appendDraft(field.value,note.value):null;
