@@ -369,7 +369,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 
 @media(min-width:900px){main>nav[aria-label="Основные разделы"]{grid-template-columns:repeat(10,minmax(0,1fr))!important}}
 
-/* #596: approved 2-5-4 seamless hexagonal navigation; DOM matches row/reading order. */
+/* #596: approved 4-3-4 seamless hexagonal navigation on all sections; DOM matches focus order. */
 main>nav[aria-label="Основные разделы"]{
  --hex-h:clamp(68px,calc((100vw - 14px)*.23094),98px);
  width:min(100%,440px);max-width:100%;
@@ -394,9 +394,9 @@ main>nav[aria-label="Основные разделы"] button.active{background:
 main>nav[aria-label="Основные разделы"] button:focus-visible{
  outline:0;filter:drop-shadow(0 0 3px #f4c85d);box-shadow:inset 0 0 0 3px #f4c85d;
 }
-main>nav[aria-label="Основные разделы"] button[data-tab="entrance"]{grid-row:1;grid-column:4/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="hives"]{grid-row:1;grid-column:6/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="home"]{grid-row:2;grid-column:1/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="entrance"]{grid-row:1;grid-column:2/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="hives"]{grid-row:1;grid-column:4/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="home"]{grid-row:1;grid-column:6/span 2}
 main>nav[aria-label="Основные разделы"] button[data-tab="journal"]{grid-row:2;grid-column:3/span 2}
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
  grid-row:2;grid-column:5/span 2;width:100%;height:var(--hex-h);min-height:var(--hex-h);
@@ -409,8 +409,8 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-bee{
  display:block;width:38px;height:38px;flex:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.24));
 }
-main>nav[aria-label="Основные разделы"] button[data-tab="planning"]{grid-row:2;grid-column:7/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="forage"]{grid-row:2;grid-column:9/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="planning"]{grid-row:1;grid-column:8/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="forage"]{grid-row:2;grid-column:7/span 2}
 main>nav[aria-label="Основные разделы"] button[data-tab="incidents"]{grid-row:3;grid-column:2/span 2}
 main>nav[aria-label="Основные разделы"] button[data-tab="deadout"]{grid-row:3;grid-column:4/span 2}
 main>nav[aria-label="Основные разделы"] button[data-tab="varroa"]{grid-row:3;grid-column:6/span 2}
@@ -418,7 +418,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="settings
 main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) + env(safe-area-inset-bottom,0px))!important}
 .fab{bottom:calc(clamp(192px,calc((100vw - 14px)*.57735 + 22px),268px) + env(safe-area-inset-bottom,0px))!important}
 #home .home-hives-card #homeHivePreviewCount:not(:empty){margin-top:7px;font-size:12px}
-/* Keep the user-approved 2-5-4 on desktop, too: desktop single-row
+/* Keep the user-approved 4-3-4 on desktop, too: desktop single-row
    would change visual/focus order and move the fifth DOM button off-center. */
 @media (orientation:landscape) and (max-height:520px) and (min-width:560px){
  main>nav[aria-label="Основные разделы"]{
@@ -438,7 +438,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 
 </style></head><body>
 <header class="home-header"><div class="home-brand"><div><h1 id="currentSectionTitle" class="home-brand-title" aria-live="polite" style="margin:0">Обзор</h1></div></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
-<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button data-tab="entrance">Лёток</button><button data-tab="hives">Ульи</button><button data-tab="home" class="active" aria-label="Обзор пасеки" aria-current="page">Обзор</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><svg class="nav-ai-bee" aria-hidden="true" focusable="false" viewBox="0 0 64 64" width="38" height="38"><path d="M25 29 11 22Q20 11 35 24M29 33 18 42Q28 46 39 35" fill="#d9f9e8" fill-opacity=".72" stroke="#d9f9e8" stroke-opacity=".8" stroke-width="1.5"/><path d="M14 37Q18 20 34 24Q42 26 45 34Q38 45 22 44Z" fill="#efc954"/><path d="M23 24Q19 35 22 44M31 25Q27 35 31 43" stroke="#244a35" stroke-width="5" fill="none"/><path d="M45 31Q56 25 57 34Q58 42 46 40L42 36Z" fill="#efc954"/><circle cx="52" cy="33" r="1.6" fill="#183d30"/><path d="M53 29 56 24M47 29 46 23M15 38 9 40" fill="none" stroke="#efc954" stroke-width="2.2" stroke-linecap="round"/></svg></button><button data-tab="planning">План</button><button data-tab="forage">Медоносы</button><button data-tab="incidents">Инцидент</button><button data-tab="deadout">Потери</button><button data-tab="varroa">Клещ</button><button data-tab="settings">Ещё</button></nav>
+<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button data-tab="entrance">Лёток</button><button data-tab="hives">Ульи</button><button data-tab="home" class="active" aria-label="Обзор пасеки" aria-current="page">Обзор</button><button data-tab="planning">План</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><svg class="nav-ai-bee" aria-hidden="true" focusable="false" viewBox="0 0 64 64" width="38" height="38"><path d="M25 29 11 22Q20 11 35 24M29 33 18 42Q28 46 39 35" fill="#d9f9e8" fill-opacity=".72" stroke="#d9f9e8" stroke-opacity=".8" stroke-width="1.5"/><path d="M14 37Q18 20 34 24Q42 26 45 34Q38 45 22 44Z" fill="#efc954"/><path d="M23 24Q19 35 22 44M31 25Q27 35 31 43" stroke="#244a35" stroke-width="5" fill="none"/><path d="M45 31Q56 25 57 34Q58 42 46 40L42 36Z" fill="#efc954"/><circle cx="52" cy="33" r="1.6" fill="#183d30"/><path d="M53 29 56 24M47 29 46 23M15 38 9 40" fill="none" stroke="#efc954" stroke-width="2.2" stroke-linecap="round"/></svg></button><button data-tab="forage">Медоносы</button><button data-tab="incidents">Инцидент</button><button data-tab="deadout">Потери</button><button data-tab="varroa">Клещ</button><button data-tab="settings">Ещё</button></nav>
 <section id="home" class="panel active">
  <div class="card home-intro-card" style="border-left:4px solid #547b5d"><b>Виртуальная модель пасеки</b><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></div>
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" oninput="renderGlobalSearch()"><div id="globalSearchResults" class="global-search-results" aria-live="polite"></div></div>
