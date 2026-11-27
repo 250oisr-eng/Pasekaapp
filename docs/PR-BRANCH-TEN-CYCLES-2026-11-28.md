@@ -34,3 +34,12 @@
 5. **Именно оставшиеся 170 merged-only:** требуется поимённая связь branch↔merged PR, актуальный base/head SHA, уже проверенные 6 merged-only исключить, затем 170 exact compares, semantic path review при ahead>0 и внешние ссылки/automation. До этого статус `NOT_170_COMPLETE`.
 
 **Не сделано:** merge/close/delete/retarget; изменения основного приложения, IndexedDB, production; запуск npm/Android/CI; физический OnePlus. Этот документ — evidence-запись десяти сравнительных циклов, а не разрешение на интеграцию.
+
+## Адресная проверка двух однокоммитных тестовых кандидатов
+
+После тематической выборки отдельно прочитаны **оба** файла на текущем `main` и на соответствующих исторических ветках через GitHub contents API. Содержимое идентично по Git blob SHA:
+
+- `tests/equipment-bodies.test.mjs`: `10f052b688dcb01a6a73afc8c9da4bbe97eee745` на `main` и `test/p1-body-frame-history-guards-main-20261126`.
+- `tests/idb-blocked-upgrade-retry.test.mjs`: `5f3413ca8a5560cc3407be16177cafc64cd99c17` на `main` и `test/p1-b09-blocked-upgrade-main-port-20261126`.
+
+**Решение:** точечный перенос этих тестов **не требуется**; `ahead=1` у веток сам по себе был ложным основанием включать тесты в очередь интеграции. Не делать PR-дубликат. Сведения о полном содержимом других файлов/коммитов не выводить из проверки одного blob.
