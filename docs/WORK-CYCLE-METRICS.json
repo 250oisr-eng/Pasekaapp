@@ -1077,5 +1077,59 @@
       "reason": "Overlapping patch hunks duplicated syntax in navigation test",
       "resolvedBy": "restore exact verified original test file (blob 5259ed4d103204fe42b8a3f356e51f2e0f173c74)"
     }
+  },
+  "ui596ChromiumGeometry20261127": {
+    "issue": 596,
+    "pr": 603,
+    "sourceMain": "2dba3654d503be2070241df1845307b4f9d1f205",
+    "codeSha": "daac6a42a8aee593c298609325ed2072c676ea0d",
+    "baseline": {
+      "sha": "ff9d2f991f86c2680706809ee9263d96327697f5",
+      "run": 45952861725,
+      "result": "FAIL_REAL_CHROMIUM",
+      "affectedWidths": [
+        320,
+        360,
+        390,
+        412
+      ],
+      "overlapPx": [
+        11,
+        14
+      ],
+      "cause": "inherited translateY on AI button"
+    },
+    "corrected": {
+      "run": 45953146707,
+      "conclusion": "success",
+      "checkedScenarios": 11,
+      "overlapCount": 0,
+      "correctedCSS": "transform:none!important; AI dimensions constrained to grid tracks",
+      "journalE2E": [
+        "mobile",
+        "desktop"
+      ]
+    },
+    "node": {
+      "run": 45953146696,
+      "tests": 1014,
+      "pass": 1014,
+      "fail": 0
+    },
+    "android": {
+      "run": 45953146685,
+      "conclusion": "success",
+      "tests": 1014,
+      "pass": 1014,
+      "debugArtifactId": 15177577419
+    },
+    "userDataChanged": false,
+    "storageChanged": false,
+    "serviceWorkerChanged": false,
+    "physicalOnePlus": "NOT_TESTED",
+    "talkBack": "NOT_TESTED",
+    "twoRowUXAcceptance": "PENDING_VISUAL_ACCEPTANCE",
+    "release": "NOT_AUTHORIZED",
+    "completedVerifiedUserScenarios": 0
   }
 }

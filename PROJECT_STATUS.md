@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · live main `495e38a99fc00cde5c671444e83d87a40d619750` after #597.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**27.11.2026 · main `2dba3654d503be2070241df1845307b4f9d1f205` after #595.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -11,12 +11,12 @@
 - **#7 OPEN / PRESERVE_SOURCE:** уникальный исторический аудит резервирования, не сливать его старый статус целиком. **#533 CLOSED:** WIP/STOP правила выборочно перенесены в #579. **#60/#534/#7/#533** имеют мотивированные комментарии.
 - [PR audit K](docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md): 388 OPEN (30 root, 358 stacked), 29 live SHA/base проверок. Остальные SHA/CI и полнота индекса не подтверждены.
 
-## Актуальные ветки и интеграция
+## Актуальная интеграция и задача #596
 
-- **#599/#598/#597 MERGED:** поиск корпуса/журнала, карточка семьи, read-only путь первого внешнего архива. Main `495e38a99fc00cde5c671444e83d87a40d619750`; exact-main Fast/Android **1008/1008**, Governance SUCCESS. Не release.
-- **#595 Draft / main-synced:** нижняя сотовая навигация, 11 маршрутов, центральная ИИ-кнопка, заголовок раздела и три превью ульев; задачи не обрезаются. Code SHA `7a58ac9…`: Governance #45951762030 и Android #45951761963 **1013/1013 PASS**, Debug APK SUCCESS.
-- **UX #596 PENDING_VISUAL_ACCEPTANCE:** проектный ориентир **2 ряда** против раскладки **3 ряда** на узких экранах. OnePlus/TalkBack/геометрия NOT_TESTED.
-- **B01/#442** всё ещё BLOCKED/FROZEN: нет проверенного независимого восстановления и лицензированной реальной видеоаналитики.
+- **#599/#598/#597/#595 MERGED, IN_MAIN:** журнал/поиск, история семьи, read-only первый внешний архив, сотовая навигация. Exact main `2dba3654d503be2070241df1845307b4f9d1f205`: Fast/Android 1013/1013, Governance SUCCESS; не релиз.
+- **#603 Draft — UX #596:** Chromium нашёл 11–14 px overlap между «Ульи» и ИИ при ширинах 320–412. В исправленном CSS отключён старый `translateY` и ограничены размеры AI кнопки; Chromium 11 viewport-сценариев PASS без перекрытий; Android/Fast 1014/1014 PASS. Code SHA `daac6a42a8aee593c298609325ed2072c676ea0d`.
+- **#596 OPEN / PENDING_VISUAL_ACCEPTANCE:** на смартфоне остаются 3 ряда против утверждённого двухрядного ориентира. Реальный OnePlus/TalkBack и системная safe-area НЕ проверены.
+- **B01/#442** сохраняют BLOCKED/FROZEN: нет независимого real backup/restore и доказанной видеоаналитики.
 
 ## Действующие запреты и доказательства
 
@@ -38,14 +38,14 @@
 
 - **#585 MERGED** `5d19c067e4cc832466bd2ebf497a242c729535aa`: fail-closed Node TAP verification; exact HEAD `b67f75ad720548adaa4ea1fdab80b9f104d663c7`, Fast quality #45891012805 **987/987 PASS**, Android #45891012758 and Governance #45891012722 SUCCESS. Old **#532 OPEN/PARTIALLY_PORTED**: its static PR manifests/network review not imported. B01/B04/B05/#442/B07 still BLOCKED/FROZEN.
 
-- **#587 MERGED** `ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430`: 3 адресных aria-label для ульев; Android/Governance SUCCESS. Исторический #187 CLOSED без merge; остаток UI в Draft #595; остальной UI/Playwright не интегрирован.
+- **#587 MERGED** `ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430`: 3 адресных aria-label для ульев; Android/Governance SUCCESS. Исторический #187 CLOSED без merge; UX #596 ожидает визуальной приёмки; остальной UI/Playwright не интегрирован.
 
 - **Root review N #589 MERGED:** [поимённая построчная опись 33 root PR](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md); опасные источники #1/#157/#14/#168/#543 HOLD. Это не полный semantic review.
 
-- **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 CLOSED без merge; остаток UI в Draft #595, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
+- **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 CLOSED без merge; UX #596 ожидает визуальной приёмки, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
 
 ## Следующий конкретный шаг
 
-**#595 MERGE_AUTHORIZED / CI_VERIFIED_CODE_SHA:** code CI 1013/1013 PASS, docs-only HEAD требует отдельной Governance-сверки. После PASS и неизменного main выполнить только разрешённый merge #595. UX #596 — PENDING_VISUAL_ACCEPTANCE.
+**#603:** после final-head CI проверить exact SHA и объединить по полученному разрешению пользователя; issue #596 оставить OPEN. Затем независимый UX-сценарий устранения дублированного ИИ-входа на главной (без потери данных и без релиза).
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
