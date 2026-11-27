@@ -54,13 +54,14 @@ function inventoryReview(state,request,deps){
  if(!['early','main'].includes(stack?.purpose)||stack.purpose==='early'&&ids?.length!==2)return fail('honey_stack_unavailable');
  const installed=pairGroups(state,ids,{type:'sectional',hiveId:request.hiveId,layoutId:c.layout.id},deps);
  if(!installed.ok)return installed;
- if(deps.physicalLayout.inspect(state).length||deps.coordinator.inspect(state).length)return fail('sectional_evidence_invalid');
- const raw=typeof deps.coordinator.availableSecondHoneyPairs==='function'&&str(request.techProcessId)?deps.coordinator.availableSecondHoneyPairs(state,request):[];
+ if(deps.physicalLayout.inspect(state).length||deps.coordinator.inspect(state,deps.operationDependencies||{}).length)return fail('sectional_evidence_invalid');
+ const pending=rows(state.extractions).flatMap(e=>rows(e.items).filter(i=>i?.hiveId===request.hiveId&&i.sectional&&!i.returnedAt).map(i=>({extractionId:e.id,bodyIds:i.sectional.bodyIds.slice(),pairIds:i.sectional.pairIds.slice()})));
+ const raw=!pending.length&&typeof deps.coordinator.availableSecondHoneyPairs==='function'&&str(request.techProcessId)?deps.coordinator.availableSecondHoneyPairs(state,request):[];
  const offers=rows(raw).filter(p=>{
   const checked=pairGroups(state,p?.bodyIds,{type:'storage'},deps);
   return checked.ok&&checked.pairs.length===1&&checked.pairs[0].pairId===p.pairId&&p.bodyIds.every(id=>c.bodies[id].frames.length===10);
  }).map(p=>({pairId:p.pairId,bodyIds:p.bodyIds.slice()}));
- return {ok:true,layoutId:c.layout.id,purpose:stack.purpose,bodyCount:ids.length,installedPairs:installed.pairs,offers};
+ return {ok:true,layoutId:c.layout.id,purpose:stack.purpose,bodyCount:ids.length,installedPairs:installed.pairs,offers,pending};
 }
 // B07.2: an extraction review is a selection only. P38/OP08: do not
 // treat unsealed or unknown honey as harvest-ready; no record is created.
@@ -70,6 +71,7 @@ function extractionReview(state,request,deps){
  if(!unique(request.pairIds)||!request.pairIds.length||!dateOnly(request.date)||!dateOnly(request.today)||request.date>request.today||typeof request.kilograms!=='number'||!Number.isFinite(request.kilograms)||request.kilograms<=0)return fail('invalid_extraction_review');
  const selected=v.installedPairs.filter(p=>request.pairIds.includes(p.pairId));
  if(selected.length!==request.pairIds.length)return fail('selected_pair_not_installed');
+ if(v.bodyCount!==4||v.pending.length||selected.length!==1||selected[0].pairId!==v.installedPairs[1].pairId)return fail('only_upper_pair_supported');
  const bodyIds=selected.flatMap(p=>p.bodyIds),frames=[];
  for(const bodyId of bodyIds){
   const body=state.equipmentInventory.bodies[bodyId];
@@ -121,7 +123,7 @@ function prepareAdditionalPair(state,request,deps){
 // B07.5: read-only presentation model. No actionable button or event handler.
 function viewModel(state,request,deps){
  const v=inventoryReview(state,request,deps);if(!v.ok)return {visible:false};
- return {visible:true,bodyCount:v.bodyCount,installedPairs:v.installedPairs,offers:v.bodyCount===2?v.offers:[],canCommit:false,reason:'B07_BLOCKED'};
+ return {visible:true,bodyCount:v.bodyCount,installedPairs:v.installedPairs,offers:v.bodyCount===2&&!v.pending.length?v.offers:[],pending:v.pending,canReviewExtraction:v.bodyCount===4&&v.purpose==='main'&&!v.pending.length,canCommit:false,reason:'B07_BLOCKED'};
 }
 window.PasekaSectionalHoneyReview=Object.freeze({inventoryReview,extractionReview,returnReview,prepareAdditionalPair,viewModel});
 })();
