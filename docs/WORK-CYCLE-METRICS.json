@@ -33,6 +33,7 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
+  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
@@ -1574,6 +1575,76 @@
     "deviceChanges": false,
     "completedVerifiedUserScenarios": 0
   },
+  "nonvideoAccountingCycle20261127": {
+    "scope": "NONVIDEO_END_TO_END_WITH_ATOMIC_EXTRACTION_AND_NO_GHOST_LAYOUTS",
+    "baseMain": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "draftPr": 627,
+    "codeSha": "0dc04ff763af339c872c700d88c4d74c90eb44b2",
+    "nodeTests": {
+      "tests": 1067,
+      "pass": 1067,
+      "fail": 0,
+      "runId": 46030103036,
+      "verifiedOnSha": "0dc04ff763af339c872c700d88c4d74c90eb44b2"
+    },
+    "android": {
+      "status": "SUCCESS",
+      "runId": 46030103514,
+      "codeSha": "0dc04ff763af339c872c700d88c4d74c90eb44b2",
+      "physical": "NOT_TESTED"
+    },
+    "chromium": {
+      "status": "SUCCESS",
+      "runId": 46029916937,
+      "codeSha": "f27c15948f7287952f1621f0a48cf41c224a9051",
+      "comparedToFinalCode": "ONLY_REGRESSION_TEST_FILE_DIFF",
+      "journey": "HIVE_FAMILY_QUEEN_FEED_INSPECTION_STOCK_HONEY_HARVEST_RETURN_WINTER_RELOAD",
+      "source": "SYNTHETIC_REAL_INDEXEDDB",
+      "device": "NOT_TESTED"
+    },
+    "serviceWorkerCache": "v325",
+    "indexedDbSchemaChanged": false,
+    "legacyRecordsMutated": false,
+    "videoTouched": false,
+    "releaseAuthorized": false,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "unverifiedUserScenarios": [
+      "oneplus_queen_create_replace",
+      "oneplus_inventory_move",
+      "oneplus_feeding_entry",
+      "oneplus_inspection_reopen",
+      "oneplus_honey_harvest",
+      "oneplus_wintering",
+      "sectional_B07"
+    ],
+    "latestCodeNodeTests": "CI_VERIFIED_EXACT_CODE_SHA",
+    "queenFutureDateGuard": "CI_VERIFIED_NODE_AND_BROWSER",
+    "governance": {
+      "status": "PENDING_DOCS_EXACT_HEAD",
+      "codeSha": "0dc04ff763af339c872c700d88c4d74c90eb44b2"
+    },
+    "inventorySaveRollback": "CI_VERIFIED_NODE",
+    "assemblyPersistenceRollback": "CI_VERIFIED_NODE",
+    "legacyLayoutInventoryMigration": "BROWSER_VERIFIED_ADDITIVE_SOURCE_LINKED",
+    "newBrowserUserJourneys": {
+      "syntheticCompleted": 1,
+      "physicalCompleted": 0
+    },
+    "extractionAtomicSave": "CI_VERIFIED_NODE",
+    "extractionHiveIdIndexLeak": "FIXED_AND_BROWSER_VERIFIED",
+    "rawIntegrityReopen": "PASS_SYNTHETIC_REAL_IDB"
+  },
+  "accounting627HoneyPairRepeat20261127": {
+    "pr": 627,
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "codeSha": "c7dd88c2a189365b7bda25e341ad5c0bb6495638",
+    "targetedPass": 7,
+    "nodePass": 1068,
+    "nodeFail": 0,
+    "device": "NOT_TESTED",
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/pull/627/checks"
+  },
   "homeRecentEvents20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 622,
@@ -1614,6 +1685,15 @@
     "device": "NOT_TESTED",
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null,
-    "next": "Separate technical diagnostics from the overview per approved UX principles"
+    "next": "Separate technical diagnostics from the overview per approved UX principles",
+    "recheckAfterPlanning": {
+      "mainSha": "1a609a9ec46cace85a81663648fee749df677932",
+      "nodePass": 1072,
+      "nodeFail": 0,
+      "webPrepare": "PASS",
+      "governancePass": 5,
+      "chromium": ["navigation", "journal_and_archives", "accounting"],
+      "device": "NOT_TESTED"
+    }
   }
 }

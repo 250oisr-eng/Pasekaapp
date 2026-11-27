@@ -157,16 +157,16 @@ test('B11 canonical query-free shell resource remains cacheable after query guar
  assert.equal(sw.writes[0].request,scope+'js/hive-model.js');
 });
 
-test('B11 new v324 policy preserves user and future caches and retires only older numeric shell versions',async()=>{
- assert.match(source,/const CACHE='paseka-shell-v324';/);
- assert.match(source,/const CACHE_VERSION=324;/);
+test('B11 new v325 policy preserves user and future caches and retires only older numeric shell versions',async()=>{
+ assert.match(source,/const CACHE='paseka-shell-v325';/);
+ assert.match(source,/const CACHE_VERSION=325;/);
  const h=harness({existingCaches:[
   'paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322','paseka-shell-v323',
-  'paseka-shell-v324','paseka-shell-v325','paseka-shell-v319-user','other-app-cache'
+  'paseka-shell-v324','paseka-shell-v325','paseka-shell-v326','paseka-shell-v319-user','other-app-cache'
  ]});
  await h.activate();
- assert.deepEqual(h.deleted,['paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322','paseka-shell-v323']);
- for(const unchanged of ['paseka-shell-v324','paseka-shell-v325','paseka-shell-v319-user','other-app-cache'])
+ assert.deepEqual(h.deleted,['paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322','paseka-shell-v323','paseka-shell-v324']);
+ for(const unchanged of ['paseka-shell-v325','paseka-shell-v326','paseka-shell-v319-user','other-app-cache'])
   assert.ok(!h.deleted.includes(unchanged));
 });
 

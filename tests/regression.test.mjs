@@ -3643,7 +3643,7 @@ test('service worker caches accessory inventory module for offline operation',as
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/p0-source-inventory\.js/);
- assert.match(sw,/paseka-shell-v324/);
+ assert.match(sw,/paseka-shell-v325/);
 });
 
 
@@ -3769,7 +3769,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v324/);
+  assert.match(source,/paseka-shell-v325/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
@@ -3789,4 +3789,289 @@ test('save integrity gate validates physical body inventory before persisting',(
  const saveSource=html.slice(start,end);
  assert.match(saveSource,/PasekaInventory\.inspect\(S,PasekaLabels,profileForHive\)/);
  assert.match(saveSource,/if\(physicalLayoutErrors\.length\)/);
+});
+
+test('feeding ledger attributes historical snapshot-only family and quarantines conflicting identity',()=>{
+ const build=loadFunction('buildFeedingLedger');
+ const rows=[
+  {id:'legacy',type:'Подкормка',hive:'h',familySnapshotAtTime:{id:'f1',name:'Семья в момент выдачи'},date:'2026-10-10',feedingAmount:'200 г'},
+  {id:'normal',type:'Подкормка',hive:'h',family:'f1',date:'2026-10-11',feedingAmount:'100 г'},
+  {id:'conflict',type:'Подкормка',hive:'h',family:'f1',familySnapshotAtTime:{id:'f2'},date:'2026-10-12',feedingAmount:'999 г'},
+  {id:'no-family',type:'Подкормка',hive:'h',date:'2026-10-13',feedingAmount:'50 г'},
+  {id:'archived',type:'Подкормка',hive:'h',family:'f2',date:'2026-10-14',feedingAmount:'20 г',archivedAt:'2026-10-15'}
+ ];
+ const original=structuredClone(rows);
+ const groups=build(rows,[{id:'f1',name:'Первая'},{id:'f2',name:'Вторая'}],'h');
+ const linked=groups.find(g=>g.familyId==='f1');
+ assert.equal(linked.count,2);
+ assert.deepEqual(linked.totals,[{unit:'г',amount:300,count:2}]);
+ assert.equal(linked.name,'Семья в момент выдачи','keep historical family name');
+ const conflict=groups.find(g=>g.familyId==='__conflicted__');
+ assert.equal(conflict.count,1);
+ assert.equal(conflict.ambiguousCount,1);
+ assert.deepEqual(conflict.totals,[],'conflicting family identity cannot silently inflate totals');
+ const unknown=groups.find(g=>g.familyId==='__unassigned__');
+ assert.deepEqual(unknown.totals,[{unit:'г',amount:50,count:1}]);
+ assert.equal(groups.some(g=>g.familyId==='f2'),false,'archived record is excluded');
+ assert.deepEqual(rows,original,'feeding ledger remains read-only');
+});
+
+test('queen actual introduction or replacement rejects future dates before any state mutation',()=>{
+ const apply=loadFunction('applyQueenChange');
+ const state={families:[{id:'family',hive:'h',currentQueenId:'queen-old',queen:{code:'old'}}],
+  queens:[{id:'queen-old',familyId:'family',status:'current',code:'old'}],queenEvents:[]};
+ const before=structuredClone(state);
+ for(const draft of [
+  {familyId:'family',code:'new',date:'2099-12-31'},
+  {familyId:'family',queenId:'queen-old',code:'edited',date:'2099-12-31'}
+ ]){
+  assert.throws(()=>apply(state,draft,()=> 'must-not-be-called'),/будущем/);
+  assert.deepEqual(state,before,'future event cannot replace/modify queen or append an audit event');
+ }
+ const valid=apply(state,{familyId:'family',code:'new',date:null},(()=>{let n=0;return()=> 'valid-'+(++n)})());
+ assert.equal(valid.replaced,true);
+ assert.equal(state.queenEvents[0].date,null,'unknown historical introduction day is not invented');
+});
+
+test('honey-pair double activation produces one physical change while persistence is pending',async()=>{
+ let finishWrite, writes=0;
+ const deps={
+  S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[],meta:{}},
+  selectedStructureHive:()=> 'h',honeyPairSaving:false,alert(){},render(){},
+  save(){writes++;return new Promise(resolve=>{finishWrite=resolve})}
+ };
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ const toggle=loadFunction('toggleHoneyPair',deps);
+ const first=toggle();
+ const repeated=toggle();
+ assert.equal(writes,1);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[true,true]);
+ finishWrite(false);
+ assert.equal(await first,false);
+ assert.equal(await repeated,false);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+ assert.deepEqual(deps.S.auditLog,[]);
+ const retry=toggle();
+ finishWrite(true);
+ assert.equal(await retry,true);
+ assert.equal(writes,2);
+ assert.deepEqual(deps.S.auditLog.map(event=>event.type),['honey_pair_installed']);
+});
+
+test('honey-pair state and audit both roll back when storage fails or rejects',async()=>{
+ for(const failure of ['return_false','throws']){
+  const deps={
+   S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[],meta:{}},
+   selectedStructureHive:()=> 'h',honeyPairSaving:false,renders:0,messages:[],
+   alert(text){this.messages.push(text)},render(){this.renders++},
+   save:async()=>{if(failure==='throws')throw new Error('test interrupted write');return false}
+  };
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction('toggleHoneyPair',deps)(),false);
+  assert.deepEqual(deps.S.layouts,old.layouts,'never display installed boxes after failed commit');
+  assert.deepEqual(deps.S.auditLog,old.auditLog,'unsaved physical event must be removed');
+  assert.equal(deps.renders,1,'restore UI from durable state');
+  assert.equal(deps.messages.length,1);
+ }
+});
+test('honey-pair pre-commit audit rejection restores old layout without persisting',async()=>{
+ let called=0;
+ const deps={S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[]},
+  selectedStructureHive:()=> 'h',honeyPairSaving:false,save:async()=>{called++;return true},render(){},alert(){}};
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.logAudit=()=>{throw new Error('audit unavailable')};
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ assert.equal(await loadFunction('toggleHoneyPair',deps)(),false);
+ assert.equal(called,0,'never try saving after audit failure');
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+});
+test('winter and summer transitions restore layout and history on rejected IndexedDB save',async()=>{
+ for(const mode of ['winter','summer']){
+  const currentMode=mode==='winter'?'summer':'winter';
+  const base={mode:currentMode,installedBoxes:mode==='winter'?[1,2]:[1,3,4],
+   winterOrder:currentMode==='winter'?[1,3,4]:[],
+   honeyBoxInstalled:currentMode==='winter'?[false,false]:[true,true],honeyInstalled:currentMode!=='winter',
+   boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}])),assemblies:[]};
+  const form={modeTransition:{style:{display:'block'}},
+   winterSlot0:{value:'1'},winterSlot1:{value:'3'},winterSlot2:{value:'4'}};
+  const deps={S:{layouts:{h:base},auditLog:[]},pendingAssemblyMode:mode,
+   selectedStructureHive:()=> 'h', $:id=>form[id],
+   document:{querySelectorAll:()=>[{value:'1'},{value:'3'}],querySelector:()=>({checked:false})},
+   render(){this.rendered=(this.rendered||0)+1},alert(){},
+   save:async()=>false};
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.rememberCurrentAssembly=l=>l.assemblies.push({mode:l.mode,installedBoxes:l.installedBoxes.slice()});
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction(mode==='winter'?'commitWinter':'commitSummer',deps)(),false);
+  assert.deepEqual(deps.S.layouts,old.layouts,'discard uncommitted physical and assembly history');
+  assert.deepEqual(deps.S.auditLog,[]);
+  assert.equal(form.modeTransition.style.display,'block','do not announce completed mode change before save');
+  assert.equal(deps.pendingAssemblyMode,mode);
+ }
+});
+test('physical assembly transition commits once after a successful save',async()=>{
+ let saves=0;
+ const layout={mode:'summer',installedBoxes:[1,2],winterOrder:[],honeyBoxInstalled:[true,true],
+  honeyInstalled:true,boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}])),assemblies:[]};
+ const form={modeTransition:{style:{display:'block'}},winterSlot0:{value:'1'},winterSlot1:{value:'3'},winterSlot2:{value:'4'}};
+ const deps={S:{layouts:{h:layout},auditLog:[]},pendingAssemblyMode:'winter',
+  selectedStructureHive:()=> 'h',$:id=>form[id],render(){},alert(){},
+  save:async()=>{saves++;return true}};
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.rememberCurrentAssembly=l=>l.assemblies.push({mode:l.mode,installedBoxes:l.installedBoxes.slice()});
+ deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+ deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ assert.equal(await loadFunction('commitWinter',deps)(),true);
+ assert.equal(saves,1);assert.equal(deps.S.layouts.h.mode,'winter');
+ assert.deepEqual(deps.S.layouts.h.installedBoxes,[1,3,4]);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+ assert.equal(deps.S.auditLog.length,1);assert.equal(deps.S.layouts.h.assemblies.length,1);
+ assert.equal(form.modeTransition.style.display,'none');
+ assert.equal(deps.pendingAssemblyMode,null);
+});
+
+test('Done button keeps hive assembly editable and unconfirmed when persistence fails',async()=>{
+ for(const outcome of ['false','exception','success']){
+  const layout={mode:'summer',installedBoxes:[1],winterOrder:[],
+   honeyBoxInstalled:[false,false],honeyInstalled:false,setupComplete:false,setupEditing:true,assemblies:[],
+   boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}]))};
+  const deps={S:{layouts:{h:layout},auditLog:[],meta:{}},pendingAssemblyMode:'summer',
+   assemblyEditSnapshot:null,selectedStructureHive:()=> 'h',
+   profileForHive:()=>({family:'farrar'}),render(){this.rendered=(this.rendered||0)+1},
+   renderStructure(){this.structureDrawn=(this.structureDrawn||0)+1},
+   alert(message){this.warnings=(this.warnings||[]).concat(message)},
+   save:async()=>{if(outcome==='exception')throw new Error('test storage interruption');return outcome==='success'}};
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction('finishAssemblySetup',deps)(),outcome==='success');
+  if(outcome==='success'){
+   assert.equal(deps.S.layouts.h.setupComplete,true);
+   assert.equal(deps.S.layouts.h.setupEditing,false);
+   assert.equal(deps.S.auditLog.length,1);
+   assert.equal(deps.pendingAssemblyMode,null);
+   assert.equal(deps.structureDrawn,1);
+  }else{
+   assert.deepEqual(deps.S.layouts,old.layouts,'never acknowledge completion when write did not commit');
+   assert.deepEqual(deps.S.auditLog,old.auditLog,'no fabricated audit after failed write');
+   assert.equal(deps.pendingAssemblyMode,'summer','preserve unsaved editing workflow');
+   assert.equal(deps.S.layouts.h.setupEditing,true);
+   assert.equal(deps.rendered,1);
+  }
+ }
+});
+
+test('inventory persistence rollback survives rejected promise and preserves existing physical items',async()=>{
+ for(const outcome of ['false','exception','success']){
+  const before={equipmentInventory:{bodies:{old:{id:'old',kind:'brood',storageLocation:'Склад',condition:'good'}},events:[]},meta:{}};
+  const deps={S:structuredClone(before),warnings:[],renders:0,inventoryRenders:0,reconciliationRenders:0,
+   save:async()=>{if(outcome==='exception')throw new Error('test storage interruption');return outcome==='success'},
+   render(){this.renders++},renderEquipmentInventory(){this.inventoryRenders++},
+   renderEquipmentReconciliation(){this.reconciliationRenders++},
+   alert(message){this.warnings.push(message)}
+  };
+  deps.S.equipmentInventory.bodies.new={id:'new',kind:'honey',storageLocation:'QA-СКЛАД'};
+  const result=await loadFunction('saveInventoryChange',deps)(structuredClone(before));
+  assert.equal(result,outcome==='success');
+  if(outcome==='success'){
+   assert.equal(deps.S.equipmentInventory.bodies.new.id,'new');
+   assert.equal(deps.inventoryRenders,1);assert.equal(deps.reconciliationRenders,1);
+   assert.equal(deps.renders,0);
+  }else{
+   assert.deepEqual(deps.S.equipmentInventory,before.equipmentInventory,
+     'failure must never retain an uncommitted physical item or event');
+   assert.equal(deps.renders,1);
+   assert.equal(deps.inventoryRenders,0);
+   assert.equal(deps.reconciliationRenders,0);
+   assert.equal(deps.warnings.length,1);
+  }
+ }
+});
+
+test('honey extraction is atomic across frames, physical pair, journal and audit on failed save',async()=>{
+ for(const failure of ['false','exception','success']){
+  const frames={H1:[{frameId:'fr-1',status:'sealed',history:[]}],H2:[{frameId:'fr-2',status:'nectar',history:[]}]};
+  const base={hives:[{id:'h',number:1}],layouts:{h:{mode:'summer',honeyBoxInstalled:[true,true],
+   honeyInstalled:true,honeyFrames:frames}},records:[],extractions:[],auditLog:[],meta:{}};
+  const nodes={extractDate:{value:'2026-11-25'},extractDlg:{closed:false,close(){this.closed=true}}};
+  const deps={S:structuredClone(base),messages:[],renders:0,saveCalls:0,
+   $:id=>nodes[id],document:{
+    querySelectorAll:()=>[{dataset:{hive:'h'}}],
+    querySelector:selector=>selector.startsWith('.extract-pair')?{checked:true}:
+      selector.startsWith('.extract-kg')?{value:'2.5'}:null
+   },
+   PasekaSeasonPlanning:{parseDate:value=>value==='2026-11-25'?new Date('2026-11-25'):null},
+   PasekaLabels:{appendFrameEvent:(frame,type,details,at)=>frame.history.push({type,details,at})},
+   today:()=> '2026-11-27',hname:()=> 'Улей 1',
+   frameLocationName:(key,hiveId)=>{assert.equal(hiveId,'h','never treat Array.map index as hive ID');return key},uid:(()=>{let n=0;return()=> 'test-'+(++n)})(),
+   save:async()=>{deps.saveCalls++;if(failure==='exception')throw new Error('test interrupted IndexedDB');return failure==='success'},
+   alert(message){this.messages.push(message)},render(){this.renders++}
+  };
+  deps.layoutFor=id=>deps.S.layouts[id];deps.frameArray=(layout,key,hiveId)=>{assert.equal(hiveId,'h');return layout.honeyFrames[key]};
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  assert.equal(await loadFunction('saveExtractionOnce',deps)(),failure==='success');
+  assert.equal(deps.saveCalls,1);
+  if(failure==='success'){
+   assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+   assert.equal(deps.S.layouts.h.honeyFrames.H1[0].status,'extracted');
+   assert.equal(deps.S.layouts.h.honeyFrames.H2[0].status,'extracted');
+   assert.equal(deps.S.layouts.h.honeyFrames.H1[0].history.length,1);
+   assert.equal(deps.S.extractions.length,1);
+   assert.equal(deps.S.records.length,1);
+   assert.equal(deps.S.auditLog.length,1);
+   assert.equal(nodes.extractDlg.closed,true);
+  }else{
+   assert.deepEqual(deps.S.layouts,base.layouts,'pair and frame history must revert on failed commit');
+   assert.deepEqual(deps.S.extractions,[]);
+   assert.deepEqual(deps.S.records,[]);
+   assert.deepEqual(deps.S.auditLog,[]);
+   assert.equal(nodes.extractDlg.closed,false,'keep editable form after failure');
+   assert.equal(deps.messages.length,1);
+   assert.equal(deps.renders,1);
+  }
+ }
+});
+test('honey extraction rejects invalid/future date and never touches state',async()=>{
+ const state={records:[],extractions:[],layouts:{},auditLog:[]};
+ for(const date of ['2099-12-31','2026-02-30','']){
+  let saves=0;
+  const deps={S:state,$:()=>({value:date}),
+   PasekaSeasonPlanning:{parseDate:value=>value==='2026-02-30'?null:new Date(value)},
+   today:()=> '2026-11-27',save:async()=>{saves++},alert(){}};
+  await loadFunction('saveExtractionOnce',deps)();
+  assert.equal(saves,0);
+  assert.deepEqual(state.records,[]);
+ }
+});
+
+test('rendering extraction history never passes Array.map index as hive ID',()=>{
+ const from=html.indexOf('function renderHiveExtractionActions(){'),to=html.indexOf('\nlet returningHoney',from);
+ assert.ok(from>=0&&to>from,'render function is isolated without following top-level declarations');
+ const source=html.slice(from,to);
+ assert.doesNotMatch(source,/\.map\(frameLocationName\)/);
+ assert.match(source,/x\.item\.boxes\.map\(key=>frameLocationName\(key,x\.item\.hiveId\)\)/);
+ const host={innerHTML:''};
+ const state={extractions:[{id:'ext',date:'2026-11-25',items:[{hiveId:'h',kilograms:2,boxes:['H1','H2'],returnedAt:null}]}]};
+ const fn=new Function('$','S','selectedHiveId','frameLocationName','safe',source+';return renderHiveExtractionActions');
+ fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String)();
+ assert.match(host.innerHTML,/Корпуса после откачки/);
+ assert.match(host.innerHTML,/H1, H2/);
 });

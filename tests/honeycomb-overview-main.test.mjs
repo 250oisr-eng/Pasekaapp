@@ -59,16 +59,17 @@ function exerciseHome(count, tasks = []) {
   assert.ok(homeSource, 'renderHome source available');
   const slots = Object.fromEntries(['homeHives','homeHivePreviewCount','homeAlerts','homeTasks']
     .map(id => [id, {innerHTML:'',textContent:''}]));
+  slots.homeTaskHive={value:'',replaceChildren(...options){this.options=options;this.value=options[0].value}};
   const S = {hives:Array.from({length:count}, (_,i)=>({id:'hive-'+i})),families:[],tasks};
   const get = id => slots[id] || null;
   const render = new Function('$','S','renderApiaryStatus','layoutFor','getHiveProfile','profileBroodKeys',
-    'profileHoneyKeys','today','safe','frameStatusName','hname','ruPlural','taskMarkup',
+    'profileHoneyKeys','today','safe','frameStatusName','hname','ruPlural','taskMarkup','Option',
     homeSource+'\nreturn renderHome;'
   )(get,S,()=>{},()=>({mode:'summer',installedBoxes:[],honeyBoxInstalled:[],honeyFrames:[],boxes:{}}),
     ()=>({family:'farrar',name:'Тестовый профиль',layout:{rows:[]}}),
     ()=>[],()=>[] ,()=> '2026-11-27',
     value=>String(value??''),()=> 'Пусто',id=>id,(n,one,two,many)=>n===1?one:many,
-    task=>'<mark>'+task.id+'</mark>');
+    task=>'<mark>'+task.id+'</mark>',class Option {constructor(text,value){this.text=text;this.value=value}});
   render();
   return slots;
 }
