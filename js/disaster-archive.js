@@ -176,8 +176,39 @@ function getRecords(db){
   }catch(e){reject(e);}
  });
 }
-async function exportArchive(db){
+// Conservative budget for the encoded representation, before allocating base64
+// and packed JSON. Legacy callers keep their original contract; daily callers
+// explicitly request a bound. This is not a streaming exporter.
+function assertExportBudget(snap,maxBytes){
+ if(maxBytes===undefined)return;
+ assert(Number.isSafeInteger(maxBytes)&&maxBytes>0,'Invalid archive budget');
+ let total=4096;
+ const add=n=>{total+=n;assert(total<=maxBytes,'Архив превышает безопасный предел; предыдущие копии сохранены');};
+ const seen=new WeakSet();
+ function visit(value,depth=0){
+  assert(depth<200,'Archive record too deep');
+  add(64);
+  if(typeof value==='string'){add(value.length*6);return;}
+  if(value===null||typeof value!=='object')return;
+  if(value instanceof Date){add(64);return;}
+  if(value instanceof Blob){add(Math.ceil(value.size/3)*4+1024);if(typeof File!=='undefined'&&value instanceof File)add(value.name.length*6);add(value.type.length*6);return;}
+  if(value instanceof ArrayBuffer){add(Math.ceil(value.byteLength/3)*4);return;}
+  assert(!ArrayBuffer.isView(value),'Typed arrays are not supported; export aborted to prevent data loss');
+  assert(!seen.has(value),'Circular data; export aborted');
+  seen.add(value);
+  if(Array.isArray(value))for(const item of value)visit(item,depth+1);
+  else for(const key of Object.keys(value)){add(key.length*6+64);visit(value[key],depth+1);}
+  seen.delete(value);
+ }
+ for(const store of snap.stores){
+  assert(Array.isArray(store.keys)&&Array.isArray(store.records)&&store.keys.length===store.records.length,'Incomplete IndexedDB snapshot');
+  add(512+store.name.length*6);
+  for(let i=0;i<store.keys.length;i++){visit(store.keys[i]);visit(store.records[i]);}
+ }
+}
+async function exportArchive(db,{maxBytes}={}){
  const snap=await getRecords(db);
+ assertExportBudget(snap,maxBytes);
  const stores=[];
  for(const store of snap.stores){
   assert(store.records&&store.keys&&store.records.length===store.keys.length,'Incomplete IndexedDB snapshot');

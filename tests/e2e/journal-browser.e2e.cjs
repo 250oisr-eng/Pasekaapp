@@ -167,6 +167,72 @@ async function journey(browser,origin,name,viewport){
     throw error;
   }finally{await context.close()}
 }
+
+async function archiveJourney(browser,origin){
+ const context=await browser.newContext({viewport:{width:412,height:915},locale:'ru-RU',timezoneId:'UTC',serviceWorkers:'block'});
+ await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+ const page=await context.newPage(),errors=[];
+ page.setDefaultTimeout(20000);
+ page.on('pageerror',e=>errors.push(e.message));
+ page.on('dialog',async dialog=>{
+  if(dialog.type()==='confirm'&&(dialog.message().includes('Подтверждаешь, что это действительно первый запуск')||dialog.message().startsWith('Восстановить архив от '))){await dialog.accept();return;}
+  errors.push('Unexpected dialog: '+dialog.message());await dialog.dismiss();
+ });
+ const setDay=day=>page.clock.setFixedTime(new Date(day+'T12:00:00Z'));
+ const ready=()=>page.waitForFunction(()=>startupWriteGate.ready===true);
+ const archived=day=>page.waitForFunction(day=>dailyArchiveCheckedDay===day&&!dailyArchiveBusy,day);
+ const addHive=async()=>{
+  await page.locator('button[data-tab="hives"]').click();
+  await page.locator('[data-action="open-new-hive"]').click();
+  await page.locator('#hiveForm button.primary').click();
+  await page.locator('#hiveDlg').waitFor({state:'hidden'});
+  await page.evaluate(()=>saveQueue);
+ };
+ try{
+  await setDay('2026-11-25');
+  await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
+  await ready();await archived('2026-11-25');
+  await addHive();
+  await setDay('2026-11-26');
+  await page.evaluate(()=>checkDailyArchives());await archived('2026-11-26');
+  const firstHive=await page.evaluate(()=>S.hives[0].id);
+  await addHive();
+  await setDay('2026-11-27');
+  await page.evaluate(()=>checkDailyArchives());await archived('2026-11-27');
+  const slots=await page.evaluate(async()=>(await PasekaDailyArchives.readAll(await getDailyArchiveStore())).map(r=>[r.slot,r.day]).sort());
+  assert.deepEqual(slots,[['latest','2026-11-27'],['previous','2026-11-26']]);
+  assert.equal(await page.evaluate(()=>S.hives.length),2);
+  // Corrupt only synthetic archive storage, not the live database.
+  await page.evaluate(async()=>{
+   const store=await getDailyArchiveStore(),rows=await PasekaDailyArchives.readAll(store);
+   const latest=rows.find(r=>r.slot==='latest');
+   await new Promise((resolve,reject)=>{
+    const tx=store.transaction('files','readwrite');
+    tx.objectStore('files').put({...latest,blob:new Blob(['corrupt'])});
+    tx.oncomplete=resolve;tx.onabort=tx.onerror=()=>reject(tx.error);
+   });
+  });
+  await page.locator('button[data-tab="settings"]').click();
+  assert.equal(await page.locator('#dailyArchivePanel button').count(),1);
+  assert.equal(await page.locator('#legacyBackupDiagnostics').isVisible(),false);
+  await page.locator('#dailyRestoreButton').click();
+  await page.locator('#dailyRestoreConfirm').waitFor({state:'visible'});
+  await page.waitForFunction(()=>!document.getElementById('dailyRestoreConfirm').disabled);
+  assert.deepEqual(await page.locator('#dailyRestoreSlot option').evaluateAll(options=>options.map(o=>o.value)),['previous']);
+  assert.match(await page.locator('#dailyArchiveLatest').textContent(),/повреждён/);
+  const navigated=page.waitForEvent('framenavigated',{predicate:frame=>frame===page.mainFrame()});
+  await page.locator('#dailyRestoreConfirm').click();
+  await navigated;await ready();
+  assert.deepEqual(await page.evaluate(()=>S.hives.map(h=>h.id)),[firstHive]);
+  assert.deepEqual(errors,[]);
+  console.log(JSON.stringify({scenario:'daily-two-zip-corrupt-latest-restore-previous-reopen',status:'PASS',source:'Chromium real IndexedDB with synthetic clock and data',device:'NOT_TESTED'}));
+ }catch(e){
+  await page.screenshot({path:'e2e-journal-daily-archive-failure.png',fullPage:true}).catch(()=>{});
+  console.error(JSON.stringify({scenario:'daily-two-zip-corrupt-latest-restore-previous-reopen',status:'FAIL',reason:e.message,errors}));
+  throw e;
+ }finally{await context.close();}
+}
+
 (async()=>{
   await listen();
   const origin='http://127.0.0.1:'+server.address().port;
@@ -175,5 +241,6 @@ async function journey(browser,origin,name,viewport){
     browser=await chromium.launch({headless:true});
     await journey(browser,origin,'mobile',{width:412,height:915});
     await journey(browser,origin,'desktop',{width:1280,height:800});
+    await archiveJourney(browser,origin);
   }finally{if(browser)await browser.close();await close()}
 })().catch(error=>{console.error(error.stack||String(error));process.exitCode=1});

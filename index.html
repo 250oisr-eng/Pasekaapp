@@ -4564,7 +4564,7 @@ async function createDailyArchiveRaw(){
  if(!source)throw new Error('Основная запись отсутствует; пустой архив не создаётся');
  const revision=source?.meta?.revisionId||null;
  if(!revision||revision!==lastPersistedRevision)throw new Error('Основная база изменилась; повторите позже');
- const raw=await PasekaDisasterArchive.exportArchive(db);
+ const raw=await PasekaDisasterArchive.exportArchive(db,{maxBytes:PasekaDailyArchives.MAX_BYTES});
  const proof=await dailyArchiveInspect(raw);
  const after=await readMain();
  if(proof.main?.meta?.revisionId!==revision||after?.meta?.revisionId!==revision)
@@ -4634,7 +4634,7 @@ async function restoreDailyArchive(){
    if(selected.row.id!==choice.id||selected.row.sha256!==choice.sha256)throw new Error('Выбранный архив изменился. Откройте окно восстановления заново.');
    const current=await readMain(),revision=current?.meta?.revisionId||null;
    status.textContent='Создание временной копии текущего состояния…';
-   const rollbackRaw=await PasekaDisasterArchive.exportArchive(db);
+   const rollbackRaw=await PasekaDisasterArchive.exportArchive(db,{maxBytes:PasekaDailyArchives.MAX_BYTES});
    // Exact readback of the exporter output, even when the current main record
    // is damaged or absent. Never treat it as a valid restore target.
    const rollbackManifest=JSON.parse(rollbackRaw).manifest;
@@ -4668,7 +4668,7 @@ async function resolveDailyArchiveRecovery(){
  const store=await getDailyArchiveStore();
  const rows=await PasekaDailyArchives.readAll(store);
  if(!rows.some(row=>row.slot==='staging'&&row.kind==='rollback'))return;
- const resolved=await PasekaDailyArchives.resolveInterruptedRestore(store,await PasekaDisasterArchive.exportArchive(db),dailyArchiveInspect);
+ const resolved=await PasekaDailyArchives.resolveInterruptedRestore(store,await PasekaDisasterArchive.exportArchive(db,{maxBytes:PasekaDailyArchives.MAX_BYTES}),dailyArchiveInspect);
  if(!resolved)throw new Error('Восстановление ранее прервалось, текущее состояние не совпадает с проверенным исходным или целевым архивом. Аварийная копия сохранена; дальнейшие записи остановлены.');
 }
 function startDailyArchiveScheduler(){
