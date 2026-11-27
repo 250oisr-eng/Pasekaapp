@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {analyzePrBranchGraph,analyzeBranchHistory,collectGraph,collectPortfolio} from '../scripts/audit-pr-branch-dependencies.mjs';
+import {analyzePrBranchGraph,analyzeBranchHistory,analyzeRootFileOverlaps,collectGraph,collectPortfolio} from '../scripts/audit-pr-branch-dependencies.mjs';
 const p=(number,head,base='main')=>({number,state:'open',head:{ref:head},base:{ref:base}});
 test('detects stacked links, unreferenced branches and bases without an open parent',()=>{
  const r=analyzePrBranchGraph([p(1,'feature-a'),p(2,'feature-b','feature-a'),p(3,'feature-c','closed-parent')],['main','feature-a','feature-b','feature-c','closed-parent','old-work']);
@@ -130,4 +130,41 @@ test('portfolio refuses to claim full closed PR census when pagination is incomp
   if(kind==='branches')return [{name:'main'},{name:'active'}];
   return Array.from({length:size},(_,i)=>closed((page-1)*size+i+1000,'closed-'+page+'-'+i));
  }),/Pagination incomplete/);
+});
+
+const changed=(number,paths,base='main')=>({number,base,paths,complete:true});
+
+test('root-level changed-file collisions are evidence of possible overlap only',()=>{
+ const result=analyzeRootFileOverlaps([
+  changed(647,['index.html','js/sectional-op02-feeding.js','PROJECT_STATUS.md','tests/journal.test.mjs']),
+  changed(648,['index.html','sw.js','PROJECT_STATUS.md','tests/journal.test.mjs']),
+  changed(651,['sw.js','js/equipment-labels.js']),
+  changed(653,['PROJECT_STATUS.md','docs/PR-BRANCH-DEPENDENCY-AUDIT-2026-11-28.md']),
+  changed(639,['index.html'],'parent-stacked')
+ ]);
+ assert.equal(result.reviewedRootPrs,4);
+ assert.equal(result.criticalPairCount,2);
+ assert.deepEqual(result.pairs.map(x=>[x.left,x.right,x.sharedCritical]),[
+  [647,648,['index.html']],[648,651,['sw.js']]
+ ]);
+ assert.equal(result.pairs[0].sharedTests,1);
+ assert.equal(result.proof,'COMPLETE_PATH_OVERLAP_ONLY_NOT_SEMANTIC_MERGE_CONFLICT');
+});
+
+test('docs-only simultaneous edits are not runtime collisions',()=>{
+ const result=analyzeRootFileOverlaps([
+  changed(1,['PROJECT_STATUS.md','docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md']),
+  changed(2,['PROJECT_STATUS.md','docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md'])
+ ]);
+ assert.equal(result.criticalPairCount,0);
+ assert.deepEqual(result.pairs,[]);
+});
+
+test('overlap guard refuses partial PR file lists, duplicate or unsafe paths',()=>{
+ assert.throws(()=>analyzeRootFileOverlaps([{number:1,base:'main',paths:['index.html']}]),/Incomplete/);
+ assert.throws(()=>analyzeRootFileOverlaps([changed(1,['sw.js','sw.js'])]),/Incomplete/);
+ assert.throws(()=>analyzeRootFileOverlaps([changed(1,['../hidden'])]),/Incomplete/);
+ assert.throws(()=>analyzeRootFileOverlaps([changed(1,['/absolute/file'])]),/Incomplete/);
+ assert.throws(()=>analyzeRootFileOverlaps([changed(1,['index.html']),changed(1,['sw.js'])]),/Incomplete/);
+ assert.throws(()=>analyzeRootFileOverlaps(null),/Complete PR file inventories/);
 });
