@@ -4,7 +4,7 @@
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
-**Non-video accounting #627 / IMPLEMENTED_DRAFT:** привязка календарной даты осмотра к ID текущей семьи (несколько семей → ручная дата), историческая идентичность подкормок и исключение противоречивых записей из суммы, запрет будущей даты фактического ввода/замены матки; PWA shell cache v325. Существующие данные и schemaVersion не изменены. [Полная матрица](docs/NONVIDEO-ACCOUNTING-ACCEPTANCE-2026-11-27.md) фиксирует незавершённые QA для маток, инвентаря, подкормок, медосбора и зимовки. На code SHA `f4b933c9` Fast 1057/1057 PASS; для нового queen-guard SHA и Android/Chromium/physical точные результаты **NOT_VERIFIED**; не считать весь учёт завершённым.
+**Non-video accounting #627 / IMPLEMENTED_DRAFT:** привязка календарной даты осмотра к ID текущей семьи (несколько семей → ручная дата), историческая идентичность подкормок и исключение противоречивых записей из суммы, запрет будущей даты фактического ввода/замены матки; PWA shell cache v325. Существующие данные и schemaVersion не изменены. [Полная матрица](docs/NONVIDEO-ACCOUNTING-ACCEPTANCE-2026-11-27.md) фиксирует незавершённые QA для маток, инвентаря, подкормок, медосбора и зимовки. На последнем code SHA `d031e9f7` Fast #46017536898 **1058/1058 PASS**; Android/Chromium и физические новые сценарии ещё **NOT_VERIFIED**; не считать весь учёт завершённым.
 
 ## Основные интегрированные функции
 
