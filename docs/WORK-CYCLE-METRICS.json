@@ -1211,6 +1211,30 @@
     "storageChanges": false,
     "videoChanges": false,
     "release": false,
-    "realUserAcceptance": "NOT_TESTED"
+    "realUserAcceptance": "NOT_TESTED",
+    "requestedRows": [
+      [
+        "entrance",
+        "hives"
+      ],
+      [
+        "home",
+        "journal",
+        "ai",
+        "planning",
+        "forage"
+      ],
+      [
+        "incidents",
+        "deadout",
+        "varroa",
+        "settings"
+      ]
+    ],
+    "tessellatedHexagons": true,
+    "visibleAiLabel": false,
+    "ariaLabelPreserved": true,
+    "beeSideView": true,
+    "completedVerifiedUserScenarios": 0
   }
 }
