@@ -32,7 +32,7 @@ test('native scheduler uses one persisted periodic job, disallows network and fi
  for(const category of ['MAIN_FRAME_INTERCEPTED_','MAIN_HTTP_ERROR','PAGE_STARTED_','PAGE_FINISHED_']) assert.match(java,new RegExp(category));
  assert.match(java,/getElementById\('paseka-qa-inline-marker'\)/);
  assert.match(java,/if \(active == parameters && request.isForMainFrame\(\)\)/);
- assert.doesNotMatch(java,/Log\.[a-z]+\(TAG,.*request\.getUrl\(\)(?!\.toString\(\))|response\.getData\(\)/);
+ assert.doesNotMatch(java,/Log\.[a-z]+\(TAG,.*\+\s*(?:html|outcome|raw|source|url|request|message\.message\(\))/i);
  assert.match(java,/onPageFinished\(WebView view, String url\)/);
  assert.match(java,/view\.evaluateJavascript\(probe, value ->/);
  assert.match(java,/if \(active != parameters\) return;/);
