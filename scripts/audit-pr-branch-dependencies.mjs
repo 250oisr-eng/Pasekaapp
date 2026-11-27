@@ -146,7 +146,7 @@ export function analyzeRootFileOverlaps(entries,{base='main'}={}) {
     if(entry.base===base)roots.push(entry);
   }
   roots.sort((a,b)=>a.number-b.number);
-  const isCritical=path=>/^(?:index\.html|sw\.js|package(?:-lock)?\.json|js\/|scripts\/|android\/|android-native\/|\.github\/workflows\/)/.test(path);
+  const isCritical=path=>/^(?:index\.html$|sw\.js$|package(?:-lock)?\.json$|js\/|scripts\/|android\/|android-native\/|\.github\/workflows\/)/.test(path);
   const pairs=[];
   for(let i=0;i<roots.length;i++)for(let j=i+1;j<roots.length;j++){
     const a=roots[i],b=roots[j],their=new Set(b.paths);
