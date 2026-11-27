@@ -189,7 +189,7 @@ async function exportArchive(db){
  const manifest={format:FORMAT,createdAt:new Date().toISOString(),sha256:await sha(json),counts:Object.fromEntries(stores.map(s=>[s.name,s.entries.length]))};
  return JSON.stringify({manifest,payload});
 }
-async function inspectArchive(raw,db,validateMain){
+async function inspectArchive(raw,db,validateMain,{captureLiveFence=true}={}){
  assert(typeof raw==='string','Archive must be text');
  const envelope=JSON.parse(raw);
  assert(envelope&&envelope.manifest&&envelope.payload,'Archive envelope missing');
@@ -225,9 +225,9 @@ async function inspectArchive(raw,db,validateMain){
  const main=restored.get('main').find(x=>x.key==='state')?.value;
  assert(main&&typeof main==='object','Main state is missing');
  if(validateMain)validateMain(main);
- const liveSnapshot=await snapshotLiveKeys(db);
+ const liveSnapshot=captureLiveFence?await snapshotLiveKeys(db):null;
  return {rows:restored,main,counts:manifest.counts,sha256:manifest.sha256,
-  liveKeySignatures:liveSnapshot.keys,liveValueSignatures:liveSnapshot.values};
+  ...(liveSnapshot?{liveKeySignatures:liveSnapshot.keys,liveValueSignatures:liveSnapshot.values}:{})};
 }
 async function atomicRestore(db,inspection,expectedRevision){
  assert(inspection&&inspection.rows instanceof Map,'Archive must pass preflight');
