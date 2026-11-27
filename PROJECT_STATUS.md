@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · verified main `e5fdb2d295c062795820268b0997ebca01a54fde` after approved #618.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · verified main `eda81f8ffbf7491dba7b973373248f28cf19450a` after approved #619.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 ## Основные интегрированные функции
 
@@ -19,7 +19,7 @@
 
 - **USER_REPORTED_FAIL:** размер найденного неопознанного файла ≈330000 байт, `Unexpected token 'P', "PK"...is not valid JSON`; затем пользователь подтвердил, что настоящий `paseka-full-idb-*.json` **отсутствует**. Архив **НЕ сохранён/не проверен**, SHA и копия NOT_TESTED. Не удалять ZIP или данные, не переустанавливать QA. B01 остаётся BLOCKED.
 - **#617 MERGED:** ZIP PK/не-JSON теперь отклоняются до парсинга, Node 1032/1032, Android/Chromium/Governance PASS; в установленном QA этого исправления нет. **Корневая причина — Blob `a.download` не гарантирует Android WebView запись**, скачивание физически не подтверждено.
-- **SAF export / IMPLEMENTED_DRAFT:** отдельный пакет `ru.paseka.journal.qa.archive` в ветке `feat/b01-qa-saf-archive-export-20261127`; native Android `ACTION_CREATE_DOCUMENT`, пофрагментное формирование, проверка SHA-256 исходника/выбранного файла перед любым сообщением об успехе. Новый пакет не обновляет `.qa`/production, использует только синтетику, вводит fail-closed ограничение 256MiB. CI exact-head и OnePlus NOT_VERIFIED. [План](docs/ONEPLUS-QA-SAF-ARCHIVE-2026-11-27.md).
+- **#619 MERGED / BINARY_PROOF:** отдельный `ru.paseka.journal.qa.archive`, системный Android `ACTION_CREATE_DOCUMENT` с посегментной передачей и SHA readback; не обновляет старую QA или production. Точный PR SHA `ad8f183893de7eadfa3f4f696906fafb1948af81`: **1038/1038 Node PASS**, Android build SUCCESS (#45975935822), отдельный SAF QA APK SUCCESS (#45975935838), Governance SUCCESS (#45975935844). CI проверил package/apksigner/SHA. APK SHA256 `83ce0f45cd57acc81f3fd5368b7e13cc8db3057221124b536147336d429ef4d6`; GitHub artifact ID `15187042938` (до 04.12.2026). **DEVICE_NOT_TESTED:** подтверждение файлового диалога, сохранения и повторного чтения на OnePlus отсутствует. Старый QA с данными сохраняется; новую QA нужно испытать с новой синтетикой. [Протокол](docs/ONEPLUS-QA-SAF-ARCHIVE-2026-11-27.md).
 
 ## Блокировки до физических доказательств
 
