@@ -192,6 +192,21 @@ const measure=()=> {
     assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
     await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('night');
     assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'night');
+    // Preferences and theme persist through a reload; verify every primary/secondary route.
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);
+    assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'night');
+    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
+    for(const tab of ['hives','journal','planning','settings','ai']){
+      await primary.locator('button[data-tab="'+tab+'"]').click();
+      await assertInterior(tab);
+      assert.equal(await page.getByRole('combobox',{name:'Рабочий режим'}).isVisible(),true);
+      assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(22, 30, 26)');
+      assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(34, 44, 38)');
+    }
+    await home.click();
+    await assertHome();
+    if(!(await page.locator('#workspacePreferences').evaluate(el=>el.open)))await page.locator('#workspacePreferences summary').click();
     await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('home');
     await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('auto');
     await page.locator('#workspacePreferences summary').click();

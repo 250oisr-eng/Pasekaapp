@@ -32,3 +32,20 @@ test('visual modes are explicit and unknown input defaults to home',()=>{
  for(const mode of ['field','home','night'])assert.equal(ui.normalizeMode(mode),mode);
  assert.equal(ui.normalizeMode(null),'home');
 });
+
+test('display preferences are isolated, validated and survive reopening without touching journal storage',()=>{
+ const storage=new Map([['paseka:previously-used:v1','true'],['journal-fixture','unchanged']]);
+ const get=()=>({getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)});
+ assert.deepEqual(ui.readPreferences(get),{mode:'home',season:'auto'});
+ assert.equal(ui.writePreferences({mode:'night',season:'winter'},get),true);
+ assert.deepEqual(ui.readPreferences(get),{mode:'night',season:'winter'});
+ assert.equal(storage.get('journal-fixture'),'unchanged');
+ assert.equal(storage.get('paseka:previously-used:v1'),'true');
+ assert.deepEqual([...storage.keys()].sort(),['journal-fixture','paseka:previously-used:v1','paseka:workspace-ui:v1'].sort());
+ assert.equal(ui.writePreferences({mode:'__proto__',season:'constructor'},get),true);
+ assert.deepEqual(ui.readPreferences(get),{mode:'home',season:'auto'});
+ storage.set('paseka:workspace-ui:v1','invalid json');
+ assert.deepEqual(ui.readPreferences(get),{mode:'home',season:'auto'});
+ assert.equal(ui.writePreferences({mode:'field'},()=>{throw Error('disabled storage')}),false);
+ assert.deepEqual(ui.readPreferences(()=>{throw Error('disabled storage')}),{mode:'home',season:'auto'});
+});

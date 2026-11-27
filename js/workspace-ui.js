@@ -32,13 +32,23 @@ function seasonalContext(date,override='auto'){
  return Object.freeze({season,label:season?seasons[season].label:'Сезон не определён',topics:season?seasons[season].topics:Object.freeze([]),source:has(seasons,override)?'manual':season?'calendar':'unknown',note:'Ориентир для средней полосы России. Фактическое состояние семей, погода и местные условия имеют приоритет.'});
 }
 function normalizeMode(mode){return has(modes,mode)?mode:'home';}
+const PREFERENCES_KEY='paseka:workspace-ui:v1';
+function normalizePreferences(value){
+ return Object.freeze({mode:normalizeMode(value?.mode),season:has(seasons,value?.season)?value.season:'auto'});
+}
+function readPreferences(storageProvider=()=>root.localStorage){
+ try{return normalizePreferences(JSON.parse(storageProvider()?.getItem(PREFERENCES_KEY)||'null'));}catch{return normalizePreferences(null);}
+}
+function writePreferences(value,storageProvider=()=>root.localStorage){
+ try{const storage=storageProvider();if(!storage)return false;storage.setItem(PREFERENCES_KEY,JSON.stringify(normalizePreferences(value)));return true;}catch{return false;}
+}
 function routeGroup(route){return route==='ai'?'ai':groups.find(group=>group.routes.includes(route))?.id||null;}
-function mountControls(host,{date=()=>localDate(),mode='home',season='auto',onMode=()=>{},onSeason=()=>{}}={}){
+function mountControls(host,{modeHost=null,date=()=>localDate(),mode='home',season='auto',onMode=()=>{},onSeason=()=>{}}={}){
  if(!host||typeof host.replaceChildren!=='function')throw new TypeError('Нужен DOM-контейнер');
  const d=host.ownerDocument;
  let currentMode=normalizeMode(mode),currentSeason=has(seasons,season)?season:'auto';
  function el(tag,text){const node=d.createElement(tag);if(text!==undefined)node.textContent=text;return node;}
- const title=el('h2','Рабочий режим'),modeLabel=el('label','Оформление'),modeSelect=el('select');
+ const title=el('h2','Рабочий режим'),modeLabel=el('label',modeHost?'Режим':'Оформление'),modeSelect=el('select');
  modeSelect.setAttribute('aria-label','Рабочий режим');
  Object.entries(modes).forEach(([value,label])=>{const option=el('option',label);option.value=value;modeSelect.append(option);});
  modeLabel.append(modeSelect);
@@ -57,8 +67,10 @@ function mountControls(host,{date=()=>localDate(),mode='home',season='auto',onMo
  }
  modeSelect.addEventListener('change',()=>{currentMode=normalizeMode(modeSelect.value);render();onMode(currentMode);});
  seasonSelect.addEventListener('change',()=>{currentSeason=has(seasons,seasonSelect.value)?seasonSelect.value:'auto';render();onSeason(currentSeason);});
- host.replaceChildren(title,modeLabel,seasonLabel,summary,topicList,note);render();
+ if(modeHost){modeHost.replaceChildren(modeLabel);host.replaceChildren(seasonLabel,summary,topicList,note);}
+ else host.replaceChildren(title,modeLabel,seasonLabel,summary,topicList,note);
+ render();
  return Object.freeze({refresh:render,getMode:()=>currentMode,getSeason:()=>currentSeason});
 }
-root.PasekaWorkspaceUI=Object.freeze({seasons,modes,groups,labels,calendarSeason,localDate,seasonalContext,normalizeMode,routeGroup,mountControls});
+root.PasekaWorkspaceUI=Object.freeze({seasons,modes,groups,labels,calendarSeason,localDate,seasonalContext,normalizeMode,normalizePreferences,readPreferences,writePreferences,routeGroup,mountControls});
 })(typeof window!=='undefined'?window:globalThis);

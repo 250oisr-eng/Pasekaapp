@@ -1730,5 +1730,24 @@
     "releaseAuthorized": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "uxTheme20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 638,
+    "priorCodeSha": "2a020df4828f60d309c38852e1f5f38764d3e574",
+    "priorCi": {
+      "governance": "success",
+      "fast": "failure",
+      "android": "failure",
+      "chromium": "failure",
+      "journalSynthetic": "pass"
+    },
+    "preferencesStorage": "isolated UI key only",
+    "nextCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "storageSchemaChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
   }
 }

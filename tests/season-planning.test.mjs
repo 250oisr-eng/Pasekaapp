@@ -63,7 +63,7 @@ test('breeding trait summary requires repeated observations before a stable labe
 test('planning module is included in the phone app and offline cache',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
- assert.match(html,/data-subtab="planning"/);
+ assert.match(html,/<button data-tab="planning">Аналитика<\/button>/);
  assert.match(html,/PasekaSeasonPlanning\.buildNectarBackwardPlan/);
  assert.match(html,/PasekaSeasonPlanning\.buildQueenRearingTimeline/);
  assert.match(sw,/\.\/js\/season-planning\.js/);

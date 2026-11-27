@@ -105,8 +105,7 @@ async function journey(browser,origin){
   assert.match(await page.locator('#feedingLedgerContent').textContent(),/150\s*г/);
   const ledger=await page.evaluate((h)=>buildFeedingLedger(S.records,S.families,h),ids.h);
   assert.equal(ledger.find(g=>g.familyId===ids.f).totals.find(t=>t.unit==='г').amount,150);
-  await openPrimary(page,'journal');
-  await page.locator('#journal button[data-subtab="planning"]').click();
+  await openPrimary(page,'planning');
   await page.locator('#inspectionHiveSelect').selectOption(ids.h);
   await page.locator('button[onclick="useLastSavedInspection()"]').click();
   assert.equal(await page.locator('#inspectionLastDate').inputValue(),'2026-11-16',
