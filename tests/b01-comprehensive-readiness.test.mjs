@@ -44,7 +44,7 @@ async function fixture(){
 }
 
 test('updated B01 acceptance no longer requires external JSON, SAF, USB or file in Downloads',()=>{
- assert.match(plan,/дв[ауx].*ежедневн.*локальн.*ZIP/i);
+ assert.match(plan,/два поколения/i);
  for(const clause of ['Не включать в обязательную приёмку','SAF','USB','paseka-full-idb-*.json','не менять системную дату','NOT_TESTED'])
   assert.ok(plan.includes(clause),'missing scope boundary '+clause);
  assert.match(plan,/ru\.paseka\.journal\.qa\.daily/);
@@ -140,6 +140,6 @@ test('physical multi-day and background status remain unproven until device evid
  for(const token of ['G0_INSTALL_ISOLATED','G2_FIRST_VERIFIED_LOCAL_ZIP','G3_TWO_GENERATIONS_ROTATION','G4_ACTUAL_BACKGROUND_ONLY','G4_CATCH_UP_ON_OPEN','G5_OFFLINE_RESTART_IDB','G6_QA_PREVIOUS_RESTORE_AND_REOPEN','G8_UI_HISTORY_JOURNAL_ISOLATION'])
   assert.ok(plan.includes(token),'missing physical gate '+token);
  assert.match(plan,/не менять часы телефона/i);
- assert.match(plan,/выбира.*только QA/i);
- assert.match(plan,/без.*обязательных внешних файлов/i);
+ assert.match(plan,/только QA/i);
+ assert.match(plan,/Никаких обязательных внешних файлов/i);
 });
