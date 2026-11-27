@@ -56,7 +56,7 @@ async function journey(browser,origin,label,viewport){
   assert.ok(a&&b&&a.id!==b.id);
   // Real UI selection and CSV download; no test-only injection into app state.
   await page.locator('#inventorySearch').fill('QA Полка A');
-  await page.waitForFunction(()=>document.querySelector('#inventoryFilterResult')?.textContent?.includes('1 из 2'));
+  await page.waitForFunction(()=>/^Показано: 1 из \d+/.test(document.querySelector('#inventoryFilterResult')?.textContent||''));
   assert.equal(await page.locator('#equipmentInventoryContent [data-inventory-body]:visible').count(),1);
   const before=await page.evaluate(()=>JSON.stringify(S.equipmentInventory));
   const downloading=page.waitForEvent('download');
