@@ -1,4 +1,4 @@
-name: Build isolated OnePlus QA APK (synthetic only)
+name: Build final UX OnePlus QA APK (synthetic only)
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: oneplus-isolated-qa-${{ github.ref }}
+  group: oneplus-ux-final-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,6 +24,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify unchanged integrated runtime against verified corrective candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 21933ef67846f84fedeb5853e7fd86e92b5a29d1
+          git diff --exit-code 21933ef67846f84fedeb5853e7fd86e92b5a29d1 HEAD -- index.html js sw.js manifest.webmanifest capacitor.config.json package.json package-lock.json scripts/prepare-web.mjs android-native icons
+          echo 'UX_RUNTIME_CANDIDATE_SHA 21933ef67846f84fedeb5853e7fd86e92b5a29d1'
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -83,7 +90,7 @@ jobs:
           }
           if(!/^\s*minSdkVersion\s*=\s*35\s*$/m.test(source))throw Error('QA_BLOCKED: minSdk not 35');
           writeFileSync('android/variables.gradle',source);
-          console.log('QA_PACKAGE_VERIFIED ru.paseka.journal.qa / Android API >= 35');
+          console.log('QA_PACKAGE_VERIFIED ru.paseka.journal.qa.ux20261127b / Android API >= 35');
           NODE
       - name: Build disposable QA debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
@@ -92,18 +99,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p qa-artifact
-          cp android/app/build/outputs/apk/debug/app-debug.apk qa-artifact/PASEKA-ONEPLUS-QA-ONLY.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk qa-artifact/PASEKA-ONEPLUS-UX-QA-ONLY.apk
           node --input-type=module <<'NODE'
           import {readFileSync,writeFileSync} from 'node:fs';
           import {createHash} from 'node:crypto';
           import {execFileSync} from 'node:child_process';
           import {parseBadging,parseSigning} from './scripts/check-oneplus-upgrade.mjs';
-          const file='qa-artifact/PASEKA-ONEPLUS-QA-ONLY.apk';
+          const file='qa-artifact/PASEKA-ONEPLUS-UX-QA-ONLY.apk';
           const sdk=process.env.ANDROID_HOME+'/build-tools/35.0.0/';
           const call=(cmd,args)=>execFileSync(cmd,args,{encoding:'utf8',timeout:30000,maxBuffer:4*1024*1024});
           const parsed=parseBadging(call(sdk+'aapt',['dump','badging',file]));
           const signers=parseSigning(call(sdk+'apksigner',['verify','--print-certs',file]));
-          if(parsed.packageName!=='ru.paseka.journal.qa'||signers.length!==1){
+          if(parsed.packageName!=='ru.paseka.journal.qa.ux20261127b'||signers.length!==1){
             throw Error('QA_BLOCKED: APK identity/signature is unsafe or unverified');
           }
           const sha=call('git',['rev-parse','HEAD']).trim();
@@ -112,8 +119,9 @@ jobs:
           const report={
             artifactKind:'ISOLATED_DISPOSABLE_QA_ONLY_NOT_RELEASE',
             packageName:parsed.packageName,
-            appLabel:'Пасека QA — тест',
+            appLabel:'Пасека UX — исправления',
             sourceCommitSha:sha,
+            runtimeCandidateSha:'21933ef67846f84fedeb5853e7fd86e92b5a29d1',
             apkSha256:createHash('sha256').update(bytes).digest('hex'),
             apkBytes:bytes.length,
             signerCertificateSha256:signers[0],
@@ -130,17 +138,20 @@ jobs:
         shell: bash
         run: |
           printf '%s\n' \
-            'PASEKA-ONEPLUS-QA-ONLY' \
-            'Separate disposable Android package: ru.paseka.journal.qa' \
+            'PASEKA-ONEPLUS-UX-QA-ONLY' \
+            'Separate disposable Android package: ru.paseka.journal.qa.ux20261127b' \
             'Never use to upgrade production ru.paseka.journal.' \
             'Only synthetic test records. No original-video deletion or live restore.' \
             'Ephemeral debug signer: future in-place upgrades are NOT supported.' \
+            'Do not replace an existing QA or production package; stop if Android asks to update.' \
             'Check QA-PROVENANCE.json SHA-256 before any permitted installation.' \
             > qa-artifact/README-QA-ONLY.txt
+      - name: Include one-session phone acceptance checklist
+        run: cp docs/ONEPLUS-UX-FOLLOWUP-PHONE-CHECKLIST-2026-11-27.md qa-artifact/PHONE-CHECKLIST.md
       - name: Upload QA APK and verifiable public metadata; no user data
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-ONEPLUS-ISOLATED-QA-APK
+          name: PASEKA-ONEPLUS-UX-FOLLOWUP-20261127
           path: qa-artifact/
           if-no-files-found: error
           retention-days: 7
