@@ -165,7 +165,7 @@ async function journey(browser,origin,name,viewport){
     assert.equal(await page.locator('#home #homeAIQuestion').count(),0);
     assert.equal(await page.locator('main>nav button[data-tab="ai"]').count(),1);
     await page.locator('#workspaceQuickHive').selectOption(before.families[0].hive || before.hives[0].id);
-    await page.locator('#home .home-recent-card').getByRole('button',{name:'＋ Записать событие'}).click();
+    await page.locator('#home').getByRole('button',{name:'＋ Записать событие',exact:true}).click();
     await page.locator('#recordDlg').waitFor({state:'visible'});
     await page.keyboard.press('Escape');
     await page.locator('#recordDlg').waitFor({state:'hidden'});
