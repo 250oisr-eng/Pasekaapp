@@ -143,3 +143,23 @@ test('single user-visible recovery action, no manual archive controls, offline m
  assert.match(html,/PasekaDisasterArchive\.verifyRestoredArchive/);
  assert.match(sw,/'\.\/js\/daily-archives\.js'/);
 });
+
+test('interrupted restore safety copy clears only if full current payload is verified',async()=>{
+ const f=await fixture();try{
+  await f.state('r1');await f.rotate('2026-11-25');
+  await f.state('r2');await f.rotate('2026-11-26');
+  const chosen=await daily.getVerified(f.store,'previous',raw=>archive.inspectArchive(raw,f.db));
+  const current=await archive.exportArchive(f.db);
+  await daily.prepareRollback(f.store,current,'2026-11-26',f.inspect,chosen.proof.sha256);
+  assert.equal(await daily.resolveInterruptedRestore(f.store,current,f.inspect),true);
+  assert.equal((await daily.readAll(f.store)).length,2);
+  await daily.prepareRollback(f.store,current,'2026-11-26',f.inspect,chosen.proof.sha256);
+  await f.state('unrelated-change');
+  assert.equal(await daily.resolveInterruptedRestore(f.store,await archive.exportArchive(f.db),f.inspect),false);
+  assert.equal((await daily.readAll(f.store)).length,3);
+  const target=await daily.getVerified(f.store,'previous',raw=>archive.inspectArchive(raw,f.db));
+  await archive.atomicRestore(f.db,target.proof,'unrelated-change');
+  assert.equal(await daily.resolveInterruptedRestore(f.store,await archive.exportArchive(f.db),f.inspect),true);
+  assert.equal((await daily.readAll(f.store)).length,2);
+ }finally{f.close();}
+});
