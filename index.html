@@ -445,7 +445,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><div class="global-search-controls"><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" aria-controls="globalSearchResults" oninput="renderGlobalSearch()" onkeydown="handleGlobalSearchKeydown(event)"><button type="button" id="globalSearchClear" hidden aria-label="Очистить поиск по пасеке" onclick="clearGlobalSearch()">Очистить</button></div><div id="globalSearchStatus" class="muted global-search-status" role="status" aria-live="polite" aria-atomic="true"></div><div id="globalSearchResults" class="global-search-results"></div></div>
  <div class="card apiary-status-card"><div class="row"><b>Состояние пасеки</b><span class="muted" id="apiaryStatusDate"></span></div><div id="apiaryStatus" class="apiary-status-grid"></div><div id="apiaryAttention" class="apiary-attention"></div></div>
  <div class="card home-hives-card"><div class="row"><b>Мои ульи</b><button onclick="showTab('hives')">Все ульи →</button></div><div id="homeHivePreviewCount" class="muted" aria-live="polite"></div><div id="homeHives" class="home-hive-grid" style="margin-top:10px"></div></div>
- <div class="card home-tasks-card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog(document.getElementById('homeTaskHive').value)">＋ Запланировать</button></div><label for="homeTaskHive">Работы по улью</label><select id="homeTaskHive" onchange="renderHomeTasks()"><option value="">Все ульи</option></select><div id="homeAlerts"></div><div id="homeTasks"></div></div>
+ <div class="card home-tasks-card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog(document.getElementById('homeTaskHive').value)">＋ Запланировать</button></div><label for="homeTaskHive">Работы по улью</label><select id="homeTaskHive" onchange="renderHomeTasks()"><option value="">Все ульи</option></select><div id="homeAlerts"></div><div id="homeTasks"></div><div id="completedHomeTasks"></div></div>
  <div class="card home-recent-card"><div class="row"><b>Последние события</b><button type="button" onclick="newRecord()">＋ Записать событие</button></div><div id="recent" class="muted">Записей пока нет.</div></div>
 </section>
 <section id="forage" class="panel">
@@ -627,7 +627,8 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
  <div id="journalResultCount" class="muted journal-result-count"></div><div id="records" class="journal-timeline"></div>
 </section>
 <section id="settings" class="panel"><h2>Оборудование пасеки</h2><div class="card"><b>Инвентарь физических корпусов</b><p class="muted">Зарегистрированные корпуса с постоянными кодами, местом хранения, состоянием и историей. Складские корпуса можно устанавливать вместо корпуса в улье; снятый корпус вместе с рамками автоматически поступает на склад. Парные медовые комплекты заменяются целиком; независимые корпуса — по одному согласно профилю улья.</p><div id="equipmentInventorySummary" class="muted"></div><button type="button" class="primary" onclick="openEquipmentInventory()">Открыть инвентарь</button></div><div class="card"><b>Физическая сверка рамок</b><p class="muted">Записывай фактически найденные при осмотре коды по улью, корпусу или складскому корпусу. Сверка выявляет отсутствующие, лишние, повторные и найденные не там рамки. Она не меняет реестр автоматически.</p><div id="frameReconciliationSummary" class="muted"></div><button type="button" class="primary" onclick="openFrameReconciliation()">Начать физическую сверку</button><div id="frameReconciliationHistory"></div></div><h2>Резервное копирование</h2>
-<div class="card" id="firstExternalBackupGuide" role="region" aria-labelledby="firstExternalBackupTitle">
+<div class="card" id="dailyArchivePanel"><b>Ежедневные архивы</b><p class="muted">Два последних проверенных ZIP-архива. Пропущенное копирование выполняется при открытии приложения.</p><p id="dailyArchiveStatus" role="status" aria-live="polite">Проверка архивов…</p><p id="dailyArchiveLatest" class="muted">Последний: не проверен</p><p id="dailyArchivePrevious" class="muted">Предыдущий: не проверен</p><button id="dailyRestoreButton" class="primary" type="button" onclick="openDailyRestore()">Восстановить</button></div>
+<div hidden inert aria-hidden="true" style="display:none" id="legacyBackupDiagnostics"><div class="card" id="firstExternalBackupGuide" role="region" aria-labelledby="firstExternalBackupTitle">
  <h3 id="firstExternalBackupTitle" style="margin:0 0 7px">Если внешней резервной копии ещё нет</h3>
  <p class="muted">Первый архив можно создать только из фактически доступных данных приложения. Действия ниже не восстанавливают и не удаляют записи, а наличие копии вне телефона приложение проверить не может.</p>
  <ol style="padding-left:22px;display:grid;gap:7px">
@@ -638,8 +639,9 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
  </ol>
  <button type="button" onclick="document.getElementById('p0FullArchiveReadonly')?.scrollIntoView({block:'start'})">Перейти к безопасному экспорту</button>
  <p class="muted" style="margin-top:8px">Не очищай данные приложения, не переустанавливай его и не удаляй оригиналы ради проверки архива.</p>
-</div><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится копия предыдущего состояния приложения, включая вложения внутри записей, но не отдельные видео летков. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>Ручной архив</b><p class="muted">Скачай JSON и сохрани его вне телефона. Этот формат не включает отдельные видео летков. Для полного архива текущей IndexedDB используй отдельный экспорт P0 ниже и проверь файл вне телефона.</p><button class="primary" onclick="downloadBackup()">Скачать JSON (без отдельных видео летков)</button><label for="backupFile">Восстановить JSON</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить</button></div><div class="card" id="p0FullArchiveReadonly"><b>P0 · Полный архив IndexedDB (только чтение)</b><p class="muted">Сохраняет все разделы текущей базы, включая отдельные Blob-видео, с SHA-256. Файл нужно сохранить и проверить вне телефона. Это НЕ охватывает Gallery/Downloads/MediaStore, другие приложения и не подтверждает независимое восстановление. Функция восстановления полной базы заблокирована до физической проверки.</p><button type="button" onclick="downloadDisasterArchive()">Скачать полный архив текущей базы</button><label for="disasterFile">Проверить уже сохранённый файл</label><input id="disasterFile" type="file" accept=".json,application/json"><button type="button" onclick="verifyDisasterArchive()">Проверить целостность файла без записи</button><p id="disasterArchiveStatus" class="muted" aria-live="polite"></p></div><div class="card"><b>G0 · Инвентаризация источников (без изменения данных)</b><p class="muted">Считает записи текущей базы IndexedDB, отдельные видео летков и вложения журнала без выгрузки личных файлов. Системные Camera/Gallery/Downloads/MediaStore и другие приложения недоступны. Это диагностический отчёт, а не резервная копия или разрешение удалять видео.</p><button type="button" onclick="downloadG0SourceInventory()">Проверить источники и скачать отчёт G0</button><p id="g0InventoryStatus" class="muted" aria-live="polite"></p></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Удаление отключено: полный внешний архив всех источников видео и независимое восстановление ещё не доказаны. Обычный JSON-архив НЕ включает отдельные видео летков.</p><button type="button" disabled aria-disabled="true" title="Удаление заблокировано до доказанного полного восстановления" style="background:#777;color:white">Удаление заблокировано</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
+</div><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится копия предыдущего состояния приложения, включая вложения внутри записей, но не отдельные видео летков. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>Ручной архив</b><p class="muted">Скачай JSON и сохрани его вне телефона. Этот формат не включает отдельные видео летков. Для полного архива текущей IndexedDB используй отдельный экспорт P0 ниже и проверь файл вне телефона.</p><button class="primary" onclick="downloadBackup()">Скачать JSON (без отдельных видео летков)</button><label for="backupFile">Восстановить JSON</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить</button></div><div class="card" id="p0FullArchiveReadonly"><b>P0 · Полный архив IndexedDB (только чтение)</b><p class="muted">Сохраняет все разделы текущей базы, включая отдельные Blob-видео, с SHA-256. Файл нужно сохранить и проверить вне телефона. Это НЕ охватывает Gallery/Downloads/MediaStore, другие приложения и не подтверждает независимое восстановление. Функция восстановления полной базы заблокирована до физической проверки.</p><button type="button" onclick="downloadDisasterArchive()">Скачать полный архив текущей базы</button><label for="disasterFile">Проверить уже сохранённый файл</label><input id="disasterFile" type="file" accept=".json,application/json"><button type="button" onclick="verifyDisasterArchive()">Проверить целостность файла без записи</button><p id="disasterArchiveStatus" class="muted" aria-live="polite"></p></div><div class="card"><b>G0 · Инвентаризация источников (без изменения данных)</b><p class="muted">Считает записи текущей базы IndexedDB, отдельные видео летков и вложения журнала без выгрузки личных файлов. Системные Camera/Gallery/Downloads/MediaStore и другие приложения недоступны. Это диагностический отчёт, а не резервная копия или разрешение удалять видео.</p><button type="button" onclick="downloadG0SourceInventory()">Проверить источники и скачать отчёт G0</button><p id="g0InventoryStatus" class="muted" aria-live="polite"></p></div></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Удаление отключено: полный внешний архив всех источников видео и независимое восстановление ещё не доказаны. Обычный JSON-архив НЕ включает отдельные видео летков.</p><button type="button" disabled aria-disabled="true" title="Удаление заблокировано до доказанного полного восстановления" style="background:#777;color:white">Удаление заблокировано</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
 </main>
+<dialog id="dailyRestoreDlg" aria-labelledby="dailyRestoreTitle"><h2 id="dailyRestoreTitle">Восстановить</h2><p class="muted">Выберите проверенный архив. Текущие записи будут заменены состоянием на дату архива. Защищённые оригиналы не перезаписываются.</p><label for="dailyRestoreSlot">Архив</label><select id="dailyRestoreSlot"></select><p id="dailyRestoreStatus" role="status" aria-live="polite"></p><div class="row"><button id="dailyRestoreConfirm" class="primary" type="button" onclick="restoreDailyArchive()" disabled>Восстановить</button><button type="button" onclick="$('dailyRestoreDlg').close()">Отмена</button></div></dialog>
 <dialog id="entranceVideoPreviewDlg" style="width:min(96vw,760px)" onclose="cleanupEntranceVideoPreview()"><h2>Видео летка</h2><video id="entranceVideoPreview" controls playsinline style="width:100%;max-height:65vh;background:#111;border-radius:12px"></video><p class="muted" id="entranceVideoPreviewInfo"></p><button type="button" onclick="closeEntranceVideoPreview()">Закрыть</button></dialog>
 <dialog id="familyTransferDlg"><h2>Перемещение семьи</h2><form id="familyTransferForm"><input type="hidden" id="transferFamilyId"><p id="transferFamilyInfo" class="muted"></p><label>В какой улей переместить</label><select id="transferTargetHive" required onchange="updateFamilyTransferTargets()"></select><label>Свободный установленный корпус</label><select id="transferTargetBox" required></select><p class="media-note">Вместе с семьёй переместятся все её рамки. Физические корпуса остаются на своих местах: рамки обменяются с рамками выбранного свободного корпуса назначения.</p><div class="row"><button type="button" onclick="$('familyTransferDlg').close()">Отмена</button><button class="primary">Переместить семью и рамки</button></div></form></dialog>
 <dialog id="hiveDlg" aria-labelledby="hiveDialogTitle"><h2 id="hiveDialogTitle">Новый улей</h2><form id="hiveForm"><label for="newHiveMode">Первоначальная комплектация</label><select id="newHiveMode"><option value="summer">Летняя</option><option value="winter">Зимняя</option></select><label for="hiveDesc">Примечание об улье (необязательно)</label><textarea id="hiveDesc" placeholder="Например, особенности размещения или обслуживания"></textarea><button class="primary">Создать и настроить корпуса</button><button type="button" onclick="hiveDlg.close()">Отмена</button></form></dialog>
@@ -674,6 +676,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 <script src="./js/deadout-review.js"></script>
 <script src="./js/p0-source-inventory.js"></script>
 <script src="./js/disaster-archive.js"></script>
+<script src="./js/daily-archives.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 const STARTUP_USE_MARKER_KEY='paseka:previously-used:v1';
@@ -766,7 +769,8 @@ function showStartupFailure(error){
   const description=document.createElement('p');description.textContent='Приложение не будет создавать ульи, записи и видео или изменять хранилище до безопасного открытия базы. Не очищай данные и не переустанавливай приложение.';
   const detail=document.createElement('p');detail.id='startupFailureDetail';detail.style.overflowWrap='anywhere';
   const reload=document.createElement('button');reload.type='button';reload.textContent='Повторить открытие без удаления данных';reload.addEventListener('click',()=>location.reload());
-  box.append(title,description,detail,reload);panel.appendChild(box);document.body.appendChild(panel);
+  const restore=document.createElement('button');restore.type='button';restore.textContent='Восстановить';restore.addEventListener('click',()=>void openDailyRestore());
+  box.append(title,description,detail,restore,reload);panel.appendChild(box);document.body.appendChild(panel);
  }
  document.getElementById('startupFailureDetail').textContent=String(error?.message||error||'Неизвестная ошибка чтения');panel.focus();
 }
@@ -2017,7 +2021,7 @@ function render(){
  const activeRecords=S.records.filter(r=>!r.archivedAt);$('recent').textContent=activeRecords.length?activeRecords.slice(-3).reverse().map(r=>r.date+' · '+r.type+' · '+hname(r.hive)).join(' / '):'Записей пока нет.';$('archivedRecords').innerHTML=S.records.filter(r=>r.archivedAt).sort((a,b)=>b.archivedAt.localeCompare(a.archivedAt)).map(r=>'<div class="row"><span>'+safe(r.date)+' · '+safe(r.type)+' · '+safe(hname(r.hive))+'</span><button onclick="restoreRecord(\''+r.id+'\')">Восстановить</button></div>').join('')||'<p class="muted">Архив пуст.</p>';
  renderGlobalSearch();
  renderHome();
- if(S.meta?.saveError)$('backupStatus').textContent='ОШИБКА сохранения основной базы: '+S.meta.saveError;else if(autoBackupRecovered)$('backupStatus').textContent='Основная база восстановлена из полной автокопии · снимков: '+S.snapshots.length;else if(S.meta?.autoBackupError)$('backupStatus').textContent='Основные данные сохранены · ошибка автокопии: '+S.meta.autoBackupError;else $('backupStatus').textContent=(autoBackupInfo?'Полная автокопия: '+new Date(autoBackupInfo.at).toLocaleString('ru-RU'):'Полная автокопия ещё не создана')+' · снимков: '+S.snapshots.length;$('backupStatus').textContent+=' · '+(storagePersisted===true?'защита от автоматической очистки включена':storagePersisted===false?'браузер не предоставил защиту от автоматической очистки':'статус защиты хранилища неизвестен');
+ if(S.meta?.saveError){const daily=$('dailyArchiveStatus');if(daily)daily.textContent='Ошибка сохранения основной базы: '+S.meta.saveError;}if(S.meta?.saveError)$('backupStatus').textContent='ОШИБКА сохранения основной базы: '+S.meta.saveError;else if(autoBackupRecovered)$('backupStatus').textContent='Основная база восстановлена из полной автокопии · снимков: '+S.snapshots.length;else if(S.meta?.autoBackupError)$('backupStatus').textContent='Основные данные сохранены · ошибка автокопии: '+S.meta.autoBackupError;else $('backupStatus').textContent=(autoBackupInfo?'Полная автокопия: '+new Date(autoBackupInfo.at).toLocaleString('ru-RU'):'Полная автокопия ещё не создана')+' · снимков: '+S.snapshots.length;$('backupStatus').textContent+=' · '+(storagePersisted===true?'защита от автоматической очистки включена':storagePersisted===false?'браузер не предоставил защиту от автоматической очистки':'статус защиты хранилища неизвестен');
  const auditHost=$('auditHistory');if(auditHost){const events=latestAuditEvents(S.auditLog||[]);auditHost.innerHTML=events.length?events.map(x=>{const d=new Date(x.at||x.date||0),when=Number.isNaN(d.getTime())?'Дата неизвестна':d.toLocaleString('ru-RU');const hive=x.hiveId?hname(x.hiveId):'Пасека';let detail='Изменение';if(x.type==='family_created'){const origins={package:'пчелопакет',swarm:'рой',ready:'готовая семья',offshoot:'отводок'};detail='Создана семья '+safe(x.familyName||'')+' · '+safe(origins[x.origin]||x.origin||'происхождение не указано')+(x.parentFamilyId?' · исходная семья '+safe(S.families.find(f=>f.id===x.parentFamilyId)?.name||''):'')+' · корпус №'+safe(x.box||'?')+' · '+hive;}else if(x.type==='family_stage_changed')detail='Изменён этап семьи '+safe(x.familyName||'')+': '+(x.from==='developing'?'отводок · развивается':'самостоятельная семья')+' → '+(x.to==='independent'?'самостоятельная семья':'отводок · развивается')+' · '+hive;else if(x.type==='family_details_updated'){const labels={name:'код/название',breed:'порода',origin:'происхождение',parentFamilyId:'исходная семья'},changes=Object.keys(x.to||{}).filter(k=>(x.from||{})[k]!==x.to[k]).map(k=>labels[k]||k);detail='Изменены данные семьи '+safe(x.familyName||'')+': '+safe(changes.join(', '))+' · корпус №'+safe(x.box||'?')+' · '+hive;}else if(x.type==='frame_moved')detail='Рамка '+safe(x.frameId||'')+': '+safe(frameLocationName(x.from?.box||'?'))+' / место '+safe(x.from?.position||'?')+' → '+safe(frameLocationName(x.to?.box||'?'))+' / место '+safe(x.to?.position||'?')+' · '+hive;else if(x.type==='family_box_assignment')detail='Назначение семьи корпусу №'+safe(x.box)+': '+(x.fromFamilyId?'семья':'пусто')+' → '+(x.toFamilyId?'семья':'пусто')+' · '+hive;else if(x.type==='brood_box_installed')detail='Установлен гнездовой корпус №'+safe(x.box)+' · '+hive;else if(x.type==='brood_box_removed')detail='Снят гнездовой корпус №'+safe(x.box)+' · '+hive;else if(x.type==='corpus_registered')detail='Корпус '+safe(x.labelCode||'')+' учтён в инвентаре · '+hive+' · позиция '+safe(x.box);else if(x.type==='brood_stock_body_created'||x.type==='honey_stock_body_created'||x.type==='honey_stock_pair_created')detail='Добавлено складское оборудование · '+safe((x.labels||[]).join(', '))+' · '+safe(x.storageLocation||'место не указано');else if(x.type==='corpus_installed_from_stock')detail='Корпус '+safe(S.equipmentLabels?.bodies?.[x.bodyId]||'')+' установлен: '+hive+' · '+safe(x.boxKey)+'; снятый корпус отправлен на склад';else if(x.type==='honey_pair_installed_from_stock')detail='Установлена пара медовых корпусов · '+hive;else if(x.type==='corpus_inventory_updated')detail='Изменены сведения о корпусе '+safe(S.equipmentLabels?.bodies?.[x.bodyId]||'')+' · '+safe(x.condition||'');else if(x.type==='corpus_label_assigned')detail='Назначен постоянный код корпуса '+safe(x.labelCode||'')+' · '+hive;else if(x.type==='physical_corpora_swapped')detail='Переставлены корпуса '+safe(x.fromLabel||'')+' и '+safe(x.toLabel||'')+' между позициями';else if(x.type==='assembly_configured')detail='Первичная комплектация: '+(x.mode==='winter'?'зимняя':'летняя')+' · корпуса №'+safe((x.boxes||[]).join(', №'))+' · '+hive;else if(x.type==='assembly_changed'){const d=x.boxChanges||assemblyBoxChanges(x.from,x.to),parts=[];if(d.added?.length)parts.push('установлены №'+d.added.join(', №'));if(d.removed?.length)parts.push('сняты №'+d.removed.join(', №'));if(d.moved?.length)parts.push('переставлены '+d.moved.map(m=>'№'+m.box+' ('+m.from+' → '+m.to+')').join(', '));detail='Изменена сборка: '+(x.from?.mode==='winter'?'зимняя':'летняя')+' → '+(x.to?.mode==='winter'?'зимняя':'летняя')+' · корпуса №'+safe((x.to?.boxes||[]).join(', №'))+(parts.length?' · '+safe(parts.join('; ')):'')+(x.to?.honeyPair?' · медовые корпуса установлены':'')+' · '+hive;}else if(x.type==='family_transferred')detail='Семья '+safe(x.familyName||'')+' и '+safe(x.frameCount||0)+' рамок: '+safe(hname(x.fromHiveId))+' / корпус №'+safe(x.fromBox)+' → '+safe(hname(x.toHiveId))+' / корпус №'+safe(x.toBox)+(Number(x.displacedFrameCount)>0?' · обмен: '+safe(x.displacedFrameCount)+' рамок из корпуса назначения возвращены в корпус №'+safe(x.fromBox):'')+(Array.isArray(x.frameIdChanges)&&x.frameIdChanges.length?' · изменены внутренние номера '+safe(x.frameIdChanges.length)+' рамок для устранения совпадений; постоянные коды сохранены':'');else if(x.type==='frame_updated'){const changes=[];if(x.from?.type!==x.to?.type)changes.push('тип: '+safe(FRAME_TYPES.find(t=>t.id===x.from?.type)?.name||x.from?.type||'—')+' → '+safe(FRAME_TYPES.find(t=>t.id===x.to?.type)?.name||x.to?.type||'—'));if(x.from?.status!==x.to?.status)changes.push('состояние: '+safe(frameStatusName(x.from?.status))+' → '+safe(frameStatusName(x.to?.status)));if((x.from?.note||'')!==(x.to?.note||''))changes.push('примечание изменено');detail='Рамка '+safe(x.frameId||'')+' · '+safe(frameLocationName(x.box||'?'))+': '+(changes.join('; ')||'изменена')+' · '+hive;}else if(x.type==='frame_added')detail='Добавлена рамка '+safe(x.frameId||'')+' · '+safe(frameLocationName(x.box||'?'))+' · '+hive;else if(x.type==='honey_pair_installed')detail='Установлены оба медовых корпуса · '+hive;else if(x.type==='honey_pair_removed')detail='Сняты оба медовых корпуса · данные рамок сохранены · '+hive;else if(x.type==='honey_extracted')detail='Откачка: '+safe(x.kilograms||0)+' кг · обработано рамок: '+safe(x.frameCount||0)+' · '+safe(x.date||'')+' · '+hive;else if(x.type==='honey_pair_returned')detail='Возвращены оба медовых корпуса после откачки '+safe(x.extractionDate||'')+' · '+safe(x.date||'')+' · '+hive;return '<div class="task-item"><div class="task-date">'+safe(when)+'</div><div>'+detail+'</div></div>'}).join(''):'<p class="muted">История пока пуста. Новые перемещения будут записываться автоматически.</p>'}
  if(selectedHiveId){renderStructure();renderHiveExtractionActions()}
 }
@@ -2122,6 +2126,27 @@ function renderHomeTasks(){
  const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
  $('homeAlerts').innerHTML=overdue.length?'<div class="card home-alert"><b>⚠ Просрочено: '+overdue.length+'</b>'+overdue.map(t=>taskMarkup(t)).join('')+'</div>':'';
  $('homeTasks').innerHTML=(todayTasks.length?'<h3 class="home-section-title">Сегодня</h3>'+todayTasks.map(taskMarkup).join(''):'')+(suggested.length?'<h3 class="home-section-title">Рекомендации приложения</h3>'+suggested.map(taskMarkup).join(''):'')+upcomingTasksMarkup(future,$('moreUpcomingTasks')?.open)+(!active.length?'<div class="muted" style="padding:10px 0">'+(hive?'Для этого улья запланированных работ пока нет.':'Запланированных работ пока нет.')+'</div>':'');
+ renderCompletedHomeTasks(hive);
+}
+function completedTaskRecord(state,task){
+ if(!task?.id||task.status!=='done'||!task.completedRecordId||!task.hive)return null;
+ if(state.tasks.filter(t=>t.id===task.id).length!==1)return null;
+ const matches=state.records.filter(r=>r.id===task.completedRecordId);
+ const record=matches.length===1?matches[0]:null;
+ return record&&!record.archivedAt&&record.taskId===task.id&&record.hive===task.hive&&state.hives.some(h=>h.id===task.hive)?record:null;
+}
+function openCompletedTaskRecord(id){
+ const task=S.tasks.find(t=>t.id===id);
+ const record=completedTaskRecord(S,task);
+ if(!record){alert('Связанная запись журнала недоступна.');return;}
+ editRecord(record.id);
+}
+function renderCompletedHomeTasks(hive){
+ const host=$('completedHomeTasks');
+ if(!host)return;
+ const expanded=$('completedTaskHistory')?.open;
+ const rows=S.tasks.filter(t=>t.status==='done'&&(!hive||t.hive===hive)).sort((a,b)=>String(b.completedAt||'').localeCompare(String(a.completedAt||'')));
+ host.innerHTML='<details id="completedTaskHistory"'+(expanded?' open':'')+'><summary>Выполненные работы ('+rows.length+')</summary>'+ (rows.map(t=>'<article class="task-item"><b>'+safe(t.type)+'</b> · '+safe(hname(t.hive))+'<p class="muted">Выполнено: '+safe(t.completedAt||'Дата неизвестна')+'</p>'+(t.note?'<p>'+safe(t.note)+'</p>':'')+(completedTaskRecord(S,t)?'<button type="button" data-task-id="'+safe(t.id)+'" onclick="openCompletedTaskRecord(this.dataset.taskId)">Открыть запись журнала</button>':'<p class="muted">Связанная запись недоступна</p>')+'</article>').join('')||'<p class="muted">Выполненных работ пока нет.</p>')+'</details>';
 }
 function upcomingTasksMarkup(tasks,expanded){
  if(!tasks.length)return '';
@@ -4283,7 +4308,7 @@ function validateRawBackupIntegrity(state){
  const add=(code,details)=>errors.push({code,details});
  const validDate=value=>{if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const [year,month,day]=value.split('-').map(Number),date=new Date(Date.UTC(year,month-1,day));return date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day};
  PasekaLabels.inspectLabelIntegrity(state).forEach(error=>add(error.code,error.details));
- PasekaInventory.inspect(state,PasekaLabels,profileForHive).forEach(error=>add(error.code,error.details));
+ PasekaInventory.inspect(state,PasekaLabels,hiveId=>getHiveProfile(state.hives?.find(hive=>hive?.id===hiveId))).forEach(error=>add(error.code,error.details));
  PasekaEquipmentItems.inspect(state).forEach(error=>add(error.code,error.details));
  PasekaEquipmentItems.validateReferences(state).forEach(error=>add(error.code,error.details));
  PasekaSectionalPhysicalLayout.inspect(state).forEach(error=>add(error.code,error.details));
@@ -4561,11 +4586,151 @@ function askPlantAI(){
  const prompt='Помоги разобрать текстовое наблюдение о медоносных и пыльценосных растениях. Фотографии, если они прикреплены к форме, тебе не передаются — не делай вид, что анализировал их. Не добавляй это в журнал и не утверждай вид без достаточных признаков. Отделяй сообщённые мной факты от предположений; если названия недостаточно для определения, задай уточняющий вопрос. Укажи возможные источники нектара и пыльцы только с оговоркой об их региональной и сезонной изменчивости.\n\nДата: '+(date||'не указана')+'\nНазвание, как я его знаю: '+(name||'не указано')+'\nСтадия по моему наблюдению: '+phase+'\nМесто: '+(location||'не указано')+'\nОписание: '+(note||'нет дополнительного описания')+'\n\nПомоги оценить, достаточно ли данных, какие поля наблюдения стоит уточнить и какие похожие растения можно перепутать.';
  const field=$('aiQuestion');if(!field)return;field.value=prompt;showTab('ai');field.focus();
 }
+let dailyArchiveStore=null,dailyArchiveBusy=false,dailyArchiveCheckedDay=null,dailyRestoreBusy=false,dailyRestoreChoices=[];
+async function getDailyArchiveStore(){
+ if(!dailyArchiveStore)dailyArchiveStore=await PasekaDailyArchives.openStore();
+ return dailyArchiveStore;
+}
+function dailyArchiveInspect(raw,captureLiveFence=false){
+ if(!db)throw new Error('Локальная база недоступна');
+ return PasekaDisasterArchive.inspectArchive(raw,db,state=>assertRawBackupIntegrity(validateBackupState(state)),{captureLiveFence});
+}
+function assertDailyQuiescent(){
+ if(!db)throw new Error('Локальная база недоступна');
+ if(S.meta?.saveError)throw new Error('Последнее сохранение завершилось ошибкой');
+ if(pendingRecordMedia.length||pendingPlantMedia.length||pendingIncidentMedia.length||pendingDeadoutMedia.length||videoRecorder||cameraStream)
+  throw new Error('Сначала завершите сохранение вложений и работу с камерой');
+}
+async function createDailyArchiveRaw(){
+ assertDailyQuiescent();
+ const source=await readMain();
+ if(!source)throw new Error('Основная запись отсутствует; пустой архив не создаётся');
+ const revision=source?.meta?.revisionId||null;
+ if(!revision||revision!==lastPersistedRevision)throw new Error('Основная база изменилась; повторите позже');
+ const raw=await PasekaDisasterArchive.exportArchive(db,{maxBytes:PasekaDailyArchives.MAX_BYTES});
+ const proof=await dailyArchiveInspect(raw);
+ const after=await readMain();
+ if(proof.main?.meta?.revisionId!==revision||after?.meta?.revisionId!==revision)
+  throw new Error('Основная база изменилась во время архивирования');
+ return raw;
+}
+function showDailyArchiveStatus(status){
+ for(const [slot,id,label] of [['latest','dailyArchiveLatest','Последний'],['previous','dailyArchivePrevious','Предыдущий']]){
+  const item=status.find(row=>row.slot===slot),host=$(id);
+  if(!host)continue;
+  host.textContent=label+': '+(!item||item.missing?'ещё не создан':(item.day||'дата неизвестна')+' · '+(item.valid?'проверен':'повреждён или несовместим'));
+ }
+}
+async function checkDailyArchives(){
+ if(!startupWriteGate.ready||dailyArchiveBusy||dailyRestoreBusy||document.visibilityState==='hidden'||dailyArchiveCheckedDay===today())return;
+ dailyArchiveBusy=true;
+ const status=$('dailyArchiveStatus'),day=today();
+ const run=async()=>{
+  if(!startupWriteGate.ready||dailyRestoreBusy)return;
+  try{
+   assertDailyQuiescent();
+   const store=await getDailyArchiveStore();
+   if(status)status.textContent='Проверка и автоматическое архивирование…';
+   const result=await PasekaDailyArchives.rotate(store,{day,createRaw:createDailyArchiveRaw,inspect:dailyArchiveInspect});
+   showDailyArchiveStatus(result.status);
+   if(status)status.textContent=result.created?'Архивирование выполнено · '+day:'Архивы проверены · '+day;
+   dailyArchiveCheckedDay=day;
+  }catch(e){
+   if(status)status.textContent='Архивирование отложено: '+String(e?.message||e)+'. Предыдущие копии не заменены.';
+   try{if(dailyArchiveStore)showDailyArchiveStatus(await PasekaDailyArchives.checked(await PasekaDailyArchives.readAll(dailyArchiveStore),dailyArchiveInspect));}catch(_){}
+  }
+ };
+ const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});
+ try{await pending;}finally{dailyArchiveBusy=false;}
+}
+async function openDailyRestore(){
+ if(dailyRestoreBusy)return;
+ const dialog=$('dailyRestoreDlg'),select=$('dailyRestoreSlot'),status=$('dailyRestoreStatus'),button=$('dailyRestoreConfirm');
+ if(!dialog||dialog.open)return;
+ select.replaceChildren();button.disabled=true;dailyRestoreChoices=[];status.textContent='Проверка сохранённых архивов…';dialog.showModal();
+ try{
+  if(!db)throw new Error('Локальная база недоступна');
+  const store=await getDailyArchiveStore();
+  const checked=await PasekaDailyArchives.checked(await PasekaDailyArchives.readAll(store),dailyArchiveInspect);
+  showDailyArchiveStatus(checked);
+  dailyRestoreChoices=checked.filter(item=>item.valid);
+  for(const item of dailyRestoreChoices){
+   const option=document.createElement('option');option.value=item.slot;option.textContent=(item.slot==='latest'?'Последний: ':'Предыдущий: ')+item.day;select.appendChild(option);
+  }
+  status.textContent=dailyRestoreChoices.length?'Архивы проверены. Выберите дату.':'Нет пригодных архивов. Текущие данные не менялись.';
+  button.disabled=!dailyRestoreChoices.length;
+ }catch(e){status.textContent='Не удалось проверить архивы: '+String(e?.message||e);}
+}
+async function restoreDailyArchive(){
+ if(dailyRestoreBusy)return;
+ const select=$('dailyRestoreSlot'),button=$('dailyRestoreConfirm'),status=$('dailyRestoreStatus');
+ const choice=dailyRestoreChoices.find(row=>row.slot===select?.value);
+ if(!choice)return;
+ if(!confirm('Восстановить архив от '+choice.day+'? Текущие данные будут заменены. Если защищённые оригиналы нельзя сохранить, восстановление будет остановлено.'))return;
+ dailyRestoreBusy=true;button.disabled=true;
+ const run=async()=>{
+  let rollbackId=null,committed=false,gateWasReady=startupWriteGate.ready;
+  try{
+   assertDailyQuiescent();
+   const store=await getDailyArchiveStore();
+   const selected=await PasekaDailyArchives.getVerified(store,choice.slot,raw=>dailyArchiveInspect(raw,true));
+   if(selected.row.id!==choice.id||selected.row.sha256!==choice.sha256)throw new Error('Выбранный архив изменился. Откройте окно восстановления заново.');
+   const current=await readMain(),revision=current?.meta?.revisionId||null;
+   status.textContent='Создание временной копии текущего состояния…';
+   const rollbackRaw=await PasekaDisasterArchive.exportArchive(db,{maxBytes:PasekaDailyArchives.MAX_BYTES});
+   // Exact readback of the exporter output, even when the current main record
+   // is damaged or absent. Never treat it as a valid restore target.
+   const rollbackManifest=JSON.parse(rollbackRaw).manifest;
+   rollbackId=await PasekaDailyArchives.prepareRollback(store,rollbackRaw,today(),raw=>{
+    if(raw!==rollbackRaw)throw new Error('Аварийная копия отличается от исходной базы');
+    return {sha256:rollbackManifest.sha256};
+   },selected.proof.sha256);
+   status.textContent='Восстановление…';
+   startupWriteGate.ready=false;
+   await PasekaDisasterArchive.atomicRestore(db,selected.proof,revision,{preserveIdenticalLiveBinary:true});
+   committed=true;
+   await PasekaDisasterArchive.verifyRestoredArchive(db,selected.proof);
+   await PasekaDailyArchives.finishRollback(store,rollbackId);rollbackId=null;
+   status.textContent='Архив восстановлен и проверен. Приложение перезапускается.';
+   location.reload();
+  }catch(e){
+   if(!committed){
+    startupWriteGate.ready=gateWasReady;
+    if(rollbackId&&dailyArchiveStore)try{await PasekaDailyArchives.finishRollback(dailyArchiveStore,rollbackId);}catch(_){}
+    status.textContent='Восстановление остановлено: '+String(e?.message||e)+'. Текущая база не заменена.';
+   }else{
+    status.textContent='Запись выполнена, но итоговая проверка не завершена. Аварийная копия сохранена; дальнейшие записи остановлены.';
+    showStartupFailure(new Error(status.textContent));
+   }
+  }
+ };
+ const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});
+ try{await pending;}finally{dailyRestoreBusy=false;button.disabled=true;}
+}
+async function resolveDailyArchiveRecovery(){
+ const store=await getDailyArchiveStore();
+ const rows=await PasekaDailyArchives.readAll(store);
+ if(!rows.some(row=>row.slot==='staging'&&row.kind==='rollback'))return;
+ const resolved=await PasekaDailyArchives.resolveInterruptedRestore(store,await PasekaDisasterArchive.exportArchive(db,{maxBytes:PasekaDailyArchives.MAX_BYTES}),dailyArchiveInspect);
+ if(!resolved)throw new Error('Восстановление ранее прервалось, текущее состояние не совпадает с проверенным исходным или целевым архивом. Аварийная копия сохранена; дальнейшие записи остановлены.');
+}
+function startDailyArchiveScheduler(){
+ void checkDailyArchives();
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void checkDailyArchives();});
+ window.addEventListener('pageshow',()=>void checkDailyArchives());
+ setInterval(()=>void checkDailyArchives(),15*60*1000);
+}
+
 async function requestStoragePersistence(){try{if(!navigator.storage||!navigator.storage.persist){storagePersisted=false;return}storagePersisted=await navigator.storage.persisted();if(!storagePersisted)storagePersisted=await navigator.storage.persist()}catch(e){storagePersisted=false}}
 async function updateStorageEstimate(){const host=$('storageUsage');if(!host)return;try{if(!navigator.storage?.estimate){host.textContent='Оценка занятого места браузером недоступна.';return}const e=await navigator.storage.estimate();storageEstimate=e;if(!Number.isFinite(e.usage)||!Number.isFinite(e.quota)||e.quota<=0){host.textContent='Браузер не предоставил оценку объёма хранилища.';return}const mb=n=>Math.round(n/1024/1024*10)/10,free=Math.max(0,e.quota-e.usage),pct=Math.round(e.usage/e.quota*100);host.textContent='Занято приложениями этого сайта: '+mb(e.usage)+' МБ из '+mb(e.quota)+' МБ · свободно примерно '+mb(free)+' МБ'+(pct>=85?' · мало свободного места':'')+'. Оценка приблизительная.';host.style.color=pct>=85?'#a33':''}catch(e){host.textContent='Не удалось получить оценку хранилища.'}}
 (async()=>{
  try{
   const databaseCreatedDuringOpen=await openDB();await requestStoragePersistence();
+  // Check an interrupted restore before any startup migration or fallback write.
+  // Failure to open the archive store does not silently authorize recovery writes.
+  let archiveStoreOpened=false;
+  try{await getDailyArchiveStore();archiveStoreOpened=true;}catch(e){const status=$('dailyArchiveStatus');if(status)status.textContent='Хранилище архивов недоступно: '+String(e?.message||e);}
+  if(archiveStoreOpened)await resolveDailyArchiveRecovery();
   let startupMain=null;try{startupMain=await readMain()}catch(e){}
   const startupExpectedRevision=startupMain?.meta?.revisionId||null;
   const loaded=await read();
@@ -4609,6 +4774,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
   history.replaceState({pasekaTab:'home'},'',location.pathname);
   showTab('home',false);
+  startDailyArchiveScheduler();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});
  }catch(e){showStartupFailure(e);alert('Не удалось безопасно открыть данные пасеки. Действия заблокированы, хранилище не очищено. '+(e.message||e))}
 })();

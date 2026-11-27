@@ -28,9 +28,9 @@ test('home plan filters all active groups by saved hive and keeps unlinked tasks
   {id:'legacy',status:'pending',date:'2026-01-03'}
  ];
  const before=structuredClone(tasks);
- const source=html.slice(html.indexOf('function renderHomeTasks('),html.indexOf('function upcomingTasksMarkup('));
- const draw=new Function('S','$','today','taskMarkup','upcomingTasksMarkup',source+';return renderHomeTasks')(
-  {tasks},id=>fields[id],()=>'2026-01-02',t=>t.id,rows=>rows.map(t=>t.id).join(' '));
+ const source=html.slice(html.indexOf('function renderHomeTasks('),html.indexOf('function completedTaskRecord('));
+ const draw=new Function('S','$','today','taskMarkup','upcomingTasksMarkup','renderCompletedHomeTasks',source+';return renderHomeTasks')(
+  {tasks},id=>fields[id],()=>'2026-01-02',t=>t.id,rows=>rows.map(t=>t.id).join(' '),()=>{});
  draw();
  assert.match(fields.homeAlerts.innerHTML,/late/);
  for(const id of ['now','later','proposal'])assert.ok(fields.homeTasks.innerHTML.includes(id));
@@ -62,4 +62,17 @@ test('planning dialog opens with the selected hive and collects only entered fee
  get('planFeedingAmount').value='  отметка  ';
  assert.equal(api.collectPlannedFeedingFields().plannedFeedingAmount,'отметка');
  assert.equal(api.collectPlannedFeedingFields().plannedFeedingMethod,'');
+});
+
+test('completed task link requires unique reciprocal active journal association',()=>{
+ const source=html.slice(html.indexOf('function completedTaskRecord('),html.indexOf('function openCompletedTaskRecord('));
+ const find=new Function(source+';return completedTaskRecord')();
+ const t={id:'t',status:'done',hive:'h',completedRecordId:'r'};
+ const r={id:'r',hive:'h',taskId:'t'};
+ const state={tasks:[t],records:[r],hives:[{id:'h'}]};
+ assert.equal(find(state,t),r);
+ for(const records of [[],[r,r],[{...r,archivedAt:'date'}],[{...r,hive:'other'}],[{...r,taskId:'other'}]])assert.equal(find({...state,records},t),null);
+ assert.equal(find({...state,tasks:[t,t]},t),null);
+ assert.equal(find({...state,hives:[]},t),null);
+ assert.equal(find(state,{...t,status:'pending'}),null);
 });

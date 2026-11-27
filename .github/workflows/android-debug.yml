@@ -15,6 +15,8 @@ on:
       - 'capacitor.config.json'
       - 'android/**'
       - 'scripts/prepare-web.mjs'
+      - 'scripts/prepare-android-daily-archives.mjs'
+      - 'android-native/**'
       - 'scripts/patch-android-gradle.mjs'
       - 'scripts/audit-android-debug-artifact.mjs'
       - 'diagnostics/android-debug-artifact/**'
@@ -32,6 +34,8 @@ on:
       - 'capacitor.config.json'
       - 'android/**'
       - 'scripts/prepare-web.mjs'
+      - 'scripts/prepare-android-daily-archives.mjs'
+      - 'android-native/**'
       - 'scripts/patch-android-gradle.mjs'
       - 'scripts/audit-android-debug-artifact.mjs'
       - 'diagnostics/android-debug-artifact/**'
@@ -100,6 +104,8 @@ jobs:
         run: npx cap sync android
       - name: Use Android 15-compatible Gradle toolchain
         run: node scripts/patch-android-gradle.mjs
+      - name: Install native daily archive scheduler
+        run: node scripts/prepare-android-daily-archives.mjs android
       - name: Require Android 15 or newer
         shell: bash
         run: |
