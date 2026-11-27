@@ -2,6 +2,7 @@ name: Journal real-browser E2E (synthetic only)
 on:
   push:
     paths:
+      - 'index.html'
       - 'tests/e2e/**'
       - '.github/workflows/e2e-journal.yml'
   workflow_dispatch:

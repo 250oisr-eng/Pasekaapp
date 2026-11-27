@@ -91,3 +91,11 @@ test('urgent and today tasks remain visible even for hives beyond preview limit'
   assert.match(slots.homeAlerts.innerHTML, /overdue-hive-9/);
   assert.match(slots.homeTasks.innerHTML, /today-hive-9/);
 });
+
+
+test('central AI respects its grid cell and never inherits legacy upward translateY', () => {
+  assert.match(css,/grid-row:2;grid-column:3;width:min\(64px,100%\);height:56px;min-height:56px/);
+  assert.match(css,/transform:none!important; \/\* override legacy translateY/);
+  assert.match(css,/grid-column:6!important;width:min\(68px,100%\)/);
+  assert.match(css,/@media\(max-width:340px\)[\s\S]*?width:min\(58px,100%\)/);
+});
