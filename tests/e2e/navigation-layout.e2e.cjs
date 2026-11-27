@@ -24,8 +24,7 @@ const scenarios=[
   ['landscape-640',640,320],['landscape-780',780,360],['landscape-844',844,390],
   ['landscape-1024',1024,768],['landscape-1365',1365,900]
 ];
-const expected=['entrance','hives','home','planning','journal','ai',
-  'forage','incidents','deadout','varroa','settings'];
+const expected=['home','hives','ai','journal','settings'];
 const measure=()=> {
   const box=el=>{const r=el.getBoundingClientRect();
     return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,
@@ -64,24 +63,12 @@ const measure=()=> {
   const aiVisual={beePresent:!!bee,beePathCount:bee?.querySelectorAll('path,ellipse').length||0,
     rimColor:aiStyle?.borderTopColor||null,background:aiStyle?.backgroundImage||null,hexagonButtons};
   const ai=buttons.find(b=>b.tab==='ai');
-  const mobileRows=[['entrance','hives','home','planning'],
-    ['journal','ai','forage'],
-    ['incidents','deadout','varroa','settings']];
   const layoutProblems=[];
-  if(mobileRows){
-    const ordered=mobileRows.flatMap((row,index)=>row.map(tab=>({tab,row:index})));
-    for(const {tab,row} of ordered){
-      const button=buttons.find(b=>b.tab===tab);
-      if(!button||Math.abs(button.cy-buttons.find(b=>b.tab===mobileRows[row][0]).cy)>1)
-        layoutProblems.push(tab+' is not in designated row '+(row+1));
-    }
-    const hex=buttons.find(b=>b.tab==='entrance');
-    const other=buttons.find(b=>b.tab==='hives');
-    if(hex&&other&&Math.abs(hex.right-other.left)>1)
-      layoutProblems.push('same-row hexagons do not touch edges');
-    const rows=[mobileRows[0][0],mobileRows[1][0],mobileRows[2][0]].map(t=>buttons.find(b=>b.tab===t));
-    if(rows.every(Boolean)&&Math.abs((rows[1].cy-rows[0].cy)-rows[0].height*.75)>1.5)
-      layoutProblems.push('hexagon rows are not vertically tessellated');
+  const first=buttons[0];
+  for(let i=0;i<buttons.length;i++){
+    const button=buttons[i];
+    if(Math.abs(button.cy-first.cy)>1)layoutProblems.push(button.tab+' is not in single row');
+    if(i>0&&Math.abs(button.left-buttons[i-1].right)>1)layoutProblems.push('hexagons do not touch edges');
   }
   return {viewport:{width:innerWidth,height:innerHeight},
     documentWidth:document.documentElement.scrollWidth,
@@ -125,7 +112,7 @@ const measure=()=> {
       else {
         const tabs=m.buttons.map(b=>b.tab);
         if(JSON.stringify(tabs)!==JSON.stringify(expected))problems.push('navigation routes/order changed');
-        if(m.buttons.length!==11)problems.push('expected 11 nav buttons');
+        if(m.buttons.length!==5)problems.push('expected 5 nav buttons');
         if(!m.aiVisual.beePresent||m.aiVisual.beePathCount<5)
           problems.push('central AI must contain an inline stylized bee');
         if(!m.aiVisual.hexagonButtons)problems.push('all nav cells must be hexagons');
@@ -133,14 +120,14 @@ const measure=()=> {
           problems.push('AI must use an edge-lightened radial blue gradient');
         if(!/rgba\(/.test(m.aiVisual.rimColor||''))
           problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
-        if(m.rowTracks!==3)
-          problems.push('4-3-4 honeycomb rows changed');
+        if(m.rowTracks!==1)
+          problems.push('single-row honeycomb changed');
         problems.push(...m.layoutProblems);
         const ai=m.buttons.find(b=>b.tab==='ai');
         if(ai?.label)problems.push('AI button must have no visible text');
         if(ai?.accessibleName!=='Открыть ИИ-помощника')problems.push('AI accessibility name missing');
         if(m.buttons.find(b=>b.tab==='ai')?.cy!==m.buttons.find(b=>b.tab==='journal')?.cy)
-          problems.push('AI not in middle row');
+          problems.push('AI not in primary row');
         if(Math.abs(m.nav.bottom-height)>2)problems.push('nav is not anchored to viewport bottom');
         if(m.nav.left< -1||m.nav.right>width+1)problems.push('nav horizontal overflow');
         if(m.documentWidth>width+2)problems.push('document horizontal overflow '+m.documentWidth);
@@ -172,8 +159,24 @@ const measure=()=> {
       const m=await page.evaluate(measure);
       if(JSON.stringify(m.buttons.map(button=>button.tab))!==JSON.stringify(expected))
         failures.push('navigation changed after opening '+tab);
-      if(m.rowTracks!==3||m.layoutProblems.length||Math.abs(m.aiDelta)>3)
-        failures.push('4-3-4 layout changed on tab '+tab+': '+JSON.stringify(m.layoutProblems));
+      if(m.rowTracks!==1||m.layoutProblems.length||Math.abs(m.aiDelta)>3)
+        failures.push('five-cell layout changed on tab '+tab+': '+JSON.stringify(m.layoutProblems));
+    }
+    // Each grouped screen is reachable, its parent highlighted, and Back returns to the parent.
+    for(const [parent,children] of Object.entries({hives:['entrance','varroa'],journal:['planning','forage'],settings:['incidents','deadout']})){
+      for(const child of children){
+        await page.locator('main>nav button[data-tab="'+parent+'"]').click();
+        const link=page.locator('#'+parent+' [data-subtab="'+child+'"]');
+        assert.equal(await link.count(),1);
+        assert.ok(await link.isVisible(),child+' must be visible within '+parent);
+        assert.ok((await link.boundingBox()).height>=44);
+        await link.click();
+        await page.locator('#'+child+'.panel.active').waitFor({state:'visible'});
+        assert.equal(await page.locator('main>nav button.active').getAttribute('data-tab'),parent);
+        assert.equal(await page.locator('main>nav button[data-tab="'+child+'"]').count(),0);
+        await page.locator('#backButton').click();
+        await page.locator('#'+parent+'.panel.active').waitFor({state:'visible'});
+      }
     }
     // Independent UI #609 smoke on a disposable Chromium profile: no production records.
     await page.locator('main>nav button[data-tab="home"]').click();

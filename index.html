@@ -373,13 +373,13 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 
 @media(min-width:900px){main>nav[aria-label="Основные разделы"]{grid-template-columns:repeat(10,minmax(0,1fr))!important}}
 
-/* #596: approved 4-3-4 seamless hexagonal navigation on all sections; DOM matches focus order. */
+/* Five top-level sections; retain the centered honeycomb AI control. */
 main>nav[aria-label="Основные разделы"]{
  --hex-h:clamp(68px,calc((100vw - 14px)*.23094),98px);
  width:min(100%,440px);max-width:100%;
  display:grid!important;
- grid-template-columns:repeat(10,minmax(0,1fr))!important;
- grid-template-rows:repeat(2,calc(var(--hex-h)*.75)) var(--hex-h);
+ grid-template-columns:repeat(5,minmax(0,1fr))!important;
+ grid-template-rows:var(--hex-h);
  gap:0;
  padding:8px 7px calc(8px + env(safe-area-inset-bottom,0px))!important;
  background:rgba(248,248,243,.98);
@@ -387,10 +387,10 @@ main>nav[aria-label="Основные разделы"]{
 main>nav[aria-label="Основные разделы"] button{
  display:flex;align-items:center;justify-content:center;min-width:0;width:100%;
  height:var(--hex-h);min-height:var(--hex-h);padding:5px 2px!important;
- grid-column:span 2;align-self:start;
+ grid-row:1;grid-column:auto;align-self:start;
  border:0;border-radius:0;
  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
- background:#e8eee5;color:#294a34;font-size:clamp(9px,2.65vw,12px);
+ background:#e8eee5;color:#294a34;font-size:clamp(10px,2.65vw,12px);
  line-height:1.1;font-weight:750;text-align:center;white-space:normal;
  overflow-wrap:anywhere;word-break:normal;box-shadow:inset 0 0 0 1px rgba(49,93,60,.09);
 }
@@ -398,39 +398,32 @@ main>nav[aria-label="Основные разделы"] button.active{background:
 main>nav[aria-label="Основные разделы"] button:focus-visible{
  outline:0;filter:drop-shadow(0 0 3px #f4c85d);box-shadow:inset 0 0 0 3px #f4c85d;
 }
-main>nav[aria-label="Основные разделы"] button[data-tab="entrance"]{grid-row:1;grid-column:2/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="hives"]{grid-row:1;grid-column:4/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="home"]{grid-row:1;grid-column:6/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="journal"]{grid-row:2;grid-column:3/span 2}
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
- grid-row:2;grid-column:5/span 2;width:100%;height:var(--hex-h);min-height:var(--hex-h);
+ grid-row:1;grid-column:3;width:100%;height:var(--hex-h);min-height:var(--hex-h);
  justify-self:center;align-self:start;padding:4px!important;transform:none!important;
  border:2px solid rgba(186,242,255,.74);
  background:radial-gradient(circle at 50% 48%,#06467f 0%,#087bb8 43%,#56c8ed 73%,#b1f1ff 100%);
  box-shadow:inset 0 0 0 2px rgba(245,253,255,.24),0 0 0 2px rgba(119,218,250,.16);
  color:#fff;z-index:1;
 }
+main>nav[aria-label="Основные разделы"] button[data-tab="ai"].active{transform:none!important;box-shadow:inset 0 0 0 2px #f4c85d,0 0 0 2px rgba(119,218,250,.16)}
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-bee{
  display:block;width:38px;height:38px;flex:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.24));
 }
-main>nav[aria-label="Основные разделы"] button[data-tab="planning"]{grid-row:1;grid-column:8/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="forage"]{grid-row:2;grid-column:7/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="incidents"]{grid-row:3;grid-column:2/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="deadout"]{grid-row:3;grid-column:4/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="varroa"]{grid-row:3;grid-column:6/span 2}
-main>nav[aria-label="Основные разделы"] button[data-tab="settings"]{grid-row:3;grid-column:8/span 2}
-main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) + env(safe-area-inset-bottom,0px))!important}
-.fab{bottom:calc(clamp(192px,calc((100vw - 14px)*.57735 + 22px),268px) + env(safe-area-inset-bottom,0px))!important}
+main{padding-bottom:calc(126px + env(safe-area-inset-bottom,0px))!important}
+.fab{bottom:calc(116px + env(safe-area-inset-bottom,0px))!important}
+.section-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 14px}
+.section-shortcuts button{width:100%;min-width:0;min-height:48px;white-space:normal;overflow-wrap:anywhere;text-align:center;border:1px solid #d5dfd1;background:#e8eee5;color:#24452f}
+.section-shortcuts button:focus-visible{outline:2px solid #315d3c;outline-offset:2px}
 #home .home-hives-card #homeHivePreviewCount:not(:empty){margin-top:7px;font-size:12px}
-/* Keep the user-approved 4-3-4 on desktop, too: desktop single-row
-   would change visual/focus order and move the fifth DOM button off-center. */
+/* Keep the compact five-cell navigation centered in landscape. */
 @media (orientation:landscape) and (max-height:520px) and (min-width:560px){
  main>nav[aria-label="Основные разделы"]{
   width:min(100%,320px);
   --hex-h:clamp(68px,calc((min(100vw,320px) - 14px)*.23094),70.7px);
  }
- main{padding-bottom:210px!important}
- .fab{bottom:200px!important}
+ main{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}
+ .fab{bottom:calc(94px + env(safe-area-inset-bottom,0px))!important}
 }
 @media(max-width:340px){
  main>nav[aria-label="Основные разделы"]{padding-left:4px!important;padding-right:4px!important}
@@ -442,7 +435,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 
 </style></head><body>
 <header class="home-header"><div class="home-brand"><div><h1 id="currentSectionTitle" class="home-brand-title" aria-live="polite" style="margin:0">Обзор</h1></div><button id="modelDiagnosticsIndicator" type="button" aria-haspopup="dialog" aria-controls="modelDiagnosticsDlg" onclick="$('modelDiagnosticsDlg').showModal()" hidden></button></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
-<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button data-tab="entrance">Лёток</button><button data-tab="hives">Ульи</button><button data-tab="home" class="active" aria-label="Обзор пасеки" aria-current="page">Обзор</button><button data-tab="planning">План</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><svg class="nav-ai-bee" aria-hidden="true" focusable="false" viewBox="0 0 64 64" width="38" height="38"><path d="M25 29 5 15 33 23 43 31M26 32 9 23 35 29" fill="#b9f4ff" fill-opacity=".72" stroke="#dcfbff" stroke-width="1.25" stroke-linejoin="round"/><path d="M9 49 17 42 21 47 13 57Z" fill="#ffe36c"/><path d="M15 42 21 29 37 26 47 32 41 43 23 49Z" fill="#ffda54" stroke="#fff1a0" stroke-width="1.3" stroke-linejoin="round"/><path d="M23 29 19 43 23 49M31 27 28 46M38 27 36 44" fill="none" stroke="#083a69" stroke-width="5.2"/><path d="M42 29 49 25 57 29 61 36 54 44 45 42 41 37Z" fill="#ffdf64" stroke="#fff1a0" stroke-width="1.3" stroke-linejoin="round"/><path d="M53 28 55 18M48 27 45 20M58 39 63 42" stroke="#f8de66" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M55 32 59 34 55 37 51 35Z" fill="#073b67"/><path d="M20 46 15 55M30 46 27 56M39 42 40 51" stroke="#ffdb61" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button><button data-tab="forage">Медоносы</button><button data-tab="incidents">Инцидент</button><button data-tab="deadout">Потери</button><button data-tab="varroa">Клещ</button><button data-tab="settings">Ещё</button></nav>
+<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button data-tab="home" class="active" aria-label="Обзор пасеки" aria-current="page">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><svg class="nav-ai-bee" aria-hidden="true" focusable="false" viewBox="0 0 64 64" width="38" height="38"><path d="M25 29 5 15 33 23 43 31M26 32 9 23 35 29" fill="#b9f4ff" fill-opacity=".72" stroke="#dcfbff" stroke-width="1.25" stroke-linejoin="round"/><path d="M9 49 17 42 21 47 13 57Z" fill="#ffe36c"/><path d="M15 42 21 29 37 26 47 32 41 43 23 49Z" fill="#ffda54" stroke="#fff1a0" stroke-width="1.3" stroke-linejoin="round"/><path d="M23 29 19 43 23 49M31 27 28 46M38 27 36 44" fill="none" stroke="#083a69" stroke-width="5.2"/><path d="M42 29 49 25 57 29 61 36 54 44 45 42 41 37Z" fill="#ffdf64" stroke="#fff1a0" stroke-width="1.3" stroke-linejoin="round"/><path d="M53 28 55 18M48 27 45 20M58 39 63 42" stroke="#f8de66" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M55 32 59 34 55 37 51 35Z" fill="#073b67"/><path d="M20 46 15 55M30 46 27 56M39 42 40 51" stroke="#ffdb61" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button><button data-tab="journal">Журнал</button><button data-tab="settings">Ещё</button></nav>
 <section id="home" class="panel active">
  <div class="card home-intro-card" style="border-left:4px solid #547b5d"><b>Виртуальная модель пасеки</b><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></div>
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><div class="global-search-controls"><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" aria-controls="globalSearchResults" oninput="renderGlobalSearch()" onkeydown="handleGlobalSearchKeydown(event)"><button type="button" id="globalSearchClear" hidden aria-label="Очистить поиск по пасеке" onclick="clearGlobalSearch()">Очистить</button></div><div id="globalSearchStatus" class="muted global-search-status" role="status" aria-live="polite" aria-atomic="true"></div><div id="globalSearchResults" class="global-search-results"></div></div>
@@ -588,6 +581,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 </section>
 <section id="hives" class="panel">
  <div class="row"><div><h2>Ульи</h2><div class="muted" id="hiveDirectoryCount">Все ульи пасеки</div></div><button class="primary" type="button" data-action="open-new-hive">＋ Добавить</button></div>
+ <div class="section-shortcuts" role="group" aria-label="Подразделы: Ульи"><button type="button" data-subtab="entrance" onclick="showTab('entrance')">Лёток</button><button type="button" data-subtab="varroa" onclick="showTab('varroa')">Клещ</button></div>
  <div class="workspace-filter-row"><input id="hiveSearch" type="search" placeholder="Поиск: улей, семья, рамка…" aria-label="Поиск по ульям, семьям и рамкам" oninput="renderHiveDirectory()"><select id="hiveModeFilter" aria-label="Фильтр по сборке" onchange="renderHiveDirectory()"><option value="all">Все сборки</option><option value="summer">Летняя</option><option value="winter">Зимняя</option></select></div>
  <div id="hiveList"></div>
  <div class="card" style="margin-top:14px"><div class="row"><div><b>Реестр маток</b><div class="muted">Текущие и выбывшие матки, история ввода и замены</div></div></div><div id="queenRegistryList"></div></div>
@@ -624,12 +618,14 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 </div></section>
 <section id="journal" class="panel">
  <div class="row"><div><h2>Журнал</h2><div class="muted">Хронология наблюдений и работ</div></div><button class="primary" onclick="newRecord()">＋ Запись</button></div>
+ <div class="section-shortcuts" role="group" aria-label="Подразделы: Журнал"><button type="button" data-subtab="planning" onclick="showTab('planning')">План</button><button type="button" data-subtab="forage" onclick="showTab('forage')">Медоносы</button></div>
  <label for="journalHive">Улей</label><select id="journalHive" onchange="selectJournalHive(this.value)"></select>
  <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются. Повторные записи одной плановой задачи отмечаются отдельно и не входят в суммы.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"><button type="button" onclick="clearJournalFilters()">Сбросить</button><button type="button" onclick="downloadFilteredJournalCsv()">Скачать CSV</button></div>
  <div class="muted" id="journalCsvScope">CSV содержит только текст выбранных записей, без фото, видео, вложений и архивных событий. Не является резервной копией.</div>
  <div id="journalResultCount" class="muted journal-result-count"></div><div id="records" class="journal-timeline"></div>
 </section>
 <section id="settings" class="panel">
+ <div class="section-shortcuts" role="group" aria-label="Подразделы: Ещё"><button type="button" data-subtab="incidents" onclick="showTab('incidents')">Инцидент</button><button type="button" data-subtab="deadout" onclick="showTab('deadout')">Потери</button></div>
  <div class="card"><button type="button" aria-haspopup="dialog" aria-controls="modelDiagnosticsDlg" onclick="$('modelDiagnosticsDlg').showModal()">Проверка состояния модели</button></div>
  <h2>Оборудование пасеки</h2><div class="card"><b>Инвентарь физических корпусов</b><p class="muted">Зарегистрированные корпуса с постоянными кодами, местом хранения, состоянием и историей. Складские корпуса можно устанавливать вместо корпуса в улье; снятый корпус вместе с рамками автоматически поступает на склад. Парные медовые комплекты заменяются целиком; независимые корпуса — по одному согласно профилю улья.</p><div id="equipmentInventorySummary" class="muted"></div><button type="button" class="primary" onclick="openEquipmentInventory()">Открыть инвентарь</button></div><div class="card"><b>Физическая сверка рамок</b><p class="muted">Записывай фактически найденные при осмотре коды по улью, корпусу или складскому корпусу. Сверка выявляет отсутствующие, лишние, повторные и найденные не там рамки. Она не меняет реестр автоматически.</p><div id="frameReconciliationSummary" class="muted"></div><button type="button" class="primary" onclick="openFrameReconciliation()">Начать физическую сверку</button><div id="frameReconciliationHistory"></div></div><h2>Резервное копирование</h2>
 <div class="card" id="dailyArchivePanel"><b>Ежедневные архивы</b><p class="muted">Два последних проверенных ZIP-архива. Пропущенное копирование выполняется при открытии приложения.</p><p id="dailyArchiveStatus" role="status" aria-live="polite">Проверка архивов…</p><p id="dailyArchiveLatest" class="muted">Последний: не проверен</p><p id="dailyArchivePrevious" class="muted">Предыдущий: не проверен</p><button id="dailyRestoreButton" class="primary" type="button" onclick="openDailyRestore()">Восстановить</button></div>
@@ -2311,7 +2307,7 @@ function updateJournalInspectionCapacity(){
 }
 function toggleOccupancy(){const on=$('rtype').value==='Осмотр',treat=$('rtype').value==='Обработка',feeding=$('rtype').value==='Подкормка';['occupancyLabel','roccupancy','broodLabel','rbrood','drawnLabel','rdrawn','expansionHint'].forEach(id=>$(id).style.display=on?'block':'none');$('queenFields').style.display=on?'block':'none';$('treatmentFields').style.display=treat?'block':'none';$('feedingFields').style.display=feeding?'block':'none';if(!on){$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value=''}updateJournalInspectionCapacity()}
 function selectJournalHive(id){activeJournalHive=id;render()}
-function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const pageTitles={home:'Обзор',hives:'Ульи',hiveDetail:'Улей',entrance:'Лёток',journal:'Журнал',settings:'Ещё',ai:'ИИ-помощник',forage:'Медоносы',varroa:'Клещ',incidents:'Инциденты',planning:'План',deadout:'Потери'};const currentTitle=$('currentSectionTitle');if(currentTitle){const currentHive=tab==='hiveDetail'?S.hives?.find(h=>h.id===selectedHiveId):null;currentTitle.textContent=currentHive?.name||pageTitles[tab]||'Обзор';}const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',entrance:'#e5f0d9',journal:'#f5e2d5',ai:'#e6e0f2',planning:'#e2eedf',deadout:'#f3e4d9',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();if(tab==='planning')renderSeasonPlanning();if(tab==='deadout')renderDeadoutModule();document.querySelectorAll('nav button').forEach(x=>{const active=x.dataset.tab===tab||(tab==='hiveDetail'&&x.dataset.tab==='hives');x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
+function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const pageTitles={home:'Обзор',hives:'Ульи',hiveDetail:'Улей',entrance:'Лёток',journal:'Журнал',settings:'Ещё',ai:'ИИ-помощник',forage:'Медоносы',varroa:'Клещ',incidents:'Инциденты',planning:'План',deadout:'Потери'};const currentTitle=$('currentSectionTitle');if(currentTitle){const currentHive=tab==='hiveDetail'?S.hives?.find(h=>h.id===selectedHiveId):null;currentTitle.textContent=currentHive?.name||pageTitles[tab]||'Обзор';}const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',entrance:'#e5f0d9',journal:'#f5e2d5',ai:'#e6e0f2',planning:'#e2eedf',deadout:'#f3e4d9',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();if(tab==='planning')renderSeasonPlanning();if(tab==='deadout')renderDeadoutModule();document.querySelectorAll('nav button').forEach(x=>{const parent=({hiveDetail:'hives',entrance:'hives',varroa:'hives',planning:'journal',forage:'journal',incidents:'settings',deadout:'settings'})[tab]||tab;const active=x.dataset.tab===parent;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
 function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab);if(tab==='ai')initAIAuth()}
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 
