@@ -163,3 +163,64 @@ test('interrupted restore safety copy clears only if full current payload is ver
   assert.equal((await daily.readAll(f.store)).length,2);
  }finally{f.close();}
 });
+
+test('daily restore keeps existing byte-identical original without clearing or rewriting its row',async()=>{
+ const f=await fixture();try{
+  await f.state('r1',true);await f.rotate('2026-11-25');
+  await f.state('r2');await f.rotate('2026-11-26');
+  const chosen=await daily.getVerified(f.store,'previous',raw=>archive.inspectArchive(raw,f.db));
+  const writes=[];
+  const guarded={
+   objectStoreNames:f.db.objectStoreNames,
+   transaction(names,mode){
+    const inner=f.db.transaction(names,mode);
+    if(mode!=='readwrite')return inner;
+    return new Proxy(inner,{
+     get(tx,property){
+      if(property==='objectStore')return name=>{
+       const store=tx.objectStore(name);
+       return new Proxy(store,{
+        get(target,op){
+         if(name==='entrance_media'&&['clear','delete','put'].includes(op))return (...args)=>{writes.push(op);throw Error('Protected original must not be rewritten');};
+         const value=Reflect.get(target,op,target);return typeof value==='function'?value.bind(target):value;
+        }
+       });
+      };
+      const value=Reflect.get(tx,property,tx);return typeof value==='function'?value.bind(tx):value;
+     },
+     set(tx,property,value){Reflect.set(tx,property,value,tx);return true;}
+    });
+   }
+  };
+  await archive.atomicRestore(guarded,chosen.proof,'r2',{preserveIdenticalLiveBinary:true});
+  assert.equal((await archive.verifyRestoredArchive(f.db,chosen.proof)).verified,true);
+  assert.deepEqual(writes,[]);
+ }finally{f.close();}
+});
+test('daily restore rejects different equal-size live bytes even after preflight and preserves the whole DB',async()=>{
+ const f=await fixture();try{
+  await f.state('r1',true);await f.rotate('2026-11-25');
+  await f.state('r2');await f.rotate('2026-11-26');
+  const chosen=await daily.getVerified(f.store,'previous',raw=>archive.inspectArchive(raw,f.db));
+  await new Promise((resolve,reject)=>{
+   const tx=f.db.transaction('entrance_media','readwrite');
+   tx.objectStore('entrance_media').put({id:'video1',blob:new Blob([Uint8Array.of(9,8,7)],{type:'video/mp4'})});
+   tx.oncomplete=resolve;tx.onabort=tx.onerror=()=>reject(tx.error);
+  });
+  const before=await archive.exportArchive(f.db);
+  await assert.rejects(archive.atomicRestore(f.db,chosen.proof,'r2',{preserveIdenticalLiveBinary:true}),/Live binary originals differ/);
+  const proof=await f.inspect(before);
+  assert.equal((await archive.verifyRestoredArchive(f.db,proof)).verified,true);
+  assert.equal(proof.main.meta.revisionId,'r2');
+ }finally{f.close();}
+});
+test('daily restore refuses an old snapshot that omits a current original',async()=>{
+ const f=await fixture();try{
+  await f.state('r1');await f.rotate('2026-11-25');
+  await f.state('r2',true);await f.rotate('2026-11-26');
+  const chosen=await daily.getVerified(f.store,'previous',raw=>archive.inspectArchive(raw,f.db));
+  const before=await f.inspect(await archive.exportArchive(f.db));
+  await assert.rejects(archive.atomicRestore(f.db,chosen.proof,'r2',{preserveIdenticalLiveBinary:true}),/Live binary originals absent/);
+  assert.equal((await archive.verifyRestoredArchive(f.db,before)).verified,true);
+ }finally{f.close();}
+});

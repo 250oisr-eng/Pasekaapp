@@ -229,7 +229,7 @@ async function inspectArchive(raw,db,validateMain,{captureLiveFence=true}={}){
  return {rows:restored,main,counts:manifest.counts,sha256:manifest.sha256,
   ...(liveSnapshot?{liveKeySignatures:liveSnapshot.keys,liveValueSignatures:liveSnapshot.values}:{})};
 }
-async function atomicRestore(db,inspection,expectedRevision){
+async function atomicRestore(db,inspection,expectedRevision,{preserveIdenticalLiveBinary=false}={}){
  assert(inspection&&inspection.rows instanceof Map,'Archive must pass preflight');
  const names=Array.from(db.objectStoreNames);
  assert(JSON.stringify(names.slice().sort())===JSON.stringify(Array.from(inspection.rows.keys()).sort()),'Store inventory changed after preflight');
@@ -247,28 +247,78 @@ async function atomicRestore(db,inspection,expectedRevision){
    const main=tx.objectStore('main'),req=main.get('state');
    const checks=names.map(name=>({name,req:tx.objectStore(name).getAllKeys(),values:tx.objectStore(name).getAll()}));
    let remaining=checks.length*2+1,revisionOk=false;
+   const protectedKeys=new Map(names.map(name=>[name,new Set()]));
    const abort=e=>{if(!conflict)conflict=e;try{tx.abort();}catch(_){}};
+   const signature=key=>JSON.stringify(keySignature(key));
+   const commit=()=>{
+    try{
+     for(const {name,req:keys} of checks){
+      const store=tx.objectStore(name),rows=inspection.rows.get(name),keep=protectedKeys.get(name);
+      // A protected row is never cleared, deleted or put. If all live
+      // binary-containing records are identical, preserve their original IDB
+      // objects and change only non-protected records.
+      if(!keep.size)store.clear();
+      else for(const key of keys.result)if(!keep.has(signature(key)))store.delete(key);
+      for(const row of rows){
+       if(keep.has(signature(row.key)))continue;
+       if(store.keyPath===null)store.put(row.value,row.key);
+       else store.put(row.value);
+      }
+     }
+    }catch(e){abort(e);}
+   };
+   const checkProtected=tasks=>{
+    // Keep the all-store readwrite transaction alive while reading Blob
+    // bytes. Every keepalive callback executes inside the write lock, so
+    // another tab cannot replace an equal-size original between comparison
+    // and commit. If the browser ends/aborts the transaction, fail closed.
+    let finished=false,failure=null;
+    const started=Date.now();
+    const compare=async()=>{
+     for(const {name,key,live,target} of tasks){
+      assert(target,'Live binary originals absent from selected archive: '+name);
+      const old=JSON.stringify(await pack(live)),wanted=JSON.stringify(await pack(target.value));
+      assert(old===wanted,'Live binary originals differ from selected archive: '+name);
+      protectedKeys.get(name).add(signature(key));
+     }
+    };
+    compare().then(()=>{finished=true;},e=>{failure=e;finished=true;});
+    const pulse=()=>{
+     if(settled)return;
+     if(Date.now()-started>60000)return abort(new Error('Live binary verification exceeded safety timeout'));
+     if(finished){if(failure)return abort(failure);commit();return;}
+     try{
+      const keepAlive=main.count();
+      keepAlive.onsuccess=pulse;
+      keepAlive.onerror=()=>abort(keepAlive.error||new Error('Live binary transaction lock failed'));
+     }catch(e){abort(e);}
+    };
+    pulse();
+   };
    const proceed=()=>{
     if(--remaining!==0)return;
     if(!revisionOk)return abort(new Error('Database changed since preflight'));
     try{
+     const tasks=[];
      for(const {name,req:keys,values} of checks){
       if(keyListSignature(keys.result)!==inspection.liveKeySignatures[name])
        return abort(new Error('Store keys changed since preflight: '+name));
       if(JSON.stringify(values.result.map(liveValueSignature))!==inspection.liveValueSignatures[name])
        return abort(new Error('Store values changed since preflight: '+name));
-      // All stores, including nested records: never overwrite an existing
-      // binary without a transaction-safe byte-level comparison.
-      for(const value of values.result)assertNoLiveBinary(value,name);
-     }
-     for(const name of names){
-      const store=tx.objectStore(name),rows=inspection.rows.get(name);
-      store.clear();
-      for(const row of rows){
-       if(store.keyPath===null)store.put(row.value,row.key);
-       else store.put(row.value);
+      const targetRows=new Map(inspection.rows.get(name).map(row=>[signature(row.key),row]));
+      for(let i=0;i<values.result.length;i++){
+       const value=values.result[i];
+       try{assertNoLiveBinary(value,name);}
+       catch(e){
+        // Default legacy behavior unchanged. The daily restore path may only
+        // retain an exact byte-identical row, not replace or remove originals.
+        if(!preserveIdenticalLiveBinary||!String(e?.message).startsWith('Live binary originals require non-destructive restore:'))throw e;
+        const key=keys.result[i];
+        tasks.push({name,key,live:value,target:targetRows.get(signature(key))});
+       }
       }
      }
+     if(tasks.length)checkProtected(tasks);else commit();
     }catch(e){abort(e);}
    };
    req.onsuccess=()=>{revisionOk=(req.result?.meta?.revisionId||null)===expectedRevision;proceed();};
