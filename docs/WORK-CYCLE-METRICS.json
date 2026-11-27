@@ -1202,11 +1202,11 @@
     "issue": 596,
     "sourceMain": "fa5493da9067d5d50204d19ad92f37ac0605839c",
     "branch": "feat/ui-596-bee-honeycomb-20261127",
-    "stage": "CI_VERIFIED_EXACT_CODE_SHA_PENDING_MERGE",
+    "stage": "IN_MAIN",
     "uiRoutesPreserved": 11,
     "chromeViewportCasesPlanned": 11,
     "chromeViewportCasesVerified": 11,
-    "ciVerifiedExactSha": "b24957cd29dfb1950f0c8686ecb33d64546005f4",
+    "ciVerifiedExactSha": "49f85367d2b528f5db57cb820d2416825a37211c",
     "device": "NOT_TESTED",
     "storageChanges": false,
     "videoChanges": false,
@@ -1254,6 +1254,16 @@
       "governance": 45964068933
     },
     "androidApkBuild": "SUCCESS_CI_NOT_INSTALLED",
-    "merged": false
+    "merged": true,
+    "pr": 607,
+    "mergeSha": "7f2f7aad126bebe45670775eb0ced93dd371813b",
+    "lastPRHeadCi": {
+      "androidRun": 45964309074,
+      "chromiumRun": 45964309235,
+      "governanceRun": 45964309219,
+      "all": "success"
+    },
+    "mainExactCI": "NOT_VERIFIED",
+    "published": false
   }
 }
