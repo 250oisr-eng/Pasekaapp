@@ -608,12 +608,12 @@ test('AI frame move completes the full preview-confirmation-persistence flow ato
  assert.equal(saved.aiMessages[0].commandStatus,'applied');
  assert.deepEqual(saved.layouts.h1.boxes[3].frames.map(frame=>frame.frameId),['A']);
 });
-test('AI assistant has a dedicated central navigation control and a themed workspace',()=>{
+test('AI assistant has a dedicated navigation control and a themed workspace',()=>{
   assert.match(html,/<button data-tab="ai" class="nav-ai-button"[^>]*aria-label="Открыть ИИ-помощника"/);
   assert.match(html,/class="ai-hero"/);
   assert.match(html,/class="ai-hero-orb"/);
   assert.match(html,/class="card ai-console-card"/);
-  assert.ok(html.includes('main>nav[aria-label="Основные разделы"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 66px'));
+  assert.match(html,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
 });
 
 test('inline application JavaScript remains syntactically valid',()=>{
@@ -654,19 +654,23 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 });
 
 
-test('workspace exposes eleven routes and one canonical AI entry, plus quick journal',()=>{
+test('workspace exposes five primary sections, five grouped routes and one canonical AI entry',()=>{
   const navStart=html.indexOf('<nav aria-label="Основные разделы">');
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
   const nav=html.slice(navStart,navEnd);
-  assert.equal((nav.match(/data-tab=/g)||[]).length,11);
-  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','План','Потери','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
-  assert.match(nav,/<svg class="nav-ai-bee" aria-hidden="true"/);
+  assert.equal((nav.match(/data-tab=/g)||[]).length,6);
+  for(const label of ['Главная','Пасека','Журнал','Аналитика','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
+  for(const route of ['entrance','varroa','forage','incidents','deadout']){
+    assert.ok(!nav.includes('data-tab="'+route+'"'));
+    assert.ok(html.includes('data-subtab="'+route+'"'));
+  }
+  assert.match(nav,/data-tab="ai"[^>]*>ИИ<\/button>/);
   assert.match(nav,/data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"/);
   assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
   assert.equal((nav.match(/data-tab="ai"/g)||[]).length,1);
   assert.ok(!html.includes('id="homeAIQuestion"'));
-  assert.match(html,/<div class="card home-recent-card"><div class="row"><b>Последние события<\/b><button type="button" onclick="newRecord\(\)">＋ Записать событие<\/button>/);
+  assert.match(html,/<button type="button" onclick="openWorkspaceRecord\(''\)">＋ Записать событие<\/button>/);
   assert.ok(html.includes('id="aiQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
   assert.ok(html.includes('class="ai-prompt-chips"'));
@@ -1811,10 +1815,10 @@ test('profile assembly rejects removing a brood box that still owns a family',()
 });
 
 
-test('mobile navigation includes all eleven sections and is positioned as a safe-area-aware bottom bar',()=>{
+test('mobile navigation includes five primary sections and is positioned as a safe-area-aware bottom bar',()=>{
  const nav=html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/);
  assert.ok(nav);
- assert.equal((nav[1].match(/data-tab=/g)||[]).length,11);
+ assert.equal((nav[1].match(/data-tab=/g)||[]).length,6);
  assert.match(html,/main>nav\[aria-label="Основные разделы"\][\s\S]*?position:fixed!important/);
  assert.match(html,/env\(safe-area-inset-bottom,0px\)/);
 });
@@ -1884,7 +1888,7 @@ test('journal supports family filtering and inline attachment previews',()=>{
 
 test('hive detail keeps the hives navigation destination active',()=>{
  const paint=extractFunction('paintTab');
- assert.match(paint,/tab==='hiveDetail'&&x\.dataset\.tab==='hives'/);
+ assert.match(paint,/hiveDetail:'hives'/);assert.match(paint,/entrance:'hives',forage:'planning',varroa:'settings'/);assert.match(paint,/x\.dataset\.tab===parent/);
  assert.doesNotMatch(paint,/tab==='hiveDetail'&&x\.dataset\.tab==='home'/);
 });
 
@@ -3147,7 +3151,7 @@ test('family transfer targets follow each hive profile keys and winter restricti
 
 
 test('Varroa journal is integrated as a phone-only offline section with migration and backup support',()=>{
- assert.match(html,/data-tab="varroa"/);
+ assert.match(html,/data-subtab="varroa"/);
  assert.match(html,/id="varroaForm"/);
  assert.match(html,/id="varroaHive"/);
  assert.match(html,/id="varroaType"/);
@@ -3171,7 +3175,7 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
 
 
 test('pesticide incident dossier is integrated with smartphone capture, local state, backup and migration',()=>{
- assert.match(html,/data-tab="incidents"/);
+ assert.match(html,/data-subtab="incidents"/);
  assert.match(html,/id="incidentForm"/);
  assert.match(html,/capture="environment"/);
  assert.match(html,/captureIncidentLocation\(\)/);
@@ -3643,7 +3647,7 @@ test('service worker caches accessory inventory module for offline operation',as
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/p0-source-inventory\.js/);
- assert.match(sw,/paseka-shell-v326/);
+ assert.match(sw,/paseka-shell-v327/);
 });
 
 
@@ -3769,7 +3773,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v326/);
+  assert.match(source,/paseka-shell-v327/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);

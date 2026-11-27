@@ -1,7 +1,7 @@
 // Only the versioned Paseka application shell may be cached offline.
-const CACHE='paseka-shell-v326';
-const CACHE_VERSION=326;
-const FILES=['./','./index.html','./manifest.webmanifest','./icons/paseka.svg','./js/voice-command-parser.js','./js/voice-session.js','./js/hive-model.js','./js/equipment-labels.js','./js/equipment-bodies.js','./js/equipment-inventory.js','./js/equipment-items.js','./js/sectional-physical-layout.js','./js/family-lineage.js','./js/sectional-operation-coordinator.js','./js/equipment-reconciliation.js','./js/equipment-reconciliation-voice.js','./js/entrance-analysis.js','./js/varroa-monitor.js','./js/pesticide-incident.js','./js/season-planning.js','./js/deadout-review.js','./js/p0-source-inventory.js','./js/disaster-archive.js','./js/daily-archives.js'];
+const CACHE='paseka-shell-v327';
+const CACHE_VERSION=327;
+const FILES=['./','./index.html','./manifest.webmanifest','./icons/paseka.svg','./js/voice-command-parser.js','./js/voice-session.js','./js/hive-model.js','./js/equipment-labels.js','./js/equipment-bodies.js','./js/equipment-inventory.js','./js/equipment-items.js','./js/sectional-physical-layout.js','./js/family-lineage.js','./js/sectional-operation-coordinator.js','./js/equipment-reconciliation.js','./js/equipment-reconciliation-voice.js','./js/entrance-analysis.js','./js/varroa-monitor.js','./js/pesticide-incident.js','./js/season-planning.js','./js/workspace-ui.js','./js/deadout-review.js','./js/p0-source-inventory.js','./js/disaster-archive.js','./js/daily-archives.js'];
 const SCOPE=new URL(self.registration.scope);
 const SHELL_PATHS=new Set(FILES.map(file=>new URL(file,SCOPE).pathname));
 
