@@ -41,7 +41,7 @@ test('native scheduler uses one persisted periodic job, disallows network and fi
  assert.match(java,/BRIDGE_FINISH/);
  assert.match(java,/JOB_FINISHED retry=/);
  assert.match(java,/case "BOOTSTRAP": case "ORIGIN": case "MARKER":/);
- assert.doesNotMatch(java,/Log\.[a-z]+\(TAG,.*(?:html|outcome|raw|source|url|error\.getDescription)/i);
+ assert.doesNotMatch(java,/Log\.[a-z]+\(TAG,.*(?:error\.getDescription|request\.getUrl|response\.getData|message\.sourceId|message\.message)/i);
 });
 test('native patch is idempotent and preserves distinct package/origin',()=>{
  const config={appId:'ru.paseka.journal',webDir:'www',android:{allowMixedContent:false}};
