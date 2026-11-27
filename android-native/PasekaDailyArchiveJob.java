@@ -21,6 +21,7 @@ public final class PasekaDailyArchiveJob extends JobService {
     private final Handler main = new Handler(Looper.getMainLooper());
     private JobParameters active;
     private String lastPhase = "idle";
+    private boolean consoleErrorLogged;
     private WebView worker;
     private Runnable timeout;
     public static void schedule(Context context) {
@@ -39,6 +40,7 @@ public final class PasekaDailyArchiveJob extends JobService {
         if (active != null) return false;
         active = parameters;
         lastPhase = "START";
+        consoleErrorLogged = false;
         Log.i(TAG, "START");
         timeout = () -> {
             Log.w(TAG, "WATCHDOG_TIMEOUT phase=" + lastPhase);
@@ -63,6 +65,17 @@ public final class PasekaDailyArchiveJob extends JobService {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
             settings.setJavaScriptCanOpenWindowsAutomatically(false);
             settings.setSupportMultipleWindows(false);
+            worker.setWebChromeClient(new WebChromeClient() {
+                @Override public boolean onConsoleMessage(ConsoleMessage message) {
+                    if (active == parameters && !consoleErrorLogged
+                            && message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                        consoleErrorLogged = true;
+                        Log.w(TAG, "JS_CONSOLE_ERROR");
+                    }
+                    // Do not write JS console text, source URL or line: could contain user data.
+                    return true;
+                }
+            });
             worker.setWebViewClient(new WebViewClient() {
                 @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return true; }
                 @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
@@ -70,7 +83,9 @@ public final class PasekaDailyArchiveJob extends JobService {
                         Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
                 }
                 @Override public void onPageFinished(WebView view, String url) {
-                    if (active == parameters) Log.i(TAG, "PAGE_FINISHED phase=" + lastPhase);
+                    if (active != parameters) return;
+                    Log.i(TAG, "PAGE_FINISHED phase=" + lastPhase);
+                    probeJavascript(parameters, view);
                 }
                 @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                     if (active == parameters && request.isForMainFrame()) {
@@ -92,6 +107,33 @@ public final class PasekaDailyArchiveJob extends JobService {
             complete(parameters, true);
         }
     }
+    // Read-only fixed-code JS probe. Never evaluate user text or log JS result verbatim.
+    private void probeJavascript(JobParameters parameters, WebView view) {
+        final String probe = "(function(){try{"
+            + "if(window.__pasekaProbeInline!==true)return 'NO_INLINE';"
+            + "if(typeof DB!=='string')return 'NO_DB';"
+            + "if(window.__pasekaWorkerStarted!==true)return 'NO_RUNNER';"
+            + "var b=window.PasekaArchiveJob;"
+            + "if(!b)return 'NO_BRIDGE';"
+            + "if(typeof b.trace!=='function'||typeof b.finish!=='function')return 'NO_METHOD';"
+            + "return 'READY';"
+            + "}catch(_){return 'EXCEPTION';}})();";
+        try {
+            view.evaluateJavascript(probe, value -> {
+                if (active != parameters) return;
+                if ("\"NO_INLINE\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_INLINE");
+                else if ("\"NO_DB\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_DB");
+                else if ("\"NO_RUNNER\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_RUNNER");
+                else if ("\"NO_BRIDGE\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_BRIDGE");
+                else if ("\"NO_METHOD\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_METHOD");
+                else if ("\"READY\"".equals(value)) Log.i(TAG, "JS_PROBE_READY");
+                else Log.w(TAG, "JS_PROBE_UNKNOWN");
+            });
+        } catch (RuntimeException ignored) {
+            Log.w(TAG, "JS_PROBE_DISPATCH_FAILED");
+        }
+    }
+
     public final class WorkerBridge {
         private final JobParameters parameters;
         WorkerBridge(JobParameters parameters) { this.parameters = parameters; }
