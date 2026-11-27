@@ -78,12 +78,16 @@ public final class PasekaDailyArchiveJob extends JobService {
             });
             worker.setWebViewClient(new WebViewClient() {
                 @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
-                    if (active == parameters) Log.i(TAG, "PAGE_STARTED_" + routeCode(url));
+                    if (active == parameters) {
+                        String fixedRoute = routeCode(url);
+                        Log.i(TAG, "PAGE_STARTED_" + fixedRoute);
+                    }
                 }
                 @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return true; }
                 @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                     if (active == parameters && request.isForMainFrame()) {
-                        Log.w(TAG, "MAIN_FRAME_INTERCEPTED_" + routeCode(request.getUrl().toString()));
+                        String fixedRoute = routeCode(request.getUrl().toString());
+                        Log.w(TAG, "MAIN_FRAME_INTERCEPTED_" + fixedRoute);
                     }
                     // Fail closed on every resource. No remote fetch or file access.
                     return new WebResourceResponse("text/plain", "UTF-8", 403, "Forbidden",
@@ -94,7 +98,8 @@ public final class PasekaDailyArchiveJob extends JobService {
                 }
                 @Override public void onPageFinished(WebView view, String url) {
                     if (active != parameters) return;
-                    Log.i(TAG, "PAGE_FINISHED_" + routeCode(url) + " phase=" + lastPhase);
+                    String fixedRoute = routeCode(url);
+                    Log.i(TAG, "PAGE_FINISHED_" + fixedRoute + " phase=" + lastPhase);
                     probeJavascript(parameters, view);
                 }
                 @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
