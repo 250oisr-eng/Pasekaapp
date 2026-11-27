@@ -11,11 +11,24 @@ function targetFrames(state,target,labels){
 function preview(state,target,rawCodes,labels){
  const scope=targetFrames(state,target,labels);if(scope.error)return {ok:false,error:scope.error};
  const tokens=Array.isArray(rawCodes)?rawCodes.map(x=>String(x??'').trim()).filter(Boolean):String(rawCodes??'').split(/[\s,;]+/u).map(x=>x.trim()).filter(Boolean);
- const expected=scope.expected,expectedByCode=new Map(expected.map(x=>[labels.normalizeCode(x.labelCode,'frame'),x])),allByCode=new Map(scope.all.map(x=>[labels.normalizeCode(x.labelCode,'frame'),x]));
+ const expected=scope.expected,expectedCodes=new Set(expected.map(x=>labels.normalizeCode(x.labelCode,'frame')));
+ const allByCode=new Map(),ambiguousCodes=new Set();
+ for(const item of scope.all){
+  const code=labels.normalizeCode(item.labelCode,'frame');
+  if(!code)continue;
+  if(allByCode.has(code))ambiguousCodes.add(code);
+  else allByCode.set(code,item);
+ }
  const observed=[],counts=new Map(),issues=[];
  for(const token of tokens){const code=labels.normalizeCode(token,'frame');if(!code){issues.push({id:id(),type:'invalid_code',code:null,raw:token,status:'open',resolution:null});continue}
   observed.push(code);counts.set(code,(counts.get(code)||0)+1);if(counts.get(code)>1)issues.push({id:id(),type:'duplicate_observation',code,raw:token,status:'open',resolution:null});
-  const found=allByCode.get(code);if(found?.locationType==='retired')issues.push({id:id(),type:'retired_found',code,expectedLocation:found,raw:token,status:'open',resolution:null});else if(!expectedByCode.has(code)&&found)issues.push({id:id(),type:'wrong_location',code,actualLocation:found,raw:token,status:'open',resolution:null});else if(!found)issues.push({id:id(),type:'unexpected_code',code,raw:token,status:'open',resolution:null});
+  if(ambiguousCodes.has(code))continue;
+  const found=allByCode.get(code);if(found?.locationType==='retired')issues.push({id:id(),type:'retired_found',code,expectedLocation:found,raw:token,status:'open',resolution:null});else if(!expectedCodes.has(code)&&found)issues.push({id:id(),type:'wrong_location',code,actualLocation:found,raw:token,status:'open',resolution:null});else if(!found)issues.push({id:id(),type:'unexpected_code',code,raw:token,status:'open',resolution:null});
+ }
+ for(const code of ambiguousCodes){
+  if(expectedCodes.has(code)||counts.has(code)){
+   issues.push({id:id(),type:'duplicate_registry_code',code,status:'open',resolution:null});
+  }
  }
  for(const item of expected){const code=labels.normalizeCode(item.labelCode,'frame');if(!counts.has(code))issues.push({id:id(),type:'missing_in_field',code,expectedLocation:item,status:'open',resolution:null})}
  return {ok:true,expectedCount:expected.length,observedCount:observed.length,observedCodes:observed,issues}

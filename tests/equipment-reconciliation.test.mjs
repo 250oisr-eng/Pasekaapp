@@ -12,3 +12,21 @@ test('invalid observed tokens remain visible as discrepancies',()=>{const p=R.pr
 
 test('record preserves the original spoken text separately from normalized observed codes',()=>{const s=state(),r=R.record(s,{date:'2026-11-13',target:{type:'hive',hiveId:'h1'},observedCodes:['ААА','ААБ'],inputText:'буква а буква а буква а, буква а буква а буква б'},labels,'2026-11-13T10:00:00Z');assert.equal(r.ok,true);assert.deepEqual(r.inspection.observedCodes,['ААА','ААБ']);assert.equal(r.inspection.inputText,'буква а буква а буква а, буква а буква а буква б')});
 test('normalized codes are stored as canonical codes, not speech tokens',()=>{const s=state(),r=R.record(s,{date:'2026-11-13',target:{type:'hive',hiveId:'h1'},observedCodes:['ААА'],inputText:'три буква а'},labels,'2026-11-13T10:00:00Z');assert.equal(r.inspection.observedCodes[0],'ААА');assert.equal(r.inspection.inputText,'три буква а')});
+
+test('one observed label cannot confirm two registered frames or select a location by registry order',()=>{
+ for(const locationType of ['hive','storage','retired']){
+  const s=state();
+  s.frames.push({labelCode:'Р-ААА',hiveId:'h1',box:'1',locationType});
+  const target={type:'hive',hiveId:'h1',boxKey:'1'};
+  for(const order of [s.frames,s.frames.slice().reverse()]){
+   const preview=R.preview({...s,frames:order},target,'ААА',labels);
+   assert.deepEqual(preview.issues.map(i=>[i.type,i.code]),[['duplicate_registry_code','ААА']]);
+  }
+  const before=structuredClone(s.frames);
+  const recorded=R.record(s,{date:'2026-11-27',target,observedCodes:'ААА ААА'},labels);
+  assert.deepEqual(recorded.inspection.issues.map(i=>i.type),['duplicate_observation','duplicate_registry_code']);
+  assert.deepEqual(s.frames,before);
+  const other=R.preview(s,{type:'hive',hiveId:'h1',boxKey:'2'},'ААБ',labels);
+  assert.deepEqual(other.issues,[]);
+ }
+});

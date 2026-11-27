@@ -1534,7 +1534,7 @@ function resolveFrameReconciliation(inspectionId,issueId){
  logAudit('physical_frame_discrepancy_resolved',{inspectionId,issueId,note});
  save().then(ok=>{if(!ok){S=previous;render();alert('Изменение не сохранено.');return}renderEquipmentReconciliation()});
 }
-function reconciliationIssueLabel(issue){const code=issue.code?PasekaLabels.formatLabelCode('frame',issue.code):issue.raw||'Код не распознан';const names={missing_in_field:'Не найдена при осмотре',unexpected_code:'Кода нет в реестре',wrong_location:'Числится в другом месте',duplicate_observation:'Код записан несколько раз',retired_found:'Физически найдена списанная рамка',invalid_code:'Некорректный код'};return (names[issue.type]||issue.type)+' · '+code;}
+function reconciliationIssueLabel(issue){const code=issue.code?PasekaLabels.formatLabelCode('frame',issue.code):issue.raw||'Код не распознан';const names={duplicate_registry_code:'Один код у нескольких рамок в реестре. Проверь маркировку',missing_in_field:'Не найдена при осмотре',unexpected_code:'Кода нет в реестре',wrong_location:'Числится в другом месте',duplicate_observation:'Код записан несколько раз',retired_found:'Физически найдена списанная рамка',invalid_code:'Некорректный код'};return (names[issue.type]||issue.type)+' · '+code;}
 function renderEquipmentReconciliation(){
  const summary=$('frameReconciliationSummary'),host=$('frameReconciliationHistory');if(!summary||!host)return;const rows=PasekaReconciliation.list(S),open=rows.reduce((n,r)=>n+(r.issues||[]).filter(x=>x.status!=='resolved').length,0);
  summary.textContent='Сверок: '+rows.length+' · открытых расхождений: '+open;

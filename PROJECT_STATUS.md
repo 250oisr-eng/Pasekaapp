@@ -41,6 +41,10 @@
 
 - **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 OPEN/PARTIALLY_PORTED, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
 
+## Сверка маркировки рамок
+
+Ветка `work/ambiguous-frame-observation`: если код принадлежит нескольким рамкам, сверка показывает конфликт. Следующий шаг — review.
+
 ## Следующий конкретный шаг
 
 **#598 READY_FOR_MERGE_REVIEW** после exact-code CI и E2E на функционально идентичном HTML. PR остаётся Draft; отдельное разрешение требуется для merge. Нет релиза, реального бэкапа или OnePlus device proof.
