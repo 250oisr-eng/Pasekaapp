@@ -1,0 +1,322 @@
+{
+  "repository": "250oisr-eng/Pasekaapp",
+  "part": 5,
+  "source": "github-public-rest",
+  "pages": [
+    {
+      "kind": "open",
+      "page": 19,
+      "count": 20,
+      "items": [
+        {
+          "number": 65,
+          "head": "fix/farrar-three-sections-single-hive-2026-11-16",
+          "base": "fix/require-three-sectional-hives-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 63,
+          "head": "fix/validate-stored-operation-invariants-2026-11-16",
+          "base": "feature/sectional-operation-editor-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 62,
+          "head": "fix/require-three-sectional-hives-2026-11-16",
+          "base": "feat/validate-six-installed-brood-bodies-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 61,
+          "head": "feat/validate-six-installed-brood-bodies-2026-11-16",
+          "base": "fix/inventory-reverse-reference-integrity-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 59,
+          "head": "fix/enforce-180mm-frame-standard-2026-11-16",
+          "base": "feature/sectional-operation-editor-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 58,
+          "head": "feature/sectional-operation-editor-2026-11-16",
+          "base": "fix/sectional-ops-integrity-2026-11-16",
+          "state": "open"
+        },
+        {
+          "number": 57,
+          "head": "fix/sectional-ops-integrity-2026-11-16",
+          "base": "feature/sectional-techprocess-ui-2026-11-15",
+          "state": "open"
+        },
+        {
+          "number": 56,
+          "head": "feature/sectional-techprocess-ui-2026-11-15",
+          "base": "feature/sectional-techprocess-storage-v13-2026-11-15",
+          "state": "open"
+        },
+        {
+          "number": 55,
+          "head": "feature/sectional-techprocess-storage-v13-2026-11-15",
+          "base": "feature/sectional-multiqueen-techprocess-2026-11-15",
+          "state": "open"
+        },
+        {
+          "number": 54,
+          "head": "feature/sectional-multiqueen-techprocess-2026-11-15",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 40,
+          "head": "fix/archive-staging-explicit-finalization-2026-11-15",
+          "base": "fix/archive-staging-cleanup-status-guard-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 38,
+          "head": "fix/archive-staging-cleanup-status-guard-2026-11-14",
+          "base": "fix/archive-staging-session-resurrection-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 37,
+          "head": "fix/archive-staging-session-resurrection-2026-11-14",
+          "base": "test/archive-discard-staging-race-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 36,
+          "head": "test/archive-discard-staging-race-2026-11-14",
+          "base": "test/archive-cleanup-restore-races-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 35,
+          "head": "test/archive-cleanup-restore-races-2026-11-14",
+          "base": "fix/archive-staging-cleanup-header-kind-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 34,
+          "head": "fix/archive-staging-cleanup-header-kind-2026-11-14",
+          "base": "test/archive-staging-orphan-cleanup-guards-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 33,
+          "head": "test/archive-staging-orphan-cleanup-guards-2026-11-14",
+          "base": "fix/archive-staging-entry-set-validation-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 32,
+          "head": "fix/archive-staging-entry-set-validation-2026-11-14",
+          "base": "test/archive-staging-strict-entry-set-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 31,
+          "head": "test/archive-staging-strict-entry-set-2026-11-14",
+          "base": "test/archive-staging-corruption-guards-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 30,
+          "head": "test/archive-staging-corruption-guards-2026-11-14",
+          "base": "test/archive-staging-separate-connections-2026-11-14",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 20,
+      "count": 20,
+      "items": [
+        {
+          "number": 29,
+          "head": "test/archive-staging-separate-connections-2026-11-14",
+          "base": "test/archive-staging-concurrent-tabs-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 28,
+          "head": "test/archive-staging-concurrent-tabs-2026-11-14",
+          "base": "test/archive-staging-reopen-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 27,
+          "head": "test/archive-staging-reopen-2026-11-14",
+          "base": "fix/archive-media-integrity-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 26,
+          "head": "fix/archive-media-integrity-2026-11-14",
+          "base": "feature/media-reference-switch-engine-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 25,
+          "head": "feature/media-reference-switch-engine-2026-11-14",
+          "base": "feature/media-migration-verifier-status-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 24,
+          "head": "feature/media-reference-switch-safety-design-2026-11-14",
+          "base": "feature/media-migration-verifier-status-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 23,
+          "head": "feature/media-migration-verifier-status-2026-11-14",
+          "base": "feature/media-migration-preflight-verify-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 22,
+          "head": "feature/media-migration-preflight-verify-2026-11-14",
+          "base": "feature/media-migration-copy-engine-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 21,
+          "head": "feature/media-migration-copy-engine-2026-11-14",
+          "base": "feature/media-migration-dry-run-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 20,
+          "head": "feature/media-migration-dry-run-2026-11-14",
+          "base": "feature/image-blob-store-foundation-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 19,
+          "head": "feature/image-blob-store-foundation-2026-11-14",
+          "base": "docs/media-storage-migration-plan-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 18,
+          "head": "docs/media-storage-migration-plan-2026-11-14",
+          "base": "feature/snapshot-storage-guard-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 17,
+          "head": "feature/snapshot-storage-guard-2026-11-14",
+          "base": "feature/project-continuity-pack-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 16,
+          "head": "feature/project-continuity-pack-2026-11-14",
+          "base": "feature/rotating-local-snapshots-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 15,
+          "head": "feature/rotating-local-snapshots-2026-11-14",
+          "base": "feature/archive-restore-ui-sync-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 14,
+          "head": "feature/archive-restore-ui-sync-2026-11-14",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 13,
+          "head": "feature/archive-restore-ui-sync-2026-11-14",
+          "base": "feature/archive-import-staging-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 11,
+          "head": "feature/archive-import-staging-2026-11-14",
+          "base": "feature/full-archive-export-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 10,
+          "head": "feature/full-archive-export-2026-11-14",
+          "base": "prototype/paseka-archive-container-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 9,
+          "head": "prototype/paseka-archive-container-2026-11-14",
+          "base": "main",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 21,
+      "count": 7,
+      "items": [
+        {
+          "number": 7,
+          "head": "docs/storage-protection-audit-2026-11-14",
+          "base": "main",
+          "state": "open"
+        },
+        {
+          "number": 6,
+          "head": "fix/entrance-mime-type-guard-2026-11-14",
+          "base": "fix/strict-entrance-metadata-validation-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 5,
+          "head": "fix/strict-entrance-metadata-validation-2026-11-14",
+          "base": "chore/npm-lockfile-bootstrap-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 4,
+          "head": "chore/npm-lockfile-bootstrap-2026-11-14",
+          "base": "chore/security-and-emulator-hardening-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 3,
+          "head": "chore/security-and-emulator-hardening-2026-11-14",
+          "base": "migration/capacitor-8-api36-2026-11-14",
+          "state": "open"
+        },
+        {
+          "number": 2,
+          "head": "migration/capacitor-8-api36-2026-11-14",
+          "base": "feature/entrance-video-retention-guard-2026-11-13",
+          "state": "open"
+        },
+        {
+          "number": 1,
+          "head": "feature/entrance-video-retention-guard-2026-11-13",
+          "base": "main",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "kind": "open",
+      "page": 22,
+      "count": 0,
+      "items": []
+    },
+    {
+      "kind": "open",
+      "page": 23,
+      "count": 0,
+      "items": []
+    }
+  ]
+}
