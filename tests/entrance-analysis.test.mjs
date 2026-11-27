@@ -19,6 +19,25 @@ test('entrance video metadata rejects unusable duration, size and resolution', (
   assert.match(good.note,/ещё не оценены/);
 });
 
+test('entrance archive metadata does not mistake a low-resolution video for analysis-ready input', () => {
+  for (const [width, height] of [[320, 240], [639, 360], [640, 359]]) {
+    const result = entrance.assessVideoMetadata({durationSec:60,width,height,bytes:1024,mimeType:'video/mp4'});
+    assert.equal(result.ok, true, 'low resolution must not delete or reject a valid local archive original');
+    assert.equal(result.analysisConstraints.resolutionMeetsMinimum, false);
+    assert.deepEqual([result.analysisConstraints.minimumWidth,result.analysisConstraints.minimumHeight],[640,360]);
+    assert.ok(result.warnings.some(item=>item.code==='resolution_limited'));
+    assert.equal(result.stage,'metadata_only');
+    assert.equal(entrance.canDeleteVideoOriginal({...result, status:'completed'}),false);
+  }
+  const boundary=entrance.assessVideoMetadata({durationSec:60,width:640,height:360,bytes:1024,mimeType:'video/mp4'});
+  assert.equal(boundary.analysisConstraints.resolutionMeetsMinimum,true);
+  assert.equal(boundary.warnings.some(item=>item.code==='resolution_limited'),false);
+  assert.match(boundary.note,/не доказывает распознавание/);
+  const unreadable=entrance.assessVideoMetadata({durationSec:60,width:0,height:0,bytes:1024,mimeType:'video/mp4'});
+  assert.equal(unreadable.ok,false);
+  assert.equal(unreadable.analysisConstraints.resolutionMeetsMinimum,false);
+});
+
 test('entrance frame quality reports shake, blur, exposure and framing flags', () => {
   const q=entrance.assessFrameQuality([
     {brightness:0.99,sharpness:12,motion:0.4,entranceCoverage:0.6},
