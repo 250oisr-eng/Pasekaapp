@@ -31,7 +31,7 @@
 
 ## Блокировки до физических доказательств
 
-- **B01/G4 #629:** OnePlus: WebView HTML загружен, `JS_PHASE` отсутствует; watchdog 180 с/retry. Фоновый ZIP NOT_VERIFIED; `.qa.daily.probe` только Draft.
+- **B01/G4 #629:** OnePlus: WebView HTML `PAGE_FINISHED`, `JS_PROBE_NO_INLINE` дважды; нет `JS_PHASE`, фоновые ZIP не доказаны. Отдельная `.qa.daily.dom` диагностика DOM/main-frame в Draft; CI и устройство пока NOT_VERIFIED.
 - **#596 P1 / DEVICE_CYCLE_1_USER_REPORTED_PASS:** геометрия 4–3–4, переходы, Back, поворот и первый запуск на OnePlus — PASS по отчёту пользователя 8/8 от 27.11.2026; TalkBack, перчатки, яркое солнце и длительная эксплуатация отдельно NOT_TESTED.
 - **B01 P0 · #623 / IN_MAIN:** [два ZIP и одна кнопка](docs/B01-DAILY-TWO-ARCHIVES-2026-11-27.md). Код `70216c73`: Node **1054/1054**, Android build, Chromium restore + simulated background, Governance PASS. JobScheduler реализован. Изолированный QA #45993522131 PASS, [APK](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993522131/artifacts/15193929646) до 04.12.2026; физический OnePlus/фон и большие ZIP >256 MiB не подтверждены. Draft #452 исторический. #479/#522/#543 CLOSED. B06/B10 не ослаблены.
 - **B04/B05 P0 BLOCKED (Draft #469):** signer и совместимость обновления установленного Android APK, сохранение данных и rollback не доказаны. **Не устанавливать/обновлять производственный APK; установленный отдельный QA пакет не считать доказательством B04/B05.**
