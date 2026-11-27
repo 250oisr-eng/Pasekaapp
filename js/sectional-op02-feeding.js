@@ -7,14 +7,19 @@ function validDate(value){
  const [y,m,d]=value.split('-').map(Number),date=new Date(Date.UTC(y,m-1,d));
  return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d;
 }
+function findUniqueById(rows,id){
+ if(!Array.isArray(rows)||typeof id!=='string'||!id)return null;
+ const matches=rows.filter(row=>row?.id===id);
+ return matches.length===1?matches[0]:null;
+}
 function buildDailyPlan(state,request,makeId,now){
  const fail=(error)=>({ok:false,error});
  if(!state||typeof state!=='object'||!request||typeof request!=='object'||typeof makeId!=='function')return fail('invalid_request');
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
- const hive=(Array.isArray(state.hives)?state.hives:[]).find(x=>x?.id===request.hiveId);
+ const hive=findUniqueById(state.hives,request.hiveId);
  if(!hive||hive.profileId!==PROFILE)return fail('sectional_profile_required');
- const family=(Array.isArray(state.families)?state.families:[]).find(x=>x?.id===request.familyId&&x?.hive===hive.id&&x?.recordStatus!=='historical');
- if(!family)return fail('active_family_required');
+ const family=findUniqueById(state.families,request.familyId);
+ if(family?.hive!==hive.id||family.recordStatus==='historical')return fail('active_family_required');
  if(!validDate(request.date))return fail('valid_calendar_date_required');
  const grams=request.gramsPerColonyPerDay;
  if(typeof grams!=='number'||!Number.isFinite(grams)||grams<100||grams>200)return fail('daily_liquid_feeding_norm_outside_confirmed_range');
@@ -36,10 +41,10 @@ function buildDailyPlan(state,request,makeId,now){
 function validateDailyCompletion(state,task){
  const fail=error=>({ok:false,error});
  if(!state||!task||task.operationId!==OP||task.op02Scope!=='daily_plan'||task.status!=='pending')return fail('invalid_or_completed_daily_task');
- const hive=(Array.isArray(state.hives)?state.hives:[]).find(x=>x?.id===task.hive);
+ const hive=findUniqueById(state.hives,task.hive);
  if(hive?.profileId!==PROFILE)return fail('sectional_profile_required');
- const family=(Array.isArray(state.families)?state.families:[]).find(x=>x?.id===task.familyId&&x?.hive===hive.id&&x?.recordStatus!=='historical');
- if(!family)return fail('active_family_required');
+ const family=findUniqueById(state.families,task.familyId);
+ if(family?.hive!==hive.id||family.recordStatus==='historical')return fail('active_family_required');
  if(!validDate(task.date)||typeof task.gramsPerColonyPerDay!=='number'||task.gramsPerColonyPerDay<100||task.gramsPerColonyPerDay>200||!Number.isFinite(task.gramsPerColonyPerDay)||task.syrupRatio!=='2:1'||task.proteinFeedingDaily!==true)return fail('daily_plan_parameters_invalid');
  if(!Array.isArray(state.tasks)||!state.tasks.includes(task))return fail('task_not_current');
  return {ok:true};

@@ -77,3 +77,19 @@ test('OP02 completion rechecks family/profile and never accepts stale or altered
  state.tasks[0].status='done';
  assert.equal(api.validateDailyCompletion(state,state.tasks[0]).error,'invalid_or_completed_daily_task');
 });
+
+test('OP02 rejects ambiguous physical hive and family IDs without changing the plan',()=>{
+ for(const collection of ['hives','families']){
+  const state=base();
+  const plan=api.buildDailyPlan(state,request(),id);
+  assert.equal(plan.ok,true);
+  state.tasks.push(plan.task);
+  const duplicate={...state[collection][0]};
+  if(collection==='families')duplicate.hive='farrar';
+  state[collection].push(duplicate);
+  const before=structuredClone(state);
+  assert.equal(api.buildDailyPlan(state,request({date:'2026-04-16'}),id).ok,false);
+  assert.equal(api.validateDailyCompletion(state,plan.task).ok,false);
+  assert.deepEqual(state,before);
+ }
+});
