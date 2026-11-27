@@ -24,7 +24,7 @@ const scenarios=[
   ['landscape-640',640,320],['landscape-780',780,360],['landscape-844',844,390],
   ['landscape-1024',1024,768],['landscape-1365',1365,900]
 ];
-const expected=['entrance','hives','home','journal','ai','planning',
+const expected=['entrance','hives','home','planning','journal','ai',
   'forage','incidents','deadout','varroa','settings'];
 const measure=()=> {
   const box=el=>{const r=el.getBoundingClientRect();
@@ -64,8 +64,8 @@ const measure=()=> {
   const aiVisual={beePresent:!!bee,beePathCount:bee?.querySelectorAll('path,ellipse').length||0,
     rimColor:aiStyle?.borderTopColor||null,hexagonButtons};
   const ai=buttons.find(b=>b.tab==='ai');
-  const mobileRows=[['entrance','hives'],
-    ['home','journal','ai','planning','forage'],
+  const mobileRows=[['entrance','hives','home','planning'],
+    ['journal','ai','forage'],
     ['incidents','deadout','varroa','settings']];
   const layoutProblems=[];
   if(mobileRows){
@@ -75,8 +75,8 @@ const measure=()=> {
       if(!button||Math.abs(button.cy-buttons.find(b=>b.tab===mobileRows[row][0]).cy)>1)
         layoutProblems.push(tab+' is not in designated row '+(row+1));
     }
-    const hex=buttons.find(b=>b.tab==='home');
-    const other=buttons.find(b=>b.tab==='journal');
+    const hex=buttons.find(b=>b.tab==='entrance');
+    const other=buttons.find(b=>b.tab==='hives');
     if(hex&&other&&Math.abs(hex.right-other.left)>1)
       layoutProblems.push('same-row hexagons do not touch edges');
     const rows=[mobileRows[0][0],mobileRows[1][0],mobileRows[2][0]].map(t=>buttons.find(b=>b.tab===t));
@@ -132,11 +132,13 @@ const measure=()=> {
         if(!/rgba\(/.test(m.aiVisual.rimColor||''))
           problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
         if(m.rowTracks!==3)
-          problems.push('2-5-4 mobile honeycomb rows changed');
+          problems.push('4-3-4 honeycomb rows changed');
         problems.push(...m.layoutProblems);
         const ai=m.buttons.find(b=>b.tab==='ai');
         if(ai?.label)problems.push('AI button must have no visible text');
         if(ai?.accessibleName!=='Открыть ИИ-помощника')problems.push('AI accessibility name missing');
+        if(m.buttons.find(b=>b.tab==='ai')?.cy!==m.buttons.find(b=>b.tab==='journal')?.cy)
+          problems.push('AI not in middle row');
         if(Math.abs(m.nav.bottom-height)>2)problems.push('nav is not anchored to viewport bottom');
         if(m.nav.left< -1||m.nav.right>width+1)problems.push('nav horizontal overflow');
         if(m.documentWidth>width+2)problems.push('document horizontal overflow '+m.documentWidth);
