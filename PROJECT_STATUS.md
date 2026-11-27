@@ -4,7 +4,7 @@
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
-**Non-video accounting #627 · CI_VERIFIED_EXACT_CODE_SHA / DEVICE_NOT_TESTED / DRAFT:** поправлены идентичность семьи в осмотрах/подкормках, будущая дата матки, откаты инвентаря/медовой пары/зимовки/«Готово»/откачки. Откачка более не создаёт ложные схемы «улей 0/1». SW v325; схема БД и реальные данные не менялись. Код `0dc04ff7`: **Node 1067/1067 #46030103036, Android SUCCESS #46030103514**. Chromium #46029916937 PASS с медосбором→возвратом→зимовкой→reload на `f27c1594`; до кодового SHA изменялся лишь `tests/regression.test.mjs`. OnePlus для нового SHA не проверялся; B07/медосбор физически не аттестованы. Не сливать и не выпускать без разрешения.
+**Учёт без видео [#627 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, физические операции и откат откачки. Код `c7dd88c2` блокирует повторное переключение медовой пары до завершения записи. Локально 1068/1068 Node. CI финального SHA в PR. OnePlus/B07 не аттестованы. Следующий независимый этап — проверка актуального #621.
 
 ## Основные интегрированные функции
 

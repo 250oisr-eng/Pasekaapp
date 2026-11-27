@@ -1633,5 +1633,15 @@
     "extractionAtomicSave": "CI_VERIFIED_NODE",
     "extractionHiveIdIndexLeak": "FIXED_AND_BROWSER_VERIFIED",
     "rawIntegrityReopen": "PASS_SYNTHETIC_REAL_IDB"
+  },
+  "accounting627HoneyPairRepeat20261127": {
+    "pr": 627,
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "codeSha": "c7dd88c2a189365b7bda25e341ad5c0bb6495638",
+    "targetedPass": 7,
+    "nodePass": 1068,
+    "nodeFail": 0,
+    "device": "NOT_TESTED",
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/pull/627/checks"
   }
 }
