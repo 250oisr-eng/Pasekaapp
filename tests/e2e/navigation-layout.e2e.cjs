@@ -203,6 +203,15 @@ const measure=()=> {
       assert.equal(await page.getByRole('combobox',{name:'Рабочий режим'}).isVisible(),true);
       assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(22, 30, 26)');
       assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(34, 44, 38)');
+      assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).transitionDuration),'0s','no intermediate low-contrast theme');
+    }
+    for(const [parent,children] of Object.entries({hives:['entrance'],planning:['forage'],settings:['incidents','deadout','varroa']})){
+      for(const child of children){
+        await primary.locator('button[data-tab="'+parent+'"]').click();
+        await page.locator('#'+parent+' [data-subtab="'+child+'"]').click();
+        await assertInterior(child);
+        assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(34, 44, 38)');
+      }
     }
     await home.click();
     await assertHome();
@@ -210,6 +219,13 @@ const measure=()=> {
     await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('home');
     await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('auto');
     await page.locator('#workspacePreferences summary').click();
+    assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
+    const aiEntry=primary.locator('button[data-tab="ai"]');
+    await aiEntry.focus();
+    await aiEntry.press('Enter');
+    await assertInterior('ai');
+    await back.click();
+    await assertHome();
     for(const tab of expected.filter(tab=>tab!=='home')){
       await page.locator('main>nav button[data-tab="'+tab+'"]').click();
       await assertInterior(tab);
@@ -258,6 +274,7 @@ const measure=()=> {
       console.log(JSON.stringify({scenario:'global-search-reset',width,
         source:'Chromium-disposable-synthetic',realAndroid:'NOT_TESTED'}));
     }
+    await require('../../qa/workspace-preview-check.cjs')(browser,origin);
     assert.deepEqual(errors,[],'unexpected JS errors or dialogs');
     assert.deepEqual(failures,[],'nav geometry regression across supported viewports');
   }finally{if(context)await context.close();if(browser)await browser.close();

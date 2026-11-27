@@ -170,7 +170,7 @@ dialog{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow-y:a
 html{width:100%;min-height:100%;height:auto;overflow-x:hidden;-webkit-text-size-adjust:100%}
 body{width:100%;min-height:100vh;min-height:100dvh;overflow-x:hidden;overflow-wrap:anywhere}
 main{width:100%;max-width:760px;margin:0 auto;padding:10px 12px calc(96px + env(safe-area-inset-bottom,0px))}
-header{background:#fff0b8!important;color:#3e3928!important;padding:18px 16px;border-radius:0 0 18px 18px;transition:background-color .18s ease}
+header{background:#fff0b8!important;color:#3e3928!important;padding:18px 16px;border-radius:0 0 18px 18px;transition:none}
 body[data-page="hives"] header{background:#dcecff!important;color:#26394b!important}
 body[data-page="hiveDetail"] header{background:#dcefe5!important;color:#294238!important}.hive-header-summary{margin-top:2px;font-size:14px;font-weight:650;line-height:1.35}.hive-header-summary small{display:block;margin-top:4px;font-size:11px;font-weight:500;opacity:.78}
 body[data-page="journal"] header{background:#f5e2d5!important;color:#4b382f!important}
@@ -379,14 +379,16 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
  grid-row:auto;grid-column:auto;align-self:stretch;
  border:1px solid #cbd3ca;border-radius:10px;clip-path:none;
  transform:none!important;background:#fff;color:#243128;
- font-size:clamp(10px,2.7vw,13px);line-height:1.15;font-weight:700;
+ font-size:clamp(12px,2.7vw,14px);line-height:1.15;font-weight:700;
  text-align:center;white-space:normal;overflow-wrap:anywhere;word-break:normal;box-shadow:none;
 }
 main>nav[aria-label="Основные разделы"] button.active,
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"].active{
  background:#dca83d;color:#241a05;border-color:#96701f;transform:none!important;box-shadow:none;
 }
-main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{background:#f8e5b4;color:#241a05;border-color:#a47720}
+main>nav[aria-label="Основные разделы"] button[data-tab="ai"]:not(.active){background:#f8e5b4;color:#241a05;border-color:#a47720}
+main>nav[aria-label="Основные разделы"] button[aria-current="page"]{box-shadow:inset 0 -3px 0 #755413;font-weight:800}
+body[data-workspace-mode="night"] main>nav[aria-label="Основные разделы"] button[aria-current="page"]{box-shadow:inset 0 -3px 0 #755413}
 main>nav[aria-label="Основные разделы"] button:focus-visible{
  outline:2px solid #175995;outline-offset:1px;z-index:2;
 }
@@ -419,15 +421,15 @@ html{background:#f7f8f5}
 html:has(body[data-workspace-mode="night"]){background:#161e1a}
 body[data-workspace-mode="field"]{--ws-bg:#fff;--ws-soft:#f5f7f4;--ws-ink:#152019;--ws-muted:#28382e;--ws-border:#48564a;--ws-target:56px}
 body[data-workspace-mode="night"]{color-scheme:dark;--ws-bg:#161e1a;--ws-surface:#222c26;--ws-soft:#303e34;--ws-ink:#f2f5ee;--ws-muted:#c6d3c7;--ws-border:#647568;--ws-accent:#e0ba63;--ws-focus:#8fcaff}
-body header.home-header,body[data-page] header.home-header{background:var(--ws-surface)!important;color:var(--ws-ink)!important;border-bottom:1px solid var(--ws-border);border-radius:0;padding:12px 14px!important;box-shadow:none}
+body header.home-header,body[data-page] header.home-header{background:var(--ws-surface)!important;color:var(--ws-ink)!important;border-bottom:1px solid var(--ws-border);border-radius:0;padding:12px 14px!important;box-shadow:none;transition:none!important}
 .home-brand{gap:8px;flex-wrap:wrap}
 .home-brand>div:first-child{min-width:0;flex:1}
 .home-brand-title{font-size:clamp(20px,5vw,25px);letter-spacing:-.4px}
 .workspace-header-controls{display:flex;align-items:center;gap:8px;min-width:0}
 #workspaceModeHost label{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:650;color:var(--ws-muted);margin:0}
-#workspaceModeHost select{width:auto;min-width:96px;max-width:145px;margin:0;padding:6px;min-height:var(--ws-target);font-size:14px}
+#workspaceModeHost select{width:auto;min-width:96px;max-width:145px;margin:0;padding:6px;min-height:var(--ws-target);font-size:16px}
 #modelDiagnosticsIndicator:not([hidden]){min-height:var(--ws-target);min-width:48px}
-@media(max-width:350px){#workspaceModeHost label{flex-direction:column;align-items:flex-start;gap:2px}#workspaceModeHost select{min-width:92px;max-width:115px;font-size:13px}}
+@media(max-width:350px){#workspaceModeHost label{flex-direction:column;align-items:flex-start;gap:2px}#workspaceModeHost select{min-width:92px;max-width:115px;font-size:14px}}
 @media(orientation:landscape) and (max-height:520px){body header.home-header,body[data-page] header.home-header{padding:5px 14px!important}}
 .card{background:var(--ws-surface);border-color:var(--ws-border);border-radius:14px;box-shadow:none}
 .muted,.empty,.media-note{color:var(--ws-muted)}
@@ -491,6 +493,7 @@ body[data-workspace-mode="night"] #hiveDiagram,body[data-workspace-mode="night"]
 body[data-workspace-mode="night"] #hiveDiagram .muted,body[data-workspace-mode="night"] .mini-hive .muted,body[data-workspace-mode="night"] .card[style*="background:#f7f8f4"] .muted{color:#4b5c51}
 body[data-workspace-mode="night"] #hiveDiagram button:not(.frame-chip){background:#e5eae1;color:#24452f;border-color:#cbd3ca}
 body[data-workspace-mode="night"] #hiveDiagram input,body[data-workspace-mode="night"] #hiveDiagram select{background:#fff;color:#243128;border-color:#cbd3ca}
+@media(prefers-reduced-motion:reduce){body header.home-header,body[data-page] header.home-header{transition:none!important}html{scroll-behavior:auto!important}}
 </style></head><body>
 <header class="home-header"><div class="home-brand"><div><h1 id="currentSectionTitle" class="home-brand-title" aria-live="polite" style="margin:0">Обзор</h1></div><div class="workspace-header-controls"><div id="workspaceModeHost"></div><button id="modelDiagnosticsIndicator" type="button" aria-haspopup="dialog" aria-controls="modelDiagnosticsDlg" onclick="$('modelDiagnosticsDlg').showModal()" hidden></button></div></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0;display:none"><button id="backButton" type="button" onclick="goBack()">← Назад</button></div><nav aria-label="Основные разделы"><button data-tab="home" class="active" aria-label="Обзор пасеки" aria-current="page">Главная</button><button data-tab="hives">Пасека</button><button data-tab="journal">Журнал</button><button data-tab="planning">Аналитика</button><button data-tab="settings">Ещё</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник">ИИ</button></nav>
