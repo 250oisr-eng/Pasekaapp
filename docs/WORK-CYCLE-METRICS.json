@@ -1,4 +1,26 @@
 {
+  "dependencyCleanup20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 647,
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "b4b6a0c66c1735b37b6ad6e2f380b74d0ada0a53",
+    "checkedStaleBranches": 2,
+    "staleBranchesZeroUniqueCommits": 2,
+    "branchesDeleted": 0,
+    "openPrBasesForStaleBranches": 0,
+    "activeJsCount": 25,
+    "isolatedJsCount": 1,
+    "lockedTransitivePackages": 100,
+    "npmCiCoreWorkflows": 5,
+    "newSyntheticTests": 13,
+    "exactHeadCi": "PENDING",
+    "device": "NOT_TESTED",
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "productionChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0
+  },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 638,
