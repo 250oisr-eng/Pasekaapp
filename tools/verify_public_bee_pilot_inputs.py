@@ -28,7 +28,7 @@ TRACKS = ("3291d9bc-bdb3-4bff-94d6-fe24f17ae2a5", 4817427, "8446fe874e2cf8904154
 SHA = re.compile(r"[0-9a-f]{64}")
 UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
 MAX_MODEL = 150_000_000
-MAX_VIDEO = 200_000_000
+MAX_VIDEO = 220_000_000  # verified July B public source is 205331307 bytes
 MAX_LABELS = 12_000_000
 
 def download(url, output, cap, sha=None, size=None):
