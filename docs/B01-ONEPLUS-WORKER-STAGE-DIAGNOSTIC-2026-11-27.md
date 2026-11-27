@@ -49,3 +49,29 @@
 6. После установления доказанной причины — **отдельное минимальное исправление**, regressions и новые exact SHA CI, затем один физический QA-тест. Без этого `G4=NOT_VERIFIED` и B01 остаётся незакрытым.
 
 Статусы на момент подготовки: `CODE_IMPLEMENTED_DRAFT`, `CI_NOT_TESTED`, `DIAG_APK_NOT_BUILT`, `NEW_DEVICE_NOT_TESTED`, `PRODUCTION_NOT_TOUCHED`, `NO_RELEASE`.
+
+## 27.11.2026 — новая физическая информация: WebView загрузил HTML, но JS-фазы не достигнуты
+
+На OnePlus NE2213 Android 16 в установленном отдельно `ru.paseka.journal.qa.daily.diag`: защищённый SHA APK подтверждён, ADB install `Success`. Принудительный G4 закончился `WATCHDOG_TIMEOUT phase=START` / `JOB_FINISHED retry=true phase=START`, после чего JobScheduler начал повтор. По live logcat (запись начата до последней автоматической попытки) получено:
+
+```text
+11-27 20:15:22 WATCHDOG_TIMEOUT phase=START
+11-27 20:15:22 JOB_FINISHED retry=true phase=START
+11-27 20:16:23 START
+11-27 20:16:23 ASSET_READY
+11-27 20:16:23 LOAD_REQUESTED
+11-27 20:16:23 PAGE_FINISHED phase=START
+11-27 20:16:23 PAGE_FINISHED phase=START
+```
+
+**Доказано:** Java-активность JobService и чтение встроенного HTML успешны, WebView сообщил об окончании загрузки; однако JS runner ни разу не передал `JS_PHASE` до наблюдаемого момента. **Не доказано:** что именно заблокировало JS — раннее исключение, CSP, неподключённый WebView, недоступность bridge или особенности фонового рендерера. Не менять origin, схему IndexedDB или лимиты резервного копирования наугад. `active ready` не является успехом архивации.
+
+### F0–F2: ограниченное уточнение Draft #629 (аппаратный JS probe)
+
+- Вставлен статический маркер первого встроенного JS после CSP и маркер достижения точки входа архивного runner до любых bridge-проверок.
+- В `onPageFinished` `evaluateJavascript` читает **только булевы/enum признаки** и возвращает один из `NO_INLINE`, `NO_DB`, `NO_RUNNER`, `NO_BRIDGE`, `NO_METHOD`, `READY`, `EXCEPTION`. Java выводит лишь статические метки `JS_PROBE_*`; неизвестный результат не печатается. Отдельно `JS_CONSOLE_ERROR` без текста ошибки, URL и содержимого консоли. Это не исправление корня и не обход проверок.
+- Для нового подписанного APK отдельный `ru.paseka.journal.qa.daily.probe` и новый isolated workflow; исходный установленный `.qa.daily.diag` и прежние архивы не заменять. Дальнейший физический тест может быть только в **третьей отдельной QA-песочнице** с синтетическими записями, после PASS на точном SHA и проверки APK.
+- Если runtime возвращает `NO_INLINE` или отсутствует callback, исследовать WebView JS/CSP/render suppression; `NO_RUNNER` — синхронное выполнение до runner; `NO_BRIDGE`/`NO_METHOD` — bridge; `READY` без `JS_PHASE` — порядок callback/планировщик. Не считать ни одну ветку установленной до фактического аппаратного вывода.
+- Следующее безопасное действие на **старом** диагностическом пакете — отменить только его продолжающийся JobScheduler после сбора данных (без `pm clear`, `uninstall`, изменения часов или `force-stop` рабочего пакета). Запускать дополнительные forced retries без содержательного исправления запрещено.
+
+До нового CI: `PROBE_CODE_DRAFT`, `PROBE_APK_NOT_VERIFIED`, `DEVICE_NOT_TESTED`, `B01_G4_NOT_VERIFIED`. Отдельный Draft #629 не сливать и ничего не публиковать.
