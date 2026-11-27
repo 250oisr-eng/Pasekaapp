@@ -104,6 +104,20 @@ function normalizeSpokenFrameCodes(value){
  return legacy;
 }
 
+
+function parseMarkingLookup(raw){
+ const value=String(raw??'').trim().toLocaleLowerCase('ru-RU').replace(/[.!?]+$/,'').trim();
+ const request=value.match(/^(?:(?:где(?: находится)?|найди|покажи местоположение)\s+)?(улей|улья|улье|семья|семью|семьи|матка|матку|матки|корпус|корпуса|рамка|рамку|рамки)\s+(?:номер\s+)?(.+)$/u);
+ const prefix=value.match(/^([рксм])[\u2010-\u2015\u2212-]([1-9]\d{0,5}|[а-я0-9]{3})$/u);
+ if(!request&&!prefix)return null;
+ const kind=prefix?({р:'frame',к:'body',с:'family',м:'queen'})[prefix[1]]:request[1].startsWith('ул')?'hive':request[1].startsWith('сем')?'family':request[1].startsWith('мат')?'queen':request[1].startsWith('кор')?'body':'frame';
+ const tail=prefix?prefix[2]:request[2].trim();
+ let code=parseSpokenNumber(tail);
+ if(!code&&['frame','body'].includes(kind)&&/^[а-я0-9]{3}$/u.test(tail)&&[...tail.toUpperCase()].every(c=>ALPHABET.includes(c)))code=tail.toUpperCase();
+ if(!code&&!/^(?:где(?: находится)?|найди|покажи местоположение)\s/u.test(value))return null;
+ return {kind,code};
+}
+
 function validateEditedFrameCodes(codes){
  const errors=[];
  if(!Array.isArray(codes)||!codes.length)return {ok:false,errors:[{index:-1,reason:'empty'}]};
@@ -116,5 +130,5 @@ function validateEditedFrameCodes(codes){
  return {ok:errors.length===0,errors};
 }
 
-window.PasekaReconciliationVoice={parseReconciliationVoiceCommand,appendRecognizedCodes,normalizeSpokenFrameCodes,parseSpokenNumber,validateEditedFrameCodes};
+window.PasekaReconciliationVoice={parseReconciliationVoiceCommand,appendRecognizedCodes,normalizeSpokenFrameCodes,parseSpokenNumber,parseMarkingLookup,validateEditedFrameCodes};
 })();

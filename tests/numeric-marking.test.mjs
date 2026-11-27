@@ -85,3 +85,21 @@ test('standardized family and queen duplicate identifiers are integrity errors; 
  assert.equal(L.sectionLabel('middle','ALTERNATIVE_WINTERING_COLUMN'),'средняя');
  assert.equal(L.sectionLabel('middle','UNKNOWN'),'Позиция не указана');
 });
+
+test('typed and spoken lookup resolves exact local decimal identities, no prefix/substring guess',()=>{
+ const s={hives:[{id:'h',number:3}],families:[{id:'f',name:'С-12',hive:'h',currentQueenId:'q'}],queens:[{id:'q',familyId:'f',code:'М-18',status:'current'}],layouts:{h:{corpusIds:{1:'b'},boxes:{1:{frames:[{frameId:'x',labelCode:'1137'},{frameId:'y',labelCode:'137'}]}}}},equipmentLabels:{bodies:{b:'24'}}};
+ const before=JSON.stringify(s);
+ for(const [query,kind,code] of [['где рамка сто тридцать семь','frame','137'],['Р-137','frame','137'],['семья двенадцать','family','12'],['К-24','body','24'],['матка 18','queen','18'],['улей три','hive','3']]){
+  const parsed=V.parseMarkingLookup(query);assert.deepEqual(parsed,{kind,code});assert.equal(L.lookupMarking(s,kind,code).status,'found');
+ }
+ assert.match(L.lookupMarking(s,'frame','137').message,/К-24.*месте 2/);
+ assert.equal(L.lookupMarking(s,'frame','37').status,'missing');
+ assert.equal(V.parseMarkingLookup('переставь рамку 137'),null);
+ assert.equal(V.parseMarkingLookup('где рамка сто сто').code,null);
+ assert.equal(JSON.stringify(s),before);
+});
+test('lookup includes retired/stored frames and refuses duplicate physical codes',()=>{
+ const s={hives:[],equipmentInventory:{bodies:{b:{storageLocation:'Стеллаж 2',frames:[{frameId:'x',labelCode:'137'}]}},retiredFrames:{'138':{frame:{frameId:'retired',labelCode:'138',lifecycle:'retired'}}}},equipmentLabels:{bodies:{b:'24'}}};
+ assert.match(L.lookupMarking(s,'frame','137').message,/Стеллаж 2/);assert.match(L.lookupMarking(s,'frame','138').message,/списана/);
+ s.equipmentInventory.bodies.b.frames.push({frameId:'other',labelCode:'137'});assert.equal(L.lookupMarking(s,'frame','137').status,'ambiguous');
+});

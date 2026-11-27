@@ -86,6 +86,75 @@ function inspectIdentityMarking(state){
  }
  return errors;
 }
+
+// Exact, read-only location answers. No layoutFor(), inferred placement or writes.
+function lookupMarking(state,type,code){
+ const s=state||{},prefix=({hive:'',family:'С-',queen:'М-',frame:'Р-',body:'К-'})[type];
+ const n=serial(code),display=type==='frame'||type==='body'?formatLabelCode(type,code):n&&prefix!==undefined?prefix+n:'';
+ if(!display)return {status:'invalid',message:'Не удалось однозначно определить номер. Назови один номер.'};
+ const typeName=({hive:'Улей',family:'Семья',queen:'Матка',frame:'Рамка',body:'Корпус'})[type],title=typeName+' '+display;
+ const unique=(rows,id)=>rows.filter(x=>x?.id===id);
+ const hiveName=id=>{const h=unique(s.hives||[],id);return h.length===1?'улей '+h[0].number:'улей не определён';};
+ const result=(status,detail)=>({status,title,detail,message:title+'. '+detail});
+ const one=rows=>rows.length===1?rows[0]:null;
+ const bodyPlace=id=>{
+  const positions=[];
+  for(const [hiveId,l] of Object.entries(s.layouts||{}))for(const [boxKey,value] of Object.entries(l?.corpusIds||{}))if(value===id)positions.push({hiveId,boxKey,layout:l});
+  for(const l of Array.isArray(s.sectionalLayouts)?s.sectionalLayouts:[]){
+   for(const section of l?.sections||[])if(Array.isArray(section?.broodBodyIds))for(const value of section.broodBodyIds)if(value===id)positions.push({hiveId:l.hiveId,section:section.position,mode:l.mode});
+   if(Array.isArray(l?.honeyStack?.bodyIds))for(const value of l.honeyStack.bodyIds)if(value===id)positions.push({hiveId:l.hiveId,honey:true});
+  }
+  if(positions.length>1)return {conflict:true};
+  if(positions.length===1){
+   const x=positions[0];
+   if(x.honey)return {detail:hiveName(x.hiveId)+', общий медовый ярус'};
+   if(x.section)return {detail:hiveName(x.hiveId)+', '+sectionLabel(x.section,x.mode)};
+   const key=String(x.boxKey),layout=x.layout,installed=/^H[1-9]\d*$/.test(key)?layout.honeyBoxInstalled?.[Number(key.slice(1))-1]:(Array.isArray(layout.installedBoxes)?layout.installedBoxes.map(String).includes(key):null);
+   return {detail:hiveName(x.hiveId)+', позиция корпуса '+key+(installed===false?', снят из сборки':installed===true?', установлен':'')};
+  }
+  const b=s.equipmentInventory?.bodies?.[id];
+  return {detail:b?.storageLocation?'склад, '+String(b.storageLocation):'местоположение не определено'};
+ };
+ if(type==='hive'){
+  const rows=(s.hives||[]).filter(h=>Number(h?.number)===n);
+  return rows.length===1?result('found','зарегистрирован в учёте'):result(rows.length?'ambiguous':'missing',rows.length?'номер неоднозначен, проверь реестр':'не найден');
+ }
+ if(type==='family'){
+  const rows=(s.families||[]).filter(f=>f?.name===display||f?.code===display),family=one(rows);
+  if(!family)return result(rows.length?'ambiguous':'missing',rows.length?'номер неоднозначен, проверь реестр':'не найдена');
+  if(family.recordStatus==='historical')return result('found','историческая семья, текущего назначения нет');
+  const sections=[];
+  for(const l of Array.isArray(s.sectionalLayouts)?s.sectionalLayouts:[])for(const section of l?.sections||[])if(section?.familyId===family.id)sections.push({hiveId:l.hiveId,position:section.position,mode:l.mode});
+  if(sections.length>1||sections.some(x=>x.hiveId!==family.hive))return result('ambiguous','конфликт размещения, проверь реестр');
+  return result('found',hiveName(family.hive)+(sections.length?', '+sectionLabel(sections[0].position,sections[0].mode):family.box!=null?', позиция '+family.box:''));
+ }
+ if(type==='queen'){
+  const rows=(s.queens||[]).filter(q=>q?.code===display),q=one(rows);
+  if(!q)return result(rows.length?'ambiguous':'missing',rows.length?'номер неоднозначен, проверь реестр':'не найдена');
+  const family=one(unique(s.families||[],q.familyId));
+  if(q.status==='current'&&family?.currentQueenId===q.id&&family.recordStatus!=='historical')return result('found','семья '+(family.name||family.code||'без номера')+', '+hiveName(family.hive));
+  return result('found',({replaced:'заменена',dead:'погибла',removed:'выведена из семьи'})[q.status]||'текущая принадлежность не подтверждена');
+ }
+ if(type==='frame'){
+  const rows=listLabelledFrames(s).filter(f=>f.labelCode===normalizeCode(code,'frame')),frame=one(rows);
+  if(!frame)return result(rows.length?'ambiguous':'missing',rows.length?'повторяющийся код, проверь реестр':'не найдена');
+  if(frame.locationType==='retired')return result('found','списана; номер сохраняется');
+  if(frame.bodyId){
+   const place=bodyPlace(frame.bodyId);if(place.conflict)return result('ambiguous','конфликт размещения корпуса');
+   const bodyCode=formatLabelCode('body',s.equipmentLabels?.bodies?.[frame.bodyId]);
+   return result('found',place.detail+(bodyCode?', корпус '+bodyCode:'')+', позиция '+frame.position);
+  }
+  const bodyCode=formatLabelCode('body',s.layouts?.[frame.hiveId]?.corpusIds?.[frame.box]?s.equipmentLabels?.bodies?.[s.layouts[frame.hiveId].corpusIds[frame.box]]:null);
+  return result('found',hiveName(frame.hiveId)+', '+(bodyCode?'корпус '+bodyCode:'позиция корпуса '+frame.box)+', рамка на месте '+frame.position);
+ }
+ if(type==='body'){
+  const rows=Object.entries(s.equipmentLabels?.bodies||{}).filter(([,value])=>normalizeCode(value,'body')===normalizeCode(code,'body'));
+  if(rows.length!==1)return result(rows.length?'ambiguous':'missing',rows.length?'повторяющийся код, проверь реестр':'не найден');
+  const place=bodyPlace(rows[0][0]);return result(place.conflict?'ambiguous':'found',place.conflict?'конфликт размещения, проверь реестр':place.detail);
+ }
+ return {status:'invalid',message:'Неизвестный тип маркировки.'};
+}
+
 // Reserved, not surfaced: stable offline QR payload, no camera/encoder/network.
 // Contains only object type and immutable internal ID, never a current position.
 function futureQrPayload(type,id){
@@ -108,4 +177,4 @@ function assignFrame(s,f,r){if(!s||!f||typeof f!=='object')throw Error('Не н�
 function assignBody(s,id,r){if(!s||!id)throw Error('Не найден ID корпуса.');s.equipmentLabels=s.equipmentLabels||{};s.equipmentLabels.bodies=s.equipmentLabels.bodies||{};const b=s.equipmentLabels.bodies;if(b[id]){const old=normalizeCode(b[id],'body');if(!old)throw Error('У корпуса некорректный код.');if(r!=null&&normalizeCode(r,'body')!==old)throw Error('Постоянный код корпуса нельзя менять.');reserve(s,'body',old);return old}const v=r==null||String(r).trim()===''?next(s,'body'):normalizeCode(r,'body');if(!v)throw Error('Код корпуса: положительный номер или ранее выданный трёхсимвольный код.');if(used(s,'body').has(v))throw Error('Этот код корпуса уже занят.');b[id]=v;reserve(s,'body',v);return v}
 function inspect(s){const e=[],seen=new Map(),seenIds=new Map();for(const x of frames(s)){const f=x.frame,frameId=typeof f?.frameId==='string'?f.frameId.trim():'',frameUid=typeof f?.frameUid==='string'?f.frameUid.trim():'',identityKey=frameUid?'uid:'+frameUid:frameId?x.identityScope+'\\u0000'+frameId:'';const location={hiveId:x.hiveId,box:x.box,position:x.position,bodyId:x.bodyId||null,frameUid:frameUid||null};if(identityKey){if(seenIds.has(identityKey))e.push({code:'duplicate_frame_identity',details:{frameId,frameUid:frameUid||null,labelCode:f.labelCode||null,identityScope:x.identityScope,first:seenIds.get(identityKey),duplicate:location}});else seenIds.set(identityKey,location)}const raw=f?.labelCode;if(raw==null||raw==='')continue;const c=normalizeCode(raw,'frame');if(!c||c!==raw)e.push({code:'invalid_frame_label_code',details:{hiveId:x.hiveId,box:x.box,position:x.position,labelCode:raw}});else if(seen.has(c))e.push({code:'duplicate_frame_label_code',details:{labelCode:c,first:seen.get(c),duplicate:{hiveId:x.hiveId,box:x.box,position:x.position}}});else seen.set(c,{hiveId:x.hiveId,box:x.box,position:x.position})}const bs=new Map();for(const [id,raw] of Object.entries(s?.equipmentLabels?.bodies||{})){const c=normalizeCode(raw,'body');if(!c||c!==raw)e.push({code:'invalid_body_label_code',details:{corpusId:id,labelCode:raw}});else if(bs.has(c))e.push({code:'duplicate_body_label_code',details:{labelCode:c,firstCorpusId:bs.get(c),duplicateCorpusId:id}});else bs.set(c,id)}return e}
 function auditFrameRegistry(s){const entries=frames(s),labelled=entries.filter(x=>x.frame&&typeof x.frame==='object'&&x.frame.labelCode!=null&&String(x.frame.labelCode).trim()!==''),issues=inspect(s).map(x=>({severity:'error',code:x.code,details:x.details})),seenIssues=new Set(),seenHistoryEventIds=new Map();const add=(severity,code,details)=>{const key=severity+'|'+code+'|'+JSON.stringify(details);if(!seenIssues.has(key)){seenIssues.add(key);issues.push({severity,code,details})}};for(const x of entries){const f=x.frame;if(!f||typeof f!=='object'||Array.isArray(f)){add('error','invalid_frame_record',{hiveId:x.hiveId,box:x.box,position:x.position});continue}const code=normalizeCode(f.labelCode,'frame'),place={hiveId:x.hiveId,box:x.box,position:x.position,bodyId:x.bodyId||null,labelCode:f.labelCode||null,frameUid:f.frameUid||null};if(!code)add('error','missing_frame_label_code',place);if(!f.frameUid||typeof f.frameUid!=='string'||!f.frameUid.trim())add('error','missing_frame_uid',place);if(f.history!=null&&!Array.isArray(f.history))add('error','invalid_frame_history',place);if(Array.isArray(f.history))for(const event of f.history){if(!event||typeof event!=='object'||Array.isArray(event))add('error','invalid_frame_history_event',place);else if(!event.id)add('error','frame_history_event_id_missing',place);else if(seenHistoryEventIds.has(event.id))add('error','duplicate_frame_history_event_id',{...place,eventId:event.id,first:seenHistoryEventIds.get(event.id)});else seenHistoryEventIds.set(event.id,place)}if(x.hiveId==='storage'&&(!x.bodyId||!s?.equipmentInventory?.bodies?.[x.bodyId]))add('error','frame_storage_location_missing',place);else if(x.hiveId==='retired'){const record=x.retiredRecord;if(!record||record.labelCode!==code||record.id!==code||f.lifecycle!=='retired')add('error','retired_frame_record_mismatch',{...place,recordId:record?.id||null,lifecycle:f.lifecycle||null});if(!f.retiredAt&&!record?.retiredAt)add('warning','retired_frame_date_missing',place)}else if(!x.hiveId||!x.box)add('error','frame_location_missing',place);const history=Array.isArray(f.history)?f.history:[],last=history[history.length-1];if(last){let expected=null;if(['family_transfer','corpus_transfer','box_frames_swapped'].includes(last.action)&&last.to)expected={hiveId:last.to.hiveId,box:String(last.to.box)};else if(last.action==='move'&&last.to)expected={box:String(last.to.location)};else if(last.action==='corpus_to_storage')expected={storage:true};else if(last.action==='corpus_from_storage'&&last.to)expected={hiveId:last.to.hiveId,box:String(last.to.box)};else if(last.action==='retired')expected={retired:true};if(expected){const mismatch=expected.retired?x.hiveId!=='retired':expected.storage?x.hiveId!=='storage':expected.hiveId&&expected.hiveId!==x.hiveId||expected.box&&expected.box!==String(x.box);if(mismatch)add('warning','frame_history_location_mismatch',{...place,lastAction:last.action,expected,historyDate:last.date||null})}}}const summary={labelled:labelled.length,active:labelled.filter(x=>x.hiveId!=='storage'&&x.hiveId!=='retired').length,stored:labelled.filter(x=>x.hiveId==='storage').length,retired:labelled.filter(x=>x.hiveId==='retired').length,withoutPermanentCode:entries.filter(x=>x.frame&&typeof x.frame==='object'&&(!x.frame.labelCode||String(x.frame.labelCode).trim()==='')).length,errors:issues.filter(x=>x.severity==='error').length,warnings:issues.filter(x=>x.severity==='warning').length};return {summary,issues}}
-window.PasekaLabels={ALPHABET,CAPACITY,normalizeCode,formatLabelCode,nextCode:next,nextLegacyCode:nextLegacy,nextIdentityCode,futureQrPayload,sectionLabel,MAX_SERIAL,assignFrameCode:assignFrame,assignBodyCode:assignBody,migrateFrameUids,listLabelledFrames,retireFrame,appendFrameEvent,auditFrameRegistry,inspectIdentityMarking,inspectLabelIntegrity:state=>[...inspect(state),...inspectIdentityMarking(state)]}})();
+window.PasekaLabels={ALPHABET,CAPACITY,normalizeCode,formatLabelCode,nextCode:next,nextLegacyCode:nextLegacy,nextIdentityCode,futureQrPayload,sectionLabel,lookupMarking,MAX_SERIAL,assignFrameCode:assignFrame,assignBodyCode:assignBody,migrateFrameUids,listLabelledFrames,retireFrame,appendFrameEvent,auditFrameRegistry,inspectIdentityMarking,inspectLabelIntegrity:state=>[...inspect(state),...inspectIdentityMarking(state)]}})();
