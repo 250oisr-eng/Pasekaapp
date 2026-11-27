@@ -1735,7 +1735,13 @@
     "browserOfflineValidated": true,
     "syntheticMobileExport": "PASS",
     "syntheticDesktopExport": "PASS",
-    "syntheticStateMutationObserved": false
+    "syntheticStateMutationObserved": false,
+    "staleVisibleIdRegression": {
+      "negativeCases": 1,
+      "expectedNoDownload": true,
+      "exactHeadCi": "PENDING",
+      "device": "NOT_TESTED"
+    }
   },
   "concurrentIndependentDrafts20261127": {
     "mainAtStart": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
