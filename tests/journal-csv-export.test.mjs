@@ -177,3 +177,17 @@ test('summary keeps historical and ambiguous hive counts visible without navigat
  assert.match(host.innerHTML,/Улей duplicate · 1/);
  assert.match(host.innerHTML,/Всего записей: 2/);
 });
+
+
+test('CSV button rejects inverted period before selecting rows or creating a file',()=>{
+ const begin=html.indexOf('function downloadFilteredJournalCsv(){');
+ const end=html.indexOf('function renderJournalRecords(){',begin);
+ assert.ok(begin>=0&&end>begin);
+ const calls=[];
+ const fields={journalDateFilter:{value:'2026-11-12'},journalEndDateFilter:{value:'2026-11-10'}};
+ const download=new Function('activeJournalHive','$','alert','filteredJournalRows',
+  html.slice(begin,end)+';return downloadFilteredJournalCsv')('h1',id=>fields[id],msg=>calls.push(msg),()=>{throw Error('must not enumerate records')});
+ download();
+ assert.equal(calls.length,1);
+ assert.match(calls[0],/Конец периода раньше начала/);
+});
