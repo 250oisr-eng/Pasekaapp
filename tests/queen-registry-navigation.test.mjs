@@ -77,3 +77,16 @@ test('queen registry renderer reports corrupt indexes without mutating state',()
  assert.equal(api.queenRegistryFamily(state,'q','f','h'),null);
  assert.equal(JSON.stringify(state),before);
 });
+
+test('legacy absent queen collection still renders an empty registry without creating records',()=>{
+ const state={families:[],hives:[],queenEvents:[]};
+ const fields={queenRegistryList:{innerHTML:'',textContent:''},queenRegistrySearch:{value:''},queenRegistryStatus:{value:'all'},queenRegistryResultCount:{textContent:''}};
+ const before=JSON.stringify(state);
+ const api=new Function('$','S',source+';return {renderQueenRegistry,queenRegistryFamily}')(
+  id=>fields[id],state);
+ assert.doesNotThrow(()=>api.renderQueenRegistry());
+ assert.match(fields.queenRegistryList.innerHTML,/Матки ещё не зарегистрированы/);
+ assert.equal(fields.queenRegistryResultCount.textContent,'Показано: 0 из 0');
+ assert.equal(api.queenRegistryFamily(state,'q','f','h'),null);
+ assert.equal(JSON.stringify(state),before);
+});
