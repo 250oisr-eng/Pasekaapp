@@ -56,7 +56,8 @@ const measure=()=> {
   return {viewport:{width:innerWidth,height:innerHeight},
     documentWidth:document.documentElement.scrollWidth,
     mainPaddingBottom:parseFloat(getComputedStyle(main).paddingBottom),
-    nav:n,buttons,aiDelta:ai?+(ai.cx-n.cx).toFixed(2):null,overlaps};
+    nav:n,buttons,rowTracks:getComputedStyle(nav).gridTemplateRows.trim().split(/\s+/).length,
+    aiDelta:ai?+(ai.cx-n.cx).toFixed(2):null,overlaps};
 };
 (async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -109,7 +110,7 @@ const measure=()=> {
         }
       }
       console.log(JSON.stringify({scenario:'nav-geometry',name,viewport:m.viewport,
-        rows:m.buttons?[...new Set(m.buttons.map(b=>Math.round(b.top)))].length:null,
+        rows:m.rowTracks,
         navHeight:m.nav?.height,mainPaddingBottom:m.mainPaddingBottom,
         aiDelta:m.aiDelta,overlaps:m.overlaps,problems,
         source:'local-Chromium-synthetic',realAndroid:'NOT_TESTED'}));
