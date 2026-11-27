@@ -1687,9 +1687,9 @@
   "b01OnePlusWorkerDiagnostics20261127": {
     "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
     "pr": 629,
-    "codeStatus": "IMPLEMENTED_DRAFT",
-    "ci": "PENDING_EXACT_NEW_HEAD",
-    "diagnosticApk": "NOT_BUILT",
+    "codeStatus": "IMPLEMENTED_DRAFT_AND_PHYSICAL_FORCED_JOB_PASS",
+    "ci": "CODE_SHA_12848a22_EXACT_PASS_DOCS_ONLY_HEAD_PENDING",
+    "diagnosticApk": "FIX_ISOLATED_APK_AAPT_APKSIGNER_SHA256_VERIFIED",
     "device": "NE2213_API36_USER_ADB_EVIDENCE",
     "forcedJobStarted": true,
     "lastJobFailed": true,
@@ -1706,7 +1706,7 @@
       "LOAD_REQUESTED",
       "PAGE_FINISHED"
     ],
-    "javascriptPhaseReached": false,
+    "javascriptPhaseReached": true,
     "nextProbePackage": "ru.paseka.journal.qa.daily.fix",
     "rootCause": "UNCONDITIONAL_403_BLOCKED_INTERNAL_MAIN_FRAME_HTML",
     "firstInlineScriptReached": false,
@@ -1715,6 +1715,27 @@
     "deviceObservedMainFrameIntercepted": true,
     "deviceObservedMainFrameHttpError": true,
     "deviceObservedWorkerHtmlAbsent": true,
-    "minimalFix": "ONE_SHOT_DATA_MAIN_FRAME_ONLY"
+    "minimalFix": "ONE_SHOT_DATA_MAIN_FRAME_ONLY",
+    "latestForcedJobStatus": "PASS_OK_RETRY_FALSE",
+    "latestForcedJobEnd": "2026-11-27 20:52:48",
+    "latestForcedJobApproxDurationMs": 329,
+    "latestForcedJobStateAfter": "waiting",
+    "latestJSPhases": [
+      "BOOTSTRAP",
+      "ORIGIN",
+      "MARKER",
+      "SOURCE_OPEN",
+      "SOURCE_READ",
+      "STATE_VALID",
+      "STORE_OPEN",
+      "ROTATED",
+      "FINISH"
+    ],
+    "latestBridgeFinish": "OK",
+    "latestJobRetry": false,
+    "mainFrameDataAllowedOnceObserved": true,
+    "unattendedSchedulerVerified": false,
+    "archiveSlotScreenshotForFix": "NOT_TESTED",
+    "syntheticRestoreForFix": "NOT_TESTED"
   }
 }

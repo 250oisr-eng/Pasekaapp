@@ -115,3 +115,34 @@ F0–F2: следующая минимальная граница — **толь
 - Чтобы не заменять ephemeral-подписанный `.qa.daily.dom` и существующие QA-песочницы, вводится независимый `ru.paseka.journal.qa.daily.fix`, только синтетические записи, одноразовый APK в ранее проверенном isolated workflow (новых workflows не нужно). Он не подписан production-ключом; обновлять штатное приложение нельзя.
 - **Тестовая приёмка:** exact-head Node tests, Android compile, aapt/apksigner и SHA-256 APK; затем один физический запуск с короткими scoped логами. `MAIN_FRAME_DATA_ALLOWED_ONCE` должен появиться без `MAIN_HTTP_ERROR`, затем `JS_PHASE` и `BRIDGE_FINISH SKIP` либо `BRIDGE_FINISH OK` (в зависимости от состояния только новой QA-песочницы); timeout означает fail. `OK` всё равно не доказывает байтовое восстановление, а `SKIP` не доказывает создание ZIP. Восстановление только в синтетической QA после независимой проверки.
 - До физического результата **`IMPLEMENTED_DRAFT`, `B01_G4_NOT_VERIFIED`**. Ни merge, ни release, ни удаление оригиналов, ни production restore без разрешения.
+
+## 27.11.2026 — физический G4: исправленный worker завершил принудительный JobScheduler штатно
+
+OnePlus 10 Pro (NE2213, Android 16/API36). Пользователь установил изолированный `ru.paseka.journal.qa.daily.fix` (ADB `Success`); запустил `cmd jobscheduler run -f ... 1346458437`. Фильтрованный Logcat:
+
+```text
+20:52:48.013 START
+20:52:48.021 ASSET_READY
+20:52:48.037 LOAD_REQUESTED
+20:52:48.081 MAIN_FRAME_DATA_ALLOWED_ONCE
+20:52:48.147 PAGE_STARTED_LOCALHOST
+20:52:48.284 JS_PHASE BOOTSTRAP
+20:52:48.289 JS_PHASE ORIGIN
+20:52:48.292 JS_PHASE MARKER
+20:52:48.295 JS_PHASE SOURCE_OPEN
+20:52:48.307 JS_PHASE SOURCE_READ
+20:52:48.308 PAGE_FINISHED_LOCALHOST phase=SOURCE_READ
+20:52:48.309 JS_PROBE_READY
+20:52:48.316 JS_PHASE STATE_VALID
+20:52:48.318 JS_PHASE STORE_OPEN
+20:52:48.341 JS_PHASE ROTATED
+20:52:48.342 JS_PHASE FINISH
+20:52:48.342 BRIDGE_FINISH OK phase=FINISH
+20:52:48.342 JOB_FINISHED retry=false phase=FINISH
+```
+
+Android `get-job-state` после выполнения: `waiting`. Прямое физическое доказательство: исключение для **одного** внутреннего `data:` главного документа устранило ранее подтверждённую 403-блокировку; worker прошёл полный JS/IndexedDB/rotate путь и корректно вызвал `jobFinished(...,false)` примерно за 329 мс. Старый 180-секундный тайм-аут в этом прогоне **не возник**.
+
+**Статус строго по виду испытания:** `G4_FORCED_JOB_USER_REPORTED_PASS` при `CI_VERIFIED_EXACT_CODE_SHA=12848a220b88427f93abc906b3521fa598d7e432` (1073/1073 Node, Android/aapt/apksigner, Governance PASS). `JS_PHASE ROTATED` означает выполнение функции ротации, но не гарантирует что в этот день был создан новый ZIP: процедура может законно завершиться без нового архива. **Новый архив и его независимая целостность — NOT_VERIFIED. Естественное ежедневное срабатывание без ADB — NOT_VERIFIED. Независимое восстановление в новой QA — NOT_TESTED.**
+
+Следующий минимальный физический шаг — только просмотр `Ещё → Резервное копирование` в **`Пасека QA — проверка исправления`** (без `Восстановить` и изменения даты), снимок статуса и двух слотов. Исходная QA с архивами 27/28 ноября, production-приложение и записи пользователя не менялись. Не сливать PR и не публиковать приложение без отдельного разрешения.
