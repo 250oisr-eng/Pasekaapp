@@ -1,4 +1,37 @@
 {
+  "p0FirstExternalCopyGuide20261127": {
+    "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
+    "pr": 597,
+    "integration": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
+    "codeSha": "40ce6d01fbbeaf0de6395a0716a6e2d9533363ba",
+    "nodeTests": {
+      "tests": 1008,
+      "pass": 1008,
+      "fail": 0,
+      "cancelled": 0
+    },
+    "verifiedCi": [
+      {
+        "name": "Governance Docs Checks",
+        "id": 45904183560,
+        "conclusion": "success"
+      },
+      {
+        "name": "Build Android APK",
+        "id": 45904183627,
+        "conclusion": "success"
+      }
+    ],
+    "storageChanges": false,
+    "videoTouched": false,
+    "restoreChanged": false,
+    "serviceWorkerChanges": false,
+    "realExternalCopy": "NOT_VERIFIED",
+    "independentRestore": "NOT_TESTED",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
+  },
   "schemaVersion": 1,
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
@@ -1003,5 +1036,459 @@
     "device": "NOT_TESTED",
     "mergeState": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
     "notes": "Browser E2E tests ran on integrated HTML SHA 4c44a419. Next code SHA only adjusts unit test assertions; full 1004 TAP and APK checked on d18ef975. No real device, data restore or release."
+  },
+  "ui187HoneycombPort20261127": {
+    "sourceMain": "495e38a99fc00cde5c671444e83d87a40d619750",
+    "pr": 595,
+    "codeSha": "7a58ac9ac8565583c025a58620e466cd5b3721cf",
+    "ciStatus": "SUCCESS_EXACT_CODE_SHA",
+    "navRoutes": 11,
+    "hivePreviewLimit": 3,
+    "availableHiveList": "UNFILTERED",
+    "taskList": "UNFILTERED",
+    "userDataChanged": false,
+    "serviceWorkerChanged": false,
+    "uxTwoRowRule": "UNSATISFIED_3_ROWS_MOBILE",
+    "visualAcceptanceIssue": 596,
+    "realDevice": "NOT_TESTED",
+    "productionRelease": "NOT_AUTHORIZED",
+    "completedVerifiedUserScenarios": 0,
+    "nodeTests": {
+      "total": 1013,
+      "pass": 1013,
+      "fail": 0,
+      "cancelled": 0
+    },
+    "ci": [
+      {
+        "kind": "Governance",
+        "run": 45951762030,
+        "conclusion": "success"
+      },
+      {
+        "kind": "Android APK",
+        "run": 45951761963,
+        "conclusion": "success",
+        "debugArtifactId": 15176539296
+      }
+    ],
+    "initialSyncedCiFailure": {
+      "sha": "e102ef10d28c465692271cdc60ad0d381d446725",
+      "run": 45951587402,
+      "reason": "Overlapping patch hunks duplicated syntax in navigation test",
+      "resolvedBy": "restore exact verified original test file (blob 5259ed4d103204fe42b8a3f356e51f2e0f173c74)"
+    }
+  },
+  "ui596ChromiumGeometry20261127": {
+    "issue": 596,
+    "pr": 603,
+    "sourceMain": "2dba3654d503be2070241df1845307b4f9d1f205",
+    "codeSha": "daac6a42a8aee593c298609325ed2072c676ea0d",
+    "baseline": {
+      "sha": "ff9d2f991f86c2680706809ee9263d96327697f5",
+      "run": 45952861725,
+      "result": "FAIL_REAL_CHROMIUM",
+      "affectedWidths": [
+        320,
+        360,
+        390,
+        412
+      ],
+      "overlapPx": [
+        11,
+        14
+      ],
+      "cause": "inherited translateY on AI button"
+    },
+    "corrected": {
+      "run": 45953146707,
+      "conclusion": "success",
+      "checkedScenarios": 11,
+      "overlapCount": 0,
+      "correctedCSS": "transform:none!important; AI dimensions constrained to grid tracks",
+      "journalE2E": [
+        "mobile",
+        "desktop"
+      ]
+    },
+    "node": {
+      "run": 45953146696,
+      "tests": 1014,
+      "pass": 1014,
+      "fail": 0
+    },
+    "android": {
+      "run": 45953146685,
+      "conclusion": "success",
+      "tests": 1014,
+      "pass": 1014,
+      "debugArtifactId": 15177577419
+    },
+    "userDataChanged": false,
+    "storageChanged": false,
+    "serviceWorkerChanged": false,
+    "physicalOnePlus": "NOT_TESTED",
+    "talkBack": "NOT_TESTED",
+    "twoRowUXAcceptance": "PENDING_VISUAL_ACCEPTANCE",
+    "release": "NOT_AUTHORIZED",
+    "completedVerifiedUserScenarios": 0,
+    "integration": "IN_MAIN",
+    "mergeSHA": "e00d5d34cdeeed619bb2af6082650f7643e9994b",
+    "exactMainCI": {
+      "fast": 45953717051,
+      "android": 45953717093,
+      "governance": 45953717072,
+      "chromium": 45953716961,
+      "nodePass": 1014,
+      "fail": 0
+    }
+  },
+  "uiHomeCanonicalAI20261127": {
+    "sourceMain": "e00d5d34cdeeed619bb2af6082650f7643e9994b",
+    "pr": 604,
+    "implementation": "IN_MAIN",
+    "retainedNavAI": true,
+    "homeDuplicateRemoved": true,
+    "quickJournalEntryRetained": true,
+    "aiPromptChipsRetained": true,
+    "storageChanged": false,
+    "videoTouched": false,
+    "serviceWorkerChanged": false,
+    "physicalOnePlus": "NOT_TESTED",
+    "productionRelease": "NOT_AUTHORIZED",
+    "nodeCI": {
+      "run": 45954139870,
+      "tests": 1017,
+      "pass": 1017,
+      "fail": 0
+    },
+    "chromium": {
+      "run": 45954040590,
+      "conclusion": "success",
+      "checkedHtmlSha": "0e0ac87c7a18e71dfa12ee4b952581f28578e4a6",
+      "journalMobileDesktop": "PASS",
+      "geometry11": "PASS"
+    },
+    "android": {
+      "run": 45954139760,
+      "tests": 1017,
+      "pass": 1017,
+      "fail": 0,
+      "artifactId": 15178077126
+    },
+    "codeSha": "e185a4e828641eeb521291d68f4222c2bf1ddc06",
+    "governance": {
+      "run": 45954145543,
+      "conclusion": "success"
+    },
+    "initialCiFailure": {
+      "sha": "0e0ac87c7a18e71dfa12ee4b952581f28578e4a6",
+      "fastRun": 45954040598,
+      "reason": "two stale regression expectations required removed home AI relay",
+      "resolution": "updated tests/regression.test.mjs to canonical AI prompt without auto-send"
+    },
+    "exactFinalHead": "PENDING_DOCS_ONLY_SHA",
+    "mergeSHA": "fa5493da9067d5d50204d19ad92f37ac0605839c",
+    "exactMainCI": {
+      "fast": 45954640877,
+      "android": 45954640830,
+      "governance": 45954640856,
+      "chromium": 45954640768,
+      "nodePass": 1017,
+      "fail": 0,
+      "debugArtifactId": 15177799114
+    }
+  },
+  "ui596BeeHoneycomb20261127": {
+    "issue": 596,
+    "sourceMain": "fa5493da9067d5d50204d19ad92f37ac0605839c",
+    "branch": "feat/ui-596-bee-honeycomb-20261127",
+    "stage": "IN_MAIN",
+    "uiRoutesPreserved": 11,
+    "chromeViewportCasesPlanned": 11,
+    "chromeViewportCasesVerified": 11,
+    "ciVerifiedExactSha": "49f85367d2b528f5db57cb820d2416825a37211c",
+    "device": "NOT_TESTED",
+    "storageChanges": false,
+    "videoChanges": false,
+    "release": false,
+    "realUserAcceptance": "NOT_TESTED",
+    "requestedRows": [
+      [
+        "entrance",
+        "hives",
+        "home",
+        "planning"
+      ],
+      [
+        "journal",
+        "ai",
+        "forage"
+      ],
+      [
+        "incidents",
+        "deadout",
+        "varroa",
+        "settings"
+      ]
+    ],
+    "tessellatedHexagons": true,
+    "visibleAiLabel": false,
+    "ariaLabelPreserved": true,
+    "beeSideView": true,
+    "completedVerifiedUserScenarios": 0,
+    "sharedNavigationAcrossTabs": true,
+    "design": "angular aggressive profile bee; blue radial-gradient lightening toward edges",
+    "baselineFailedAndroidRun": 45961701643,
+    "baselineFailedTests": 5,
+    "exactHeadCi": "NOT_VERIFIED",
+    "nodeTests": {
+      "tests": 1017,
+      "pass": 1017,
+      "fail": 0
+    },
+    "chromiumViewportsPassed": 11,
+    "chromiumJournalScenariosPassed": 2,
+    "ciRuns": {
+      "android": 45964068902,
+      "chromium": 45964068824,
+      "governance": 45964068933
+    },
+    "androidApkBuild": "SUCCESS_CI_NOT_INSTALLED",
+    "merged": true,
+    "pr": 607,
+    "mergeSha": "7f2f7aad126bebe45670775eb0ced93dd371813b",
+    "lastPRHeadCi": {
+      "androidRun": 45964309074,
+      "chromiumRun": 45964309235,
+      "governanceRun": 45964309219,
+      "all": "success"
+    },
+    "mainExactCI": "NOT_VERIFIED",
+    "published": false
+  },
+  "globalSearchReset20261127": {
+    "stage": "IN_MAIN",
+    "branch": "feat/ui-global-search-reset-a11y-20261127",
+    "baseMainSha": "4355f9942687e239d59a6b512b6947c0188680e5",
+    "scope": [
+      "index.html",
+      "tests/global-search-reset-a11y.test.mjs",
+      "docs"
+    ],
+    "dataWrites": false,
+    "offlineOnly": true,
+    "nodeCi": {
+      "run": 45965524188,
+      "pass": 1021,
+      "fail": 0
+    },
+    "androidCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "merged": true,
+    "pr": 609,
+    "mergeSha": "164f6696f62ea266e4daaae4a4e41c4587f6e880",
+    "chromiumCi": {
+      "run": 45965524372,
+      "conclusion": "success"
+    },
+    "governanceCi": {
+      "run": 45965524278,
+      "conclusion": "success"
+    },
+    "published": false
+  },
+  "globalSearchChromium20261127": {
+    "stage": "IN_MAIN",
+    "branch": "test/ui-global-search-browser-proof-20261127",
+    "viewports": [
+      320,
+      390,
+      768
+    ],
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "noDataWrites": true,
+    "merged": true,
+    "pr": 610,
+    "mergeSha": "1c0ff2390898b8c0fd17063569749bbdf38d98c2",
+    "ciVerifiedExactSha": "b243e5103adc7dae8d4fe6d211b86f0df8c7ebaa",
+    "nodeTests": {
+      "pass": 1021,
+      "fail": 0
+    },
+    "ciRuns": {
+      "android": 45965870658,
+      "chromium": 45965870612,
+      "governance": 45965870605
+    },
+    "chromiumAllPassed": true,
+    "published": false
+  },
+  "searchFamilyHistory20261127": {
+    "stage": "IN_MAIN",
+    "branch": "feat/ui-search-family-history-safe-20261127",
+    "sourceDraft": 600,
+    "baseMainSha": "f67ca3427fd6c352011b8628d7359ebdaa8e0d3d",
+    "runtimeChanges": [
+      "index.html"
+    ],
+    "dataWrites": false,
+    "codeCi": "NOT_VERIFIED",
+    "chromiumCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "merged": true,
+    "pr": 612,
+    "mergeSha": "14b398c97354800062b170e835a97bf7c76b7eb5",
+    "nodeTests": {
+      "pass": 1023,
+      "fail": 0
+    },
+    "verifiedPrSha": "4ab891f3c7cfbf26dc4feffc1499f23686c8b560",
+    "ciRuns": {
+      "android": 45967365737,
+      "chromium": 45967366165,
+      "governance": 45967365751
+    }
+  },
+  "oneplusCurrentQa20261127": {
+    "stage": "BINARY_PROOF_MERGED_DEVICE_NOT_TESTED",
+    "branch": "feat/qa-isolated-current-main-20261127",
+    "baseMainSha": "14b398c97354800062b170e835a97bf7c76b7eb5",
+    "sourcePr": 602,
+    "qaPackage": "ru.paseka.journal.qa",
+    "ci": "NOT_VERIFIED",
+    "binarySha": null,
+    "device": "CYCLES_1_2_PASS_CYCLE_3_VERIFY_FAIL",
+    "productionTouched": false,
+    "merged": true,
+    "pr": 613,
+    "mainMergeSha": "ab1be71add0e16b20eb47c7a1eaf585411039a46",
+    "verifiedSourceSha": "acd35f567d87c640f2eb620312679cb981d2305f",
+    "nodeTests": {
+      "pass": 1027,
+      "fail": 0
+    },
+    "qaBuildRun": 45967904156,
+    "androidBuildRun": 45967904084,
+    "governanceRun": 45967904112,
+    "artifactId": 15183717921,
+    "artifactExpiresAt": "2026-12-04T08:46:12Z",
+    "apkSha256": "e0651987d176e6a45f6a03b2ae2c39f613a9725463942d5583f63b49158eeca6",
+    "published": false,
+    "cycle1": {
+      "status": "USER_REPORTED_PASS",
+      "date": "2026-11-27",
+      "reportedPassCount": 8,
+      "reportedTotal": 8,
+      "remarks": "none",
+      "device": "OnePlus Android 15+",
+      "conditions": [
+        "isolated QA install",
+        "empty QA start",
+        "4-3-4 nonoverlap",
+        "tab access",
+        "AI tab",
+        "Back and resume",
+        "rotation",
+        "reported production unchanged"
+      ],
+      "independentDeviceLogs": false
+    },
+    "cycle2": {
+      "status": "USER_REPORTED_PASS",
+      "date": "2026-11-27",
+      "reportedPassCount": 8,
+      "reportedTotal": 8,
+      "remarks": "none",
+      "device": "OnePlus Android 15+",
+      "conditions": [
+        "synthetic hive",
+        "synthetic family",
+        "single observation",
+        "search family history",
+        "reopen",
+        "airplane mode",
+        "no duplicates",
+        "production unchanged"
+      ],
+      "independentDeviceLogs": false,
+      "androidForceStopNotEstablished": true
+    },
+    "cycle3": {
+      "status": "USER_REPORTED_JSON_NOT_FOUND_VERIFY_FAIL",
+      "reportedDate": "2026-11-27",
+      "downloadReported": "PASS",
+      "downloadedFileReported": "PASS",
+      "sizeNonzeroReported": "PASS",
+      "reportedApproxFileBytes": 330000,
+      "verify": "FAIL",
+      "message": "Unexpected token 'P', \"PK\"...is not valid JSON",
+      "fileSignatureHypothesis": "ZIP_PK_MISSELECT_OR_DOWNLOAD_MISMATCH_UNCONFIRMED",
+      "sha256": "NOT_TESTED",
+      "recordsCount": "NOT_TESTED",
+      "externalSecondCopy": "NOT_TESTED",
+      "restoreOrDelete": "NOT_TESTED",
+      "productionImpact": "NOT_REPORTED",
+      "doNotClearOrReinstall": true,
+      "actualFullJsonFound": false,
+      "fullArchiveExistence": "NOT_VERIFIED",
+      "deviceReport": "paseka-full-idb-*.json absent",
+      "noReinstall": true
+    }
+  },
+  "qaArchiveFileSelection20261127": {
+    "stage": "IN_MAIN_CODE_VERIFIED",
+    "branch": "fix/b01-qa-archive-zip-misselect-20261127",
+    "scope": "READ_ONLY_PRESCAN_PK_JSON_AND_ERROR_MESSAGE",
+    "sourceMainSha": "3af572224749da72cb5e2080557a0f17bb59bff5",
+    "codeCI": "NOT_VERIFIED",
+    "noRestore": true,
+    "noDataWrites": true,
+    "installedQaUnaffected": true,
+    "merged": true,
+    "pr": 617,
+    "mergeSha": "6859e1082e213ce7141fa983f453fb9011e7c74b",
+    "codeSha": "616c5f81c99e6ad613afee4a0ead2459896b0cc6",
+    "tests": {
+      "passed": 1032,
+      "failed": 0
+    },
+    "ci": {
+      "android": 45973966819,
+      "chromium": 45973966889,
+      "governance": 45973966811,
+      "all": "success"
+    },
+    "cycle3Still": "USER_REPORTED_ARCHIVE_VERIFY_FAIL"
+  },
+  "b01QaSafArchive20261127": {
+    "stage": "IN_MAIN_BINARY_VERIFIED_DEVICE_NOT_TESTED",
+    "branch": "feat/b01-qa-saf-archive-export-20261127",
+    "mainBaseSha": "e5fdb2d295c062795820268b0997ebca01a54fde",
+    "package": "ru.paseka.journal.qa.archive",
+    "installedQaUnchanged": true,
+    "productionUnchanged": true,
+    "exportStrategy": "SAF_CREATE_DOCUMENT_WITH_BYTEWISE_READBACK",
+    "maxBytes": 268435456,
+    "ci": {
+      "nodePass": 1038,
+      "nodeFail": 0,
+      "regularAndroid": 45975935822,
+      "isolatedSAFQa": 45975935838,
+      "governance": 45975935844,
+      "all": "success"
+    },
+    "device": "NOT_TESTED",
+    "fullRestore": "BLOCKED",
+    "mediaDeletion": "FROZEN",
+    "merged": true,
+    "pr": 619,
+    "mergeSha": "eda81f8ffbf7491dba7b973373248f28cf19450a",
+    "verifiedPRSourceSha": "ad8f183893de7eadfa3f4f696906fafb1948af81",
+    "artifactId": 15187042938,
+    "artifactExpiresAt": "2026-12-04T09:44:20Z",
+    "apkSha256": "83ce0f45cd57acc81f3fd5368b7e13cc8db3057221124b536147336d429ef4d6",
+    "originalQaUnchanged": true
   }
 }
