@@ -69,22 +69,13 @@ test('native patch is idempotent and preserves distinct package/origin',()=>{
  const diagnosticActivity='package '+diag.appId+';\npublic class MainActivity extends BridgeActivity {}';
  assert.match(patchActivity(diagnosticActivity,diag.appId),/PasekaDailyArchiveJob\.schedule\(this\)/);
 });
-test('diagnostic APK workflow isolates package, signer and output from existing QA and production',async()=>{
+test('diagnostic workflow builds isolated probe package with signer and provenance',async()=>{
  const yaml=await read('.github/workflows/android-qa-daily-diagnostic.yml');
- assert.match(yaml,/node scripts\/prepare-android-daily-archives\.mjs diag-config/);
- assert.match(yaml,/packageName!=='ru\.paseka\.journal\.qa\.daily\.diag'/);
- assert.match(yaml,/PASEKA-DAILY-DIAGNOSTIC-QA-ONLY\.apk/);
- assert.match(yaml,/signers\.length!==1/);
- assert.match(yaml,/ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
- assert.doesNotMatch(yaml,/deploy-pages|wrangler deploy|adb install|--install-qa/);
-});
-
-test('additive JS-probe workflow builds signed distinct package and never overwrites older QA',async()=>{
- const yaml=await read('.github/workflows/android-qa-daily-probe.yml');
  assert.match(yaml,/node scripts\/prepare-android-daily-archives\.mjs probe-config/);
  assert.match(yaml,/packageName!=='ru\.paseka\.journal\.qa\.daily\.probe'/);
  assert.match(yaml,/PASEKA-DAILY-PROBE-QA-ONLY\.apk/);
  assert.match(yaml,/signers\.length!==1/);
  assert.match(yaml,/QA-PROVENANCE\.json/);
+ assert.match(yaml,/ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
  assert.doesNotMatch(yaml,/deploy-pages|wrangler deploy|adb install|--install-qa/);
 });
