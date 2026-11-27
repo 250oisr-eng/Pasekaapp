@@ -1,0 +1,974 @@
+{
+  "repository": "250oisr-eng/Pasekaapp",
+  "part": 2,
+  "source": "github-public-rest",
+  "pages": [
+    {
+      "kind": "closed",
+      "page": 9,
+      "count": 20,
+      "items": [
+        {
+          "number": 188,
+          "head": "docs/parallel-work-ownership-2026-11-19",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 187,
+          "head": "test/free-ui-browser-audit-2026-11-19",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 175,
+          "head": "docs/refresh-live-project-state-2026-11-19",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 170,
+          "head": "docs/android-test-device-oneplus-10-pro-2026-11-18",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 155,
+          "head": "docs/merge-chain-148-154-status-2026-11-18",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 154,
+          "head": "fix/op07-12-15-day-window-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-18T03:45:58Z"
+        },
+        {
+          "number": 153,
+          "head": "docs/varroa-treatment-sublimation-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-18T03:45:39Z"
+        },
+        {
+          "number": 152,
+          "head": "feat/full-installed-corpus-frame-capacity-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-18T03:45:21Z"
+        },
+        {
+          "number": 151,
+          "head": "feat/full-frame-inventory-traceability-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-18T03:45:04Z"
+        },
+        {
+          "number": 150,
+          "head": "feat/sectional-op07-atomic-honey-stage-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-18T03:44:46Z"
+        },
+        {
+          "number": 149,
+          "head": "feat/sectional-op05-atomic-mesh-plug-install-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-18T03:44:12Z"
+        },
+        {
+          "number": 148,
+          "head": "feat/sectional-op04-atomic-coordinator-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-18T03:43:37Z"
+        },
+        {
+          "number": 147,
+          "head": "docs/record-pr146-merge-next-steps-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T12:40:07Z"
+        },
+        {
+          "number": 146,
+          "head": "feat/family-events-runtime-integration-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T12:38:06Z"
+        },
+        {
+          "number": 145,
+          "head": "fix/sectional-inventory-location-main-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T12:20:33Z"
+        },
+        {
+          "number": 144,
+          "head": "fix/sectional-inventory-location-bridge-2026-11-17",
+          "base": "docs/confirm-two-large-excluders-2026-11-17",
+          "merged": null
+        },
+        {
+          "number": 143,
+          "head": "docs/confirm-two-large-excluders-2026-11-17",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 142,
+          "head": "feat/queen-absence-confirmation-event-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T11:28:19Z"
+        },
+        {
+          "number": 141,
+          "head": "docs/record-status-journal-checkpoint-pr140-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T07:59:12Z"
+        },
+        {
+          "number": 140,
+          "head": "docs/record-project-status-journal-merge-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T07:58:16Z"
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 10,
+      "count": 20,
+      "items": [
+        {
+          "number": 139,
+          "head": "docs/add-root-project-status-journal-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T07:56:11Z"
+        },
+        {
+          "number": 138,
+          "head": "docs/sectional-layout-contract-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T07:46:27Z"
+        },
+        {
+          "number": 137,
+          "head": "feat/sectional-layout-contract-v1-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T07:43:38Z"
+        },
+        {
+          "number": 136,
+          "head": "feat/equipment-items-runtime-validation-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T07:18:06Z"
+        },
+        {
+          "number": 135,
+          "head": "feat/equipment-items-registry-clean-2026-11-17",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 134,
+          "head": "feat/equipment-items-domain-model-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T07:09:43Z"
+        },
+        {
+          "number": 133,
+          "head": "docs/verify-lineage-guard-ci-and-source-limitations-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T07:01:52Z"
+        },
+        {
+          "number": 132,
+          "head": "docs/family-lineage-guards-and-layout-next-step-2026-11-17",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 131,
+          "head": "docs/correct-frame-height-confirmation-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T06:57:49Z"
+        },
+        {
+          "number": 130,
+          "head": "fix/family-lineage-queen-ownership-guards-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T06:54:48Z"
+        },
+        {
+          "number": 129,
+          "head": "docs/family-lineage-model-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T06:52:14Z"
+        },
+        {
+          "number": 128,
+          "head": "feat/family-lineage-model-clean-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T06:49:29Z"
+        },
+        {
+          "number": 127,
+          "head": "docs/family-layout-architecture-audit-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:57:44Z"
+        },
+        {
+          "number": 126,
+          "head": "docs/inventory-atomicity-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:49:31Z"
+        },
+        {
+          "number": 125,
+          "head": "fix/inventory-history-transactions-current-main-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:47:07Z"
+        },
+        {
+          "number": 124,
+          "head": "docs/frame-history-guard-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:41:40Z"
+        },
+        {
+          "number": 123,
+          "head": "fix/family-transfer-frame-history-guard-current-main-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:40:45Z"
+        },
+        {
+          "number": 122,
+          "head": "docs/hive-family-mutation-rollback-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:38:25Z"
+        },
+        {
+          "number": 121,
+          "head": "fix/family-hive-mutation-rollback-current-main-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:37:33Z"
+        },
+        {
+          "number": 120,
+          "head": "docs/hive-deletion-rollback-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:33:13Z"
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 11,
+      "count": 20,
+      "items": [
+        {
+          "number": 119,
+          "head": "fix/hive-deletion-rollback-current-main-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:32:07Z"
+        },
+        {
+          "number": 118,
+          "head": "docs/persistence-commit-integration-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:29:30Z"
+        },
+        {
+          "number": 117,
+          "head": "ci/run-android-validation-on-pull-requests-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:26:51Z"
+        },
+        {
+          "number": 116,
+          "head": "docs/persist-snapshot-pr-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:22:37Z"
+        },
+        {
+          "number": 115,
+          "head": "fix/persist-snapshot-post-commit-main-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:28:21Z"
+        },
+        {
+          "number": 114,
+          "head": "docs/persistence-integration-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-17T05:20:02Z"
+        },
+        {
+          "number": 113,
+          "head": "fix/indexeddb-persistence-queue-safety-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-16T22:41:50Z"
+        },
+        {
+          "number": 112,
+          "head": "docs/pr-inventory-and-current-state-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-16T22:25:53Z"
+        },
+        {
+          "number": 111,
+          "head": "fix/cloudflare-preview-ai-binding-main-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-16T22:14:06Z"
+        },
+        {
+          "number": 110,
+          "head": "docs/workflow-merge-checkpoint-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-16T21:58:34Z"
+        },
+        {
+          "number": 109,
+          "head": "docs/development-workflow-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-16T21:57:47Z"
+        },
+        {
+          "number": 108,
+          "head": "docs/record-release-authority-finalization-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-16T21:50:16Z"
+        },
+        {
+          "number": 107,
+          "head": "docs/merge-release-authority-2026-11-17",
+          "base": "main",
+          "merged": "2026-11-16T21:49:19Z"
+        },
+        {
+          "number": 103,
+          "head": "feat/sectional-lineage-ui-2026-11-17",
+          "base": "feat/family-lineage-model-2026-11-16",
+          "merged": null
+        },
+        {
+          "number": 102,
+          "head": "fix/queen-history-integrity-2026-11-16",
+          "base": "feat/family-lineage-model-2026-11-16",
+          "merged": null
+        },
+        {
+          "number": 98,
+          "head": "test/backup-physical-inventory-roundtrip-rebased-2026-11-16",
+          "base": "docs/project-status-autosave-2026-11-16",
+          "merged": null
+        },
+        {
+          "number": 97,
+          "head": "test/backup-physical-inventory-roundtrip-2026-11-16",
+          "base": "docs/project-status-autosave-2026-11-16",
+          "merged": null
+        },
+        {
+          "number": 91,
+          "head": "docs/reliable-docx-source-reading-2026-11-16",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 87,
+          "head": "fix/sectional-op06-laying-observation-2026-11-16",
+          "base": "main",
+          "merged": "2026-11-18T03:44:29Z"
+        },
+        {
+          "number": 85,
+          "head": "fix/cloudflare-wrangler-preview-ai-binding-2026-11-16",
+          "base": "main",
+          "merged": null
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 12,
+      "count": 20,
+      "items": [
+        {
+          "number": 77,
+          "head": "audit/techprocess-safety-review-2026-11-16",
+          "base": "main",
+          "merged": "2026-11-16T13:15:05Z"
+        },
+        {
+          "number": 76,
+          "head": "docs/free-only-tools-and-ai-collaboration",
+          "base": "main",
+          "merged": "2026-11-16T12:48:41Z"
+        },
+        {
+          "number": 75,
+          "head": "docs/project-control-post-merge-2026-11-16",
+          "base": "main",
+          "merged": "2026-11-16T12:45:23Z"
+        },
+        {
+          "number": 74,
+          "head": "docs/project-control-system-2026-11-16",
+          "base": "main",
+          "merged": "2026-11-16T12:39:17Z"
+        },
+        {
+          "number": 70,
+          "head": "fix/indexeddb-recovery-commit-flag-2026-11-16",
+          "base": "fix/indexeddb-read-transaction-commit-main-2026-11-16",
+          "merged": null
+        },
+        {
+          "number": 69,
+          "head": "fix/indexeddb-read-transaction-commit-main-2026-11-16",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 64,
+          "head": "fix/indexeddb-read-transaction-completion-2026-11-16",
+          "base": "feature/sectional-techprocess-storage-v13-2026-11-15",
+          "merged": null
+        },
+        {
+          "number": 60,
+          "head": "fix/inventory-reverse-reference-integrity-2026-11-16",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 53,
+          "head": "fix/cloudflare-worker-preview-ai-binding-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 52,
+          "head": "fix/cloudflare-ai-request-body-limit-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 51,
+          "head": "fix/persist-snapshot-post-commit-boundary-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 50,
+          "head": "fix/family-hive-mutation-save-rollback-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 49,
+          "head": "fix/hive-deletion-save-rollback-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 48,
+          "head": "fix/family-transfer-history-guard-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 47,
+          "head": "fix/guard-empty-indexeddb-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 46,
+          "head": "ci/android-build-on-test-changes-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 45,
+          "head": "fix/inventory-details-atomicity-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 44,
+          "head": "fix/pesticide-gps-provenance-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 43,
+          "head": "fix/journal-profile-capacity-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 42,
+          "head": "test/farrar-180mm-frame-profile-guard-2026-11-15",
+          "base": "main",
+          "merged": null
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 13,
+      "count": 3,
+      "items": [
+        {
+          "number": 41,
+          "head": "fix/corpus-profile-compatibility-2026-11-15",
+          "base": "main",
+          "merged": null
+        },
+        {
+          "number": 12,
+          "head": "feature/archive-restore-ui-2026-11-14",
+          "base": "feature/archive-import-staging-2026-11-14",
+          "merged": null
+        },
+        {
+          "number": 8,
+          "head": "fix/guard-empty-database-2026-11-14",
+          "base": "main",
+          "merged": null
+        }
+      ]
+    },
+    {
+      "kind": "closed",
+      "page": 14,
+      "count": 0,
+      "items": []
+    },
+    {
+      "kind": "branches",
+      "page": 3,
+      "count": 100,
+      "items": [
+        "feat/varroa-treatment-log-2026-11-19",
+        "feat/video-archive-restore-preflight-2026-11-20",
+        "feat/video-archive-v2-commit-lock-guard-2026-11-20",
+        "feat/video-archive-v2-consistent-read-2026-11-20",
+        "feat/video-archive-v2-copy-inventory-2026-11-20",
+        "feat/video-archive-v2-end-to-end-dry-run-2026-11-20",
+        "feat/video-archive-v2-entrance-atomic-commit-2026-11-20",
+        "feat/video-archive-v2-entrance-quarantine-rollback-2026-11-20",
+        "feat/video-archive-v2-ledger-validator-2026-11-20",
+        "feat/video-archive-v2-metadata-atomic-restore-2026-11-20",
+        "feat/video-archive-v2-metadata-codec-2026-11-20",
+        "feat/video-archive-v2-pending-entrance-2026-11-20",
+        "feat/video-archive-v2-pending-stage-2026-11-20",
+        "feat/video-archive-v2-pinned-add-abort-2026-11-20",
+        "feat/video-archive-v2-pinned-payload-proof-2026-11-20",
+        "feat/video-archive-v2-posthash-recheck-2026-11-20",
+        "feat/video-archive-v2-record-codec-2026-11-20",
+        "feat/video-archive-v2-record-media-adapter-2026-11-20",
+        "feat/video-archive-v2-restore-db-preflight-2026-11-20",
+        "feat/video-archive-v2-restore-ledger-gate-2026-11-20",
+        "feat/video-archive-v2-staging-integrity-2026-11-20",
+        "feat/video-detector-benchmark-metrics-2026-11-20",
+        "feat/video-entrance-crossing-evidence-2026-11-20",
+        "feat/video-entrance-resume-safe-20261128",
+        "feat/video-mendeley-v6-bounded-csv-staging-2026-11-20",
+        "feat/video-mendeley-v6-temporal-leakage-gates-2026-11-20",
+        "feat/video-mendeley-v6-yolo-staging-2026-11-20",
+        "feat/video-model-artifact-integrity-2026-11-20",
+        "feat/video-model-evidence-contract-2026-11-20",
+        "feat/video-observation-pipeline-2026-11-20",
+        "feat/video-offline-coco-preparation-2026-11-20",
+        "feat/video-private-camera-staging-2026-11-20",
+        "feat/video-recognition-durable-ledger-2026-11-20",
+        "feat/video-recognition-ledger-2026-11-20",
+        "feat/video-retention-guard-2026-11-20",
+        "feat/video-source-sha256-evidence-2026-11-20",
+        "feat/video-temporal-track-coverage-2026-11-20",
+        "feat/video-voc-to-unassigned-coco-2026-11-20",
+        "feature/archive-import-staging-2026-11-14",
+        "feature/archive-restore-ui-2026-11-14",
+        "feature/archive-restore-ui-sync-2026-11-14",
+        "feature/entrance-video-retention-guard-2026-11-13",
+        "feature/full-archive-export-2026-11-14",
+        "feature/image-blob-store-foundation-2026-11-14",
+        "feature/media-migration-copy-engine-2026-11-14",
+        "feature/media-migration-dry-run-2026-11-14",
+        "feature/media-migration-preflight-verify-2026-11-14",
+        "feature/media-migration-verifier-status-2026-11-14",
+        "feature/media-reference-switch-engine-2026-11-14",
+        "feature/media-reference-switch-safety-design-2026-11-14",
+        "feature/project-continuity-pack-2026-11-14",
+        "feature/rotating-local-snapshots-2026-11-14",
+        "feature/sectional-multiqueen-techprocess-2026-11-15",
+        "feature/sectional-operation-editor-2026-11-16",
+        "feature/sectional-techprocess-operations-2026-11-15",
+        "feature/sectional-techprocess-storage-v13-2026-11-15",
+        "feature/sectional-techprocess-ui-2026-11-15",
+        "feature/snapshot-storage-guard-2026-11-14",
+        "fix/accounting-inspection-family-attribution-20261127",
+        "fix/android-archive-byte-count-2026-11-19",
+        "fix/android-archive-copy-signature-isolation-2026-11-22",
+        "fix/android-archive-empty-payload-guard-2026-11-19",
+        "fix/android-mediastore-begin-cleanup-2026-11-19",
+        "fix/android-ort-webview-local-module-2026-11-22",
+        "fix/archive-cleanup-key-enumeration-guard-2026-11-22",
+        "fix/archive-commit-live-media-metadata-baseline-2026-11-23",
+        "fix/archive-commit-staging-ownership-2026-11-22",
+        "fix/archive-export-invalid-video-list-failclosed-2026-11-22",
+        "fix/archive-lineage-lookup-failclosed-2026-11-22",
+        "fix/archive-live-state-shape-guard-2026-11-22",
+        "fix/archive-media-integrity-2026-11-14",
+        "fix/archive-null-ledger-failclosed-2026-11-23",
+        "fix/archive-ready-ledger-race-2026-11-20",
+        "fix/archive-ready-session-baseline-idempotency-2026-11-23",
+        "fix/archive-restore-enumeration-failclosed-2026-11-22",
+        "fix/archive-rollback-discard-identity-2026-11-22",
+        "fix/archive-rollback-imported-media-metadata-2026-11-23",
+        "fix/archive-rollback-snapshot-identity-2026-11-22",
+        "fix/archive-staging-cleanup-header-kind-2026-11-14",
+        "fix/archive-staging-cleanup-status-guard-2026-11-14",
+        "fix/archive-staging-entry-nooverwrite-2026-11-23",
+        "fix/archive-staging-entry-set-validation-2026-11-14",
+        "fix/archive-staging-explicit-finalization-2026-11-15",
+        "fix/archive-staging-finalize-ledger-2026-11-20",
+        "fix/archive-staging-history-protection-2026-11-20",
+        "fix/archive-staging-rows-failclosed-2026-11-22",
+        "fix/archive-staging-session-resurrection-2026-11-14",
+        "fix/archive-staging-session-stale-write-guard-2026-11-23",
+        "fix/archive-v1-export-race-failclosed-2026-11-22",
+        "fix/archive-v1-export-v2-quarantine-guard-2026-11-23",
+        "fix/archive-v1-v2-protected-copy-bridge-2026-11-23",
+        "fix/archive-v2-ledger-provenance-required-2026-11-23",
+        "fix/auto-backup-sync-put-errors-2026-11-16",
+        "fix/b01-oneplus-safe-shellv2-backup-v9",
+        "fix/b01-oneplus-worker-stage-logging-20261127",
+        "fix/b01-qa-archive-zip-misselect-20261127",
+        "fix/b01-tar-header-audit-selective-20261126",
+        "fix/b04-existing-java-locator-main-port-20261126",
+        "fix/b05-debug-signer-reference-compare-20261126",
+        "fix/b05-keytool-metadata-preflight-main-20261126"
+      ]
+    },
+    {
+      "kind": "branches",
+      "page": 4,
+      "count": 100,
+      "items": [
+        "fix/backup-media-scope-notice-2026-11-20",
+        "fix/cloudflare-ai-request-body-limit-2026-11-15",
+        "fix/cloudflare-preview-ai-binding-main-2026-11-17",
+        "fix/cloudflare-worker-preview-ai-binding-2026-11-15",
+        "fix/cloudflare-wrangler-preview-ai-binding-2026-11-16",
+        "fix/corpus-profile-compatibility-2026-11-15",
+        "fix/deadout-review-corrupt-state-20261127",
+        "fix/device-selftest-mobile-readable-results-2026-11-20",
+        "fix/enforce-180mm-frame-standard-2026-11-16",
+        "fix/entrance-mime-type-guard-2026-11-14",
+        "fix/equipment-body-profile-resolver-2026-11-16",
+        "fix/equipment-body-profile-resolver-rebased-2026-11-16",
+        "fix/family-hive-mutation-rollback-current-main-2026-11-17",
+        "fix/family-hive-mutation-save-rollback-2026-11-15",
+        "fix/family-lineage-queen-ownership-guards-2026-11-17",
+        "fix/family-transfer-frame-history-guard-current-main-2026-11-17",
+        "fix/family-transfer-history-guard-2026-11-15",
+        "fix/farrar-assembly-finish-strict-types-2026-11-16",
+        "fix/farrar-invalid-assembly-state-2026-11-16",
+        "fix/farrar-three-sections-single-hive-2026-11-16",
+        "fix/farrar-winter-render-readonly-2026-11-16",
+        "fix/forage-purpose-responsive-audit-2026-11-18",
+        "fix/forage-voice-error-cleanup-2026-11-18",
+        "fix/frame-type-status-invariant",
+        "fix/full-archive-video-ledger-interlock-2026-11-20",
+        "fix/group-primary-navigation",
+        "fix/guard-empty-database-2026-11-14",
+        "fix/guard-empty-indexeddb-2026-11-15",
+        "fix/hive-card-mobile-full-details-2026-11-20",
+        "fix/hive-deletion-rollback-current-main-2026-11-17",
+        "fix/hive-deletion-save-rollback-2026-11-15",
+        "fix/honey-pairs-2-or-4-validator-2026-11-20",
+        "fix/indexeddb-persistence-queue-safety-2026-11-17",
+        "fix/indexeddb-read-transaction-commit-main-2026-11-16",
+        "fix/indexeddb-read-transaction-completion-2026-11-16",
+        "fix/indexeddb-recovery-commit-flag-2026-11-16",
+        "fix/indexeddb-sync-put-error-2026-11-16",
+        "fix/inventory-details-atomicity-2026-11-15",
+        "fix/inventory-history-transactions-current-main-2026-11-17",
+        "fix/inventory-reverse-reference-integrity-2026-11-16",
+        "fix/journal-profile-capacity-2026-11-15",
+        "fix/journal-varroa-observations-archive-physical-proof-2026-11-23",
+        "fix/journal-video-stable-identity-2026-11-20",
+        "fix/offline-voice-without-ai-login-2026-11-18",
+        "fix/op04-require-two-additional-bottoms-2026-11-16",
+        "fix/op06-two-queen-recovery-2026-11-23",
+        "fix/op07-12-15-day-window-2026-11-17",
+        "fix/p0-apksigner-java-runtime-discovery-20261125",
+        "fix/p0-b01-backup-scope-labels-2026-11-25",
+        "fix/p0-b01-bounded-file-read-2026-11-25",
+        "fix/p0-b01-first-launch-write-gate-main-2026-11-25",
+        "fix/p0-block-entrance-original-video-delete-main-20261125",
+        "fix/p0-first-external-backup-guide-20261127",
+        "fix/p0-first-launch-startup-write-gate-2026-11-24",
+        "fix/p0-main-based-disaster-archive-reconciliation-2026-11-24",
+        "fix/p0-previous-use-startup-marker-20261126",
+        "fix/p0-recognition-ledger-blob-url-portability-2026-11-23",
+        "fix/p0-record-video-mime-provenance-2026-11-23",
+        "fix/p0-v2-atomic-quarantine-mime-alias-2026-11-23",
+        "fix/p0-v2-codec-restore-video-alias-consistency-2026-11-23",
+        "fix/p0-v2-guard-recognized-hash-alias-2026-11-23",
+        "fix/p0-v2-reconcile-mime-scanners-2026-11-23",
+        "fix/p0-video-data-uri-alias-guard-2026-11-23",
+        "fix/p1-b08-cloudflare-bounded-stream-main-2026-11-25",
+        "fix/p1-b08-legacy-body-ref-audit-2026-11-25",
+        "fix/p1-b11-service-worker-install-private-response-gate-2026-11-24",
+        "fix/p1-b15-cloudflare-explicit-release-gates-2026-11-25",
+        "fix/p1-b15-cloudflare-manual-release-main-2026-11-25",
+        "fix/p1-brood-frame-strip-dynamic-20261126",
+        "fix/p1-cloudflare-bounded-body-ci-main-20261126",
+        "fix/p1-entrance-video-list-stale-response-20261125",
+        "fix/p1-governance-docs-push-main-gate-2026-11-24",
+        "fix/p1-gps-pesticide-provenance-main-port-20261126",
+        "fix/p1-honey-pair-staged-main-20261126",
+        "fix/p1-honey-pairs-2to4-validator-main-20261126",
+        "fix/p1-idb-required-stores-open-gate-2026-11-24",
+        "fix/p1-journal-physical-brood-capacity-20261126",
+        "fix/p1-json-family-hive-review-main-port-20261126",
+        "fix/p1-json-preflight-cross-hive-20261125",
+        "fix/p1-main-journal-varroa-rollback-2026-11-24",
+        "fix/p1-manifest-stale-source-revision-2026-11-24",
+        "fix/p1-op13-explicit-spring-variant-2026-11-24",
+        "fix/p1-safe-physical-body-swap-main-20261126",
+        "fix/p1-service-worker-cache-isolation-2026-11-23",
+        "fix/p1-sw-refuse-partial-shell-20261125",
+        "fix/p1-sw-reject-redirected-shell-20261125",
+        "fix/p1-sw-safe-cache-main-2026-11-23",
+        "fix/pages-manual-release-gate-2026-11-23",
+        "fix/paseka01-commit-v2-protection-recheck-2026-11-21",
+        "fix/persist-snapshot-post-commit-boundary-2026-11-15",
+        "fix/persist-snapshot-post-commit-main-2026-11-17",
+        "fix/pesticide-gps-provenance-2026-11-15",
+        "fix/pesticide-incident-reference-integrity-20261127",
+        "fix/qa-failclosed-tap-summary-20261126",
+        "fix/queen-history-integrity-2026-11-16",
+        "fix/r4-excluder-section-alignment-2026-11-16",
+        "fix/require-three-sectional-hives-2026-11-16",
+        "fix/sectional-feeding-amount-no-period-2026-11-16",
+        "fix/sectional-inventory-location-bridge-2026-11-17",
+        "fix/sectional-inventory-location-main-2026-11-17"
+      ]
+    },
+    {
+      "kind": "branches",
+      "page": 5,
+      "count": 100,
+      "items": [
+        "fix/sectional-op06-laying-observation-2026-11-16",
+        "fix/sectional-op07-unconfirmed-excluder-layout-2026-11-16",
+        "fix/sectional-ops-integrity-2026-11-16",
+        "fix/sectional-profile-ai-isolation-2026-11-16",
+        "fix/sectional-section-integrity-2026-11-16",
+        "fix/sectional-source-semantics-2026-11-16",
+        "fix/sectional-spec-1-6-compatibility-2026-11-16",
+        "fix/sectional-state-validation-2026-11-16",
+        "fix/sectional-techprocess-domain-guards-2026-11-16",
+        "fix/serialize-backup-restore-operations-2026-11-16",
+        "fix/stabilization-freeze-ci-archive-scope-2026-11-22",
+        "fix/staging-audit-recognition-evidence-2026-11-22",
+        "fix/strict-entrance-metadata-validation-2026-11-14",
+        "fix/ui-187-honeycomb-overview-20261127",
+        "fix/ui-a11y-selective-187-20261127",
+        "fix/ui-hive-accessible-labels-from187-20261126",
+        "fix/v2-pending-media-id-collision-2026-11-20",
+        "fix/validate-stored-operation-invariants-2026-11-16",
+        "fix/video-archive-v2-legacy-copy-coverage-2026-11-20",
+        "fix/video-coco-self-contained-2026-11-20",
+        "fix/video-entrance-manual-delete-guard-2026-11-20",
+        "fix/video-entrance-unverified-status-2026-11-20",
+        "fix/video-external-copy-provenance-2026-11-20",
+        "fix/video-ledger-read-integrity-2026-11-20",
+        "fix/video-ledger-resultid-unique-2026-11-22",
+        "fix/video-manual-delete-failclosed-2026-11-23",
+        "fix/video-preprocessing-failclosed-2026-11-20",
+        "fix/video-private-camera-lifecycle-2026-11-20",
+        "fix/video-queue-source-integrity-2026-11-20",
+        "fix/video-source-file-links-race-2026-11-20",
+        "fix/video-voc-png-unassigned-coco-2026-11-20",
+        "fix/win11-powershell-parse-2026-11-19",
+        "fix/win11-report-polling-2026-11-19",
+        "fix/win11-selftest-saved-report-oneclick-2026-11-20",
+        "governance/finish-scenarios-limit-wip-20261125",
+        "integrate/strategy-main-2026-11-23",
+        "integrate/varroa-journal-main-2026-11-23",
+        "main",
+        "migration/capacitor-8-api36-2026-11-14",
+        "perf/p2-android-runtime-assets-main-20261125",
+        "perf/p2-android-runtime-assets-only-2026-11-23",
+        "perf/p2-entrance-video-metadata-main-20261125",
+        "perf/p2-journal-family-lookup-map-20261125",
+        "perf/p2-journal-filter-first-20261125",
+        "perf/p2-long-history-readonly-render-2026-11-23",
+        "perf/p2-render-hotpaths-2026-11-23",
+        "perf/p2-video-metadata-cursor-2026-11-23",
+        "port/p0-b01-legacy-json-preflight-2026-11-25",
+        "port/p0-b04-readonly-installed-signer-2026-11-25",
+        "port/p1-b08-readonly-pr-triage-after489-2026-11-25",
+        "port/p1-b09-idb-read-gates-after485-2026-11-25",
+        "port/p1-b11-safe-sw-v318-after485-2026-11-25",
+        "port/p1-cloudflare-byte-limit-after485-2026-11-25",
+        "port/p1-legacy-inventory-audit-after485-2026-11-25",
+        "prototype/paseka-archive-container-2026-11-14",
+        "qa/e2e-journal-browser-20261126",
+        "qa/oneplus-isolated-current-main-2026-11-27",
+        "qa/oneplus-ux-final-20261127",
+        "qa/oneplus-ux-followup-20261127",
+        "recovery/b01-run-as-readonly-backup-20261125",
+        "research/b06-bee-detector-permissive-feasibility-2026-11-26",
+        "research/b06-licensed-bee-detector-v0-20261126",
+        "research/bee-model-zoo-primary-license-audit-2026-11-22",
+        "research/bee-weights-license-chain-2026-11-22",
+        "research/buzzlytics-entrance-weights",
+        "research/video-apis-zenodo-bounded-zip-evidence-2026-11-21",
+        "research/video-licensed-native-bee-source-audit-2026-11-21",
+        "research/video-public-model-pilot-20261128",
+        "review-base/archive-ledger-212-2026-11-22",
+        "security/b05-signing-key-provenance-readonly-20261125",
+        "test/android-a08-process-kill-copy-report-2026-11-22",
+        "test/android-a09-installed-permissions-copy-2026-11-22",
+        "test/android-adb-preflight-2026-11-18",
+        "test/android-archive-external-stop",
+        "test/android-archive-readonly-preflight-2026-11-22",
+        "test/android-fileproof329-persisted-file-stop-2026-11-21",
+        "test/android-fileproof329-report-recovery-2026-11-21",
+        "test/android-fileproof329-restore-preflight-2026-11-21",
+        "test/android-fileproof335-separate-apk-2026-11-21",
+        "test/android-indexeddb-persistence-probe-2026-11-18",
+        "test/android-isolated-app-identity-2026-11-18",
+        "test/android-isolated-restore335-browser-gate-2026-11-21",
+        "test/android-phone-dashboard-persistent-blob-2026-11-22",
+        "test/android-phone-dashboard-pinned-hash-2026-11-22",
+        "test/android-phone-only-safe-dashboard-2026-11-22",
+        "test/android-product-installed-permission-audit-2026-11-22",
+        "test/android-restore335-find-output-shape-v8-2026-11-22",
+        "test/android-restore335-fixed-source-predicates-v10-2026-11-22",
+        "test/android-restore335-missing-private-path-audit-2026-11-21",
+        "test/android-restore335-null-delimited-type-v9-2026-11-22",
+        "test/android-restore335-private65-forensics-2026-11-21",
+        "test/android-restore335-private-findtype-v7-2026-11-22",
+        "test/android-restore335-private-metadata-shape-v6-2026-11-22",
+        "test/android-restore335-private-readback-diagnostic-2026-11-21",
+        "test/android-restore335-private-readonly-v4-2026-11-22",
+        "test/android-restore335-private-type-v5-2026-11-22",
+        "test/android-restore335-safe-device-transfer-2026-11-21",
+        "test/android-restore335-stdin-sha-readonly-2026-11-21",
+        "test/android-self-diagnostics-isolated-2026-11-22",
+        "test/android-synthetic-frame-extraction-isolated-2026-11-22"
+      ]
+    },
+    {
+      "kind": "branches",
+      "page": 6,
+      "count": 100,
+      "items": [
+        "test/android-synthetic-mp4-decoder-isolated-2026-11-22",
+        "test/android-synthetic-onnx-wasm-smoke-2026-11-22",
+        "test/android-two-blob-app-export-gate-2026-11-21",
+        "test/android-two-mp4-external-file-roundtrip-2026-11-21",
+        "test/android-two-mp4-fileproof329-runtime-2026-11-21",
+        "test/android-two-mp4-isolated-apk-proof-2026-11-21",
+        "test/android-two-mp4-mediastore-isolation-2026-11-21",
+        "test/android-two-mp4-proof325-report-recovery-2026-11-21",
+        "test/android-unified-runtime-regressions-2026-11-22",
+        "test/android-unified-safe-diagnostics-2026-11-22",
+        "test/android-video-external-copy-boundary-2026-11-21",
+        "test/archive-cleanup-restore-races-2026-11-14",
+        "test/archive-discard-staging-race-2026-11-14",
+        "test/archive-sectional-honey-roundtrip-2026-11-20",
+        "test/archive-staging-concurrent-tabs-2026-11-14",
+        "test/archive-staging-corruption-guards-2026-11-14",
+        "test/archive-staging-orphan-cleanup-guards-2026-11-14",
+        "test/archive-staging-reopen-2026-11-14",
+        "test/archive-staging-separate-connections-2026-11-14",
+        "test/archive-staging-strict-entry-set-2026-11-14",
+        "test/archive-v2-durable-recognition-ledger-2026-11-23",
+        "test/archive-v2-five-store-restore-preflight-2026-11-23",
+        "test/archive-v2-ledger-portable-contract-2026-11-23",
+        "test/archive-v2-metadata-atomic-recovery-2026-11-23",
+        "test/archive-v2-pending-quarantine-recovery-2026-11-23",
+        "test/b01-comprehensive-device-acceptance-20261127",
+        "test/b01-comprehensive-local-qa-20261127",
+        "test/b01-isolated-android-recovery-20261125",
+        "test/b01-local-tar-header-audit-20261125",
+        "test/b05-debug-apk-provenance-failclosed-20261126",
+        "test/b09-blocked-upgrade-retry-2026-11-26",
+        "test/b09-oneplus-physical-recovery-kit-2026-11-26",
+        "test/b09-quota-atomic-rollback-2026-11-26",
+        "test/backup-physical-inventory-roundtrip-2026-11-16",
+        "test/backup-physical-inventory-roundtrip-rebased-2026-11-16",
+        "test/bee-detector-evidence-gate-2026-11-22",
+        "test/comprehensive-qa-gates-20261125",
+        "test/decode-picker",
+        "test/farrar-180mm-frame-profile-guard-2026-11-15",
+        "test/fileproof329-isolated-restore-commit-2026-11-21",
+        "test/free-ui-browser-audit-2026-11-19",
+        "test/full-archive-android-isolated-2026-11-18",
+        "test/isolated-android-apk-2026-11-18",
+        "test/local-windows-browser-smoke-2026-11-18",
+        "test/manual-android-offline-archive-2026-11-19",
+        "test/mendeley-split-frame-group",
+        "test/p0-android-emulator-offline-smoke-2026-11-23",
+        "test/p0-b01-archive-request-error-2026-11-25",
+        "test/p0-b01-export-read-abort-2026-11-25",
+        "test/p0-p2-entrance-combined-premerge-20261125",
+        "test/p0-p2-entrance-three-way-20261125",
+        "test/p0-v2-export-stage-quarantine-full-cycle-2026-11-23",
+        "test/p0-v2-multirestart-quarantine-evidence-2026-11-23",
+        "test/p1-android-idb-atomic-fault-isolated-2026-11-23",
+        "test/p1-android-isolated-idb-abort-proof-2026-11-23",
+        "test/p1-b08-cloudflare-stream-error-2026-11-25",
+        "test/p1-b08-readonly-pr-metadata-2026-11-25",
+        "test/p1-b09-blocked-upgrade-main-port-20261126",
+        "test/p1-b09-existing-idb-read-abort-2026-11-25",
+        "test/p1-b09-legacy-idb-upgrade-proofs-2026-11-24",
+        "test/p1-b11-cold-offline-upgrade-lifecycle-2026-11-24",
+        "test/p1-b11-sw-failclosed-install-2026-11-25",
+        "test/p1-body-frame-history-guards-main-20261126",
+        "test/p1-crash-and-profile-integrity-2026-11-23",
+        "test/p1-farrar-profile-180mm-regression-main-20261126",
+        "test/p1-idb-quota-atomic-reopen-2026-11-23",
+        "test/p1-indexeddb-concurrent-writes-2026-11-23",
+        "test/p1-indexeddb-cross-tab-migration-2026-11-23",
+        "test/p1-legacy-body-reference-audit-main-20261126",
+        "test/paseka01-after-v2-quarantine-e2e-2026-11-21",
+        "test/paseka02-final-commit-abort-retry",
+        "test/paseka02-interrupted-stage-recovery",
+        "test/paseka02-pending-blob-full-sha-2026-11-21",
+        "test/paseka02-quarantine-abort-reopen-2026-11-21",
+        "test/paseka02-quarantine-recovery-structural-audit-2026-11-21",
+        "test/paseka02-staged-child-metadata-integrity",
+        "test/pr194-native-negative-paths-2026-11-19",
+        "test/pr194-win11-manual-archive-2026-11-19",
+        "test/r4-backup-roundtrip-2026-11-16",
+        "test/restore-picker-from342",
+        "test/retention-archive-reopen-integration",
+        "test/retire-unsupported-restore335-dd",
+        "test/ui-global-search-browser-proof-20261127",
+        "test/varroa-archive-roundtrip-2026-11-19",
+        "test/varroa-archive-schema16-android-2026-11-19",
+        "test/varroa-hive-card-android-2026-11-19",
+        "test/varroa-treatment-android-isolated-2026-11-19",
+        "test/video-android-physical-evidence-2026-11-20",
+        "test/video-android-wasm-capability-2026-11-20",
+        "test/video-apis-mellifera-source-and-split-gate-2026-11-21",
+        "test/video-apis-zenodo-real-split-audit-2026-11-21",
+        "test/video-archive-readonly-transaction-failures-2026-11-22",
+        "test/video-cleanup-byte-evidence-readonly-2026-11-22",
+        "test/video-cleanup-readiness-fail-closed-2026-11-22",
+        "test/video-compound-counting-contract-2026-11-21",
+        "test/video-copy-evidence-conflict-audit-2026-11-22",
+        "test/video-dataset-split-isolation-2026-11-20",
+        "test/video-detector-prediction-evidence-2026-11-21",
+        "test/video-end-to-end-safety-invariants-2026-11-20",
+        "test/video-external-manual-event-source-audit-2026-11-21"
+      ]
+    }
+  ]
+}
