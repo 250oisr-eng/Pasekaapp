@@ -14,7 +14,7 @@
 ## Актуальное состояние и следующая UX задача
 
 - **#599/#598/#597/#595/#603 MERGED / IN_MAIN.** Main `e00d5d34cdeeed619bb2af6082650f7643e9994b`. #603 устранил overlap AI/«Ульи» (11–14px) на 320–412px; exact-main Chromium 11/11 viewport PASS, Node/Android **1014/1014**, Governance SUCCESS. Не release.
-- **#604 в разработке:** убрать вторую ИИ-карточку с главной по утверждённой эргономике. Единственный центральный вход в nav остаётся; «＋ Записать событие» переходит в «Последние события». Код/CI будущей ветки ещё не подтверждены.
+- **#604 в разработке:** убрать вторую ИИ-карточку с главной по утверждённой эргономике. Единственный центральный вход в nav остаётся; «＋ Записать событие» переходит в «Последние события». Code SHA `e185a4e…`: Fast **1017/1017**, Android APK **1017/1017** и Governance SUCCESS; Chromium mobile/desktop на предыдущем HTML SHA `0e0ac87…` SUCCESS (последняя правка — лишь тест).
 - **#596 OPEN:** 3 мобильных ряда вместо исходного ориентира 2. OnePlus/TalkBack и настоящая safe-area NOT_TESTED; не скрывать расхождение.
 - **B01/#442** сохраняют BLOCKED/FROZEN: нет независимого real backup/restore и доказанной видеоаналитики.
 
@@ -46,6 +46,6 @@
 
 ## Следующий конкретный шаг
 
-**#604:** проверить home/AI/journal совместимость, Node, Chromium и Android на точном кодовом SHA; после доказательств завершить отдельный разрешённый merge. Никакого production или APK install.
+**#604 MERGE_AUTHORIZED / CI_VERIFIED_CODE_SHA:** Fast/Android 1017/1017, Chromium mobile/desktop и Governance SUCCESS. После docs-only CI проверить exact HEAD и объединить по разрешению пользователя. #596 остаётся OPEN; не release.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**

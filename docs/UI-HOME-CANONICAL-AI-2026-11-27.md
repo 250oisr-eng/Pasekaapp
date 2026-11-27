@@ -20,3 +20,7 @@
 ## F6–F7: границы
 
 После успешной CI и разрешённого merge статус IN_MAIN, но не RELEASED/DEVICE_VERIFIED. #596 3-row против 2-row остаётся отдельно OPEN. Публикация и установка на устройстве, работа с реальным IndexedDB, удаление оригиналов и восстановление данных не разрешены.
+
+## Проверенные CI и исправление устаревшего теста
+
+Исходный runtime SHA `0e0ac87c7a18e71dfa12ee4b952581f28578e4a6`: [Chromium #45954040590](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45954040590) SUCCESS (mobile+desktop journal, единственный AI nav, quick `newRecord()` открывает и закрывает unsaved draft без записи, 11 geometry cases). [Fast #45954040598](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45954040598) FAIL — 2 stale tests ожидали удалённый home AI relay. Исправлены **только** `tests/regression.test.mjs`, runtime не менялся. Code SHA `e185a4e828641eeb521291d68f4222c2bf1ddc06`: Fast #45954139870 **1017/1017 PASS**, Android #45954139760 **1017/1017 PASS + Debug APK**, Governance #45954145543 **SUCCESS**. OnePlus/TalkBack NOT_TESTED; не release.
