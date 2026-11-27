@@ -48,7 +48,7 @@ test('main quality and Android CI invalidate npm cache on lock changes',()=>{
   const yaml=readFileSync(file,'utf8');
   assert.match(yaml,/hashFiles\('package-lock\.json'\)/);
   assert.match(yaml,/\n      - 'package-lock\.json'/);
-  assert.match(yaml,/npm test(?:\\s|$)/m);
+  assert.match(yaml,/npm test(?:\s|$)/m);
  }
 });
 
