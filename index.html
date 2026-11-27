@@ -4591,7 +4591,7 @@ async function checkDailyArchives(){
    if(status)status.textContent='Проверка и автоматическое архивирование…';
    const result=await PasekaDailyArchives.rotate(store,{day,createRaw:createDailyArchiveRaw,inspect:dailyArchiveInspect});
    showDailyArchiveStatus(result.status);
-   if(status)status.textContent='Архивирование выполнено · '+day;
+   if(status)status.textContent=result.created?'Архивирование выполнено · '+day:'Архивы проверены · '+day;
    dailyArchiveCheckedDay=day;
   }catch(e){
    if(status)status.textContent='Архивирование отложено: '+String(e?.message||e)+'. Предыдущие копии не заменены.';
@@ -4642,7 +4642,7 @@ async function restoreDailyArchive(){
    rollbackId=await PasekaDailyArchives.prepareRollback(store,rollbackRaw,today(),raw=>{
     if(raw!==rollbackRaw)throw new Error('Аварийная копия отличается от исходной базы');
     return {sha256:rollbackManifest.sha256};
-   });
+   },selected.proof.sha256);
    status.textContent='Восстановление…';
    startupWriteGate.ready=false;
    await PasekaDisasterArchive.atomicRestore(db,selected.proof,revision);
@@ -4665,6 +4665,13 @@ async function restoreDailyArchive(){
  const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});
  try{await pending;}finally{dailyRestoreBusy=false;button.disabled=true;}
 }
+async function resolveDailyArchiveRecovery(){
+ const store=await getDailyArchiveStore();
+ const rows=await PasekaDailyArchives.readAll(store);
+ if(!rows.some(row=>row.slot==='staging'&&row.kind==='rollback'))return;
+ const resolved=await PasekaDailyArchives.resolveInterruptedRestore(store,await PasekaDisasterArchive.exportArchive(db),dailyArchiveInspect);
+ if(!resolved)throw new Error('Восстановление ранее прервалось, текущее состояние не совпадает с проверенным исходным или целевым архивом. Аварийная копия сохранена; дальнейшие записи остановлены.');
+}
 function startDailyArchiveScheduler(){
  void checkDailyArchives();
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void checkDailyArchives();});
@@ -4677,6 +4684,11 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
 (async()=>{
  try{
   const databaseCreatedDuringOpen=await openDB();await requestStoragePersistence();
+  // Check an interrupted restore before any startup migration or fallback write.
+  // Failure to open the archive store does not silently authorize recovery writes.
+  let archiveStoreOpened=false;
+  try{await getDailyArchiveStore();archiveStoreOpened=true;}catch(e){const status=$('dailyArchiveStatus');if(status)status.textContent='Хранилище архивов недоступно: '+String(e?.message||e);}
+  if(archiveStoreOpened)await resolveDailyArchiveRecovery();
   let startupMain=null;try{startupMain=await readMain()}catch(e){}
   const startupExpectedRevision=startupMain?.meta?.revisionId||null;
   const loaded=await read();
