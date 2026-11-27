@@ -49,7 +49,7 @@ test('updated B01 acceptance no longer requires external JSON, SAF, USB or file 
   assert.ok(plan.includes(clause),'missing scope boundary '+clause);
  assert.match(plan,/ru\.paseka\.journal\.qa\.daily/);
  assert.match(plan,/Автоматизированный read-only preflight на OnePlus/);
- assert.match(plan,/oneplus-daily-qa\\.mjs/);
+ assert.match(plan,/oneplus-daily-qa\.mjs/);
  assert.doesNotMatch(plan,/приложение QA — архив обязательно установить/);
 });
 
