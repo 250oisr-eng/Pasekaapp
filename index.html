@@ -590,7 +590,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
  <div class="row"><div><h2>Ульи</h2><div class="muted" id="hiveDirectoryCount">Все ульи пасеки</div></div><button class="primary" type="button" data-action="open-new-hive">＋ Добавить</button></div>
  <div class="workspace-filter-row"><input id="hiveSearch" type="search" placeholder="Поиск: улей, семья, рамка…" aria-label="Поиск по ульям, семьям и рамкам" oninput="renderHiveDirectory()"><select id="hiveModeFilter" aria-label="Фильтр по сборке" onchange="renderHiveDirectory()"><option value="all">Все сборки</option><option value="summer">Летняя</option><option value="winter">Зимняя</option></select></div>
  <div id="hiveList"></div>
- <div class="card" style="margin-top:14px"><div class="row"><div><b>Реестр маток</b><div class="muted">Текущие и выбывшие матки, история ввода и замены</div></div></div><div id="queenRegistryList"></div></div>
+ <div class="card" style="margin-top:14px"><div class="row"><div><b>Реестр маток</b><div class="muted">Текущие и выбывшие матки, история ввода и замены</div></div></div><label for="queenRegistrySearch">Поиск матки</label><input id="queenRegistrySearch" type="search" placeholder="Номер, семья, происхождение" oninput="renderQueenRegistry()"><label for="queenRegistryStatus">Статус матки</label><select id="queenRegistryStatus" onchange="renderQueenRegistry()"><option value="all">Все матки</option><option value="current">Текущие</option><option value="historical">Выбывшие</option><option value="unknown">Статус не определён</option></select><p id="queenRegistryResultCount" class="muted" aria-live="polite"></p><div id="queenRegistryList"></div></div>
 </section>
 <section id="entrance" class="panel">
  <div class="card">
@@ -1125,10 +1125,32 @@ function renderFamilyHealthSummary(){const host=$('familyHealthSummary');if(!hos
 function recordFamilyHtml(r){if(!r.family)return '';const family=S.families.find(f=>f.id===r.family),snapshot=r.familySnapshotAtTime,name=r.familyNameAtTime||family?.name||snapshot?.name||'Семья удалена';const moved=family&&family.hive!==r.hive,archived=!family&&!!snapshot;return '<p class="muted">Семья: '+safe(name)+(moved?' · на момент записи находилась в этом улье':archived?' · историческая связь, семья из удалённого улья':'')+'</p>'}
 function recordExtraHtml(r){const pairs=[];if(r.type==='Осмотр'){const m={seen:'Матка обнаружена',notSeen:'Матка не обнаружена',eggs:'Матка не найдена, но есть яйца',yes:'Свежие яйца есть',no:'Свежих яиц нет',solid:'Расплод ровный',mosaic:'Расплод пёстрый',weak:'Мало расплода',none:'Расплода нет',swarm:'Роевые маточники',supersedure:'Маточники тихой смены',emergency:'Свищевые маточники',unknown:'Маточники не определены',one:'Один роевой признак',several:'Несколько роевых признаков'};[['queen','Матка'],['eggs','Яйца'],['broodPattern','Расплод'],['queenCells','Маточники'],['swarmSigns','Роевые признаки']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+(m[r[k]]||r[k]))})}if(r.type==='Обработка'){[['treatmentProduct','Препарат'],['treatmentActive','Действующее вещество'],['treatmentMethod','Способ'],['treatmentDose','Доза по инструкции'],['treatmentCheck','Контроль'],['treatmentWaiting','Срок ожидания по этикетке'],['treatmentBatch','Партия / серия']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+r[k])})}if(r.type==='Подкормка'){[['feedingType','Вид корма'],['feedingSubstance','Состав'],['feedingAmount','Количество'],['feedingConcentration','Концентрация / пропорция'],['feedingMethod','Способ подачи']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+r[k])})}return pairs.length?'<p class="muted">'+pairs.map(safe).join(' · ')+'</p>':''}
 
+function queenRegistryFamily(state,queenId,familyId,hiveId){
+ const queens=(state.queens||[]).filter(q=>q?.id===queenId);
+ const families=state.families.filter(f=>f?.id===familyId);
+ if(!queenId||!familyId||!hiveId||queens.length!==1||families.length!==1||queens[0].familyId!==familyId||families[0].hive!==hiveId||!state.hives.some(h=>h.id===hiveId))return null;
+ return families[0];
+}
+function openQueenRegistryFamily(button,edit=false){
+ const {queenId,familyId,hiveId}=button.dataset;
+ const family=queenRegistryFamily(S,queenId,familyId,hiveId);
+ if(!family){renderQueenRegistry();alert('Связанная семья больше недоступна. Обновлены записи реестра.');return;}
+ if(edit){
+  const queen=S.queens.find(q=>q.id===queenId);
+  if(queen.status!=='current'||family.currentQueenId!==queenId){renderQueenRegistry();alert('Матка уже не является текущей. Проверь реестр.');return;}
+  openQueenForm(family.id);
+ }else openFamilyHistory(family.id,hiveId);
+}
 function renderQueenRegistry(){
  const host=$('queenRegistryList');if(!host)return;
- const rows=(S.queens||[]).slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
- if(!rows.length){host.innerHTML='<div class="muted">Матки ещё не зарегистрированы. Открой карточку семьи и нажми «Матка».</div>';return}
+ const all=(S.queens||[]),query=String($('queenRegistrySearch')?.value||'').trim().toLocaleLowerCase('ru-RU'),scope=$('queenRegistryStatus')?.value||'all';
+ const rows=all.filter(q=>{
+  const f=S.families.find(x=>x.id===q.familyId);
+  const status=q.status==='current'?'current':['replaced','dead','removed'].includes(q.status)?'historical':'unknown';
+  return (scope==='all'||scope===status)&&(!query||[q.code,q.source,q.year,q.notes,f?.name,f?.hive? hname(f.hive):''].filter(Boolean).join(' ').toLocaleLowerCase('ru-RU').includes(query));
+ }).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+ const count=$('queenRegistryResultCount');if(count)count.textContent='Показано: '+rows.length+' из '+all.length;
+ if(!rows.length){host.innerHTML='<div class="muted">'+(all.length?'По выбранным условиям маток нет.':'Матки ещё не зарегистрированы. Открой карточку семьи и нажми «Матка».')+'</div>';return}
  const eventLabels={introduced:'Введена в семью',replaced:'Зарегистрирована замена',legacy_imported:'Перенесена из старой записи',note:'Сведения обновлены',dead:'Погибла',removed:'Выведена из семьи'};
  host.innerHTML=rows.map(q=>{
   const f=S.families.find(x=>x.id===q.familyId),status=q.status==='current'?'Текущая':q.status==='replaced'?'Заменена':q.status==='dead'?'Погибла':q.status==='removed'?'Выведена из семьи':'Статус не определён';
@@ -1140,7 +1162,9 @@ function renderQueenRegistry(){
    const date=e.date||'дата не указана',label=eventLabels[e.type]||'Событие';
    return '<div class="queen-event"><b>'+safe(label)+'</b><span class="muted"> · '+safe(date)+'</span>'+(previous?'<div class="muted">Предыдущая матка: '+safe(previous.code||'Без номера')+'</div>':'')+(e.notes?'<div class="muted">'+safe(e.notes)+'</div>':'')+'</div>';
   }).join('')+'</div>':'<div class="muted">События по этой матке ещё не записаны.</div>';
-  return '<div class="queen-registry-item"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 0"><div><b>'+safe(q.code||'Без номера')+'</b><div class="muted">'+safe(f?.name||'Семья не найдена')+' · '+safe(f?hname(f.hive):'')+' · '+status+(q.year?' · вывод '+q.year:'')+'</div><div class="muted">'+safe(q.source||'Происхождение не указано')+'</div></div>'+(f&&f.currentQueenId===q.id?'<button type="button" onclick="openQueenForm(\''+f.id+'\')">Изменить / заменить</button>':'<span class="pill">История</span>')+'</div><div class="queen-event-heading">История матки</div>'+history+'</div>';
+  const linked=f&&queenRegistryFamily(S,q.id,f.id,f.hive);
+  const familyLink=linked?'<button type="button" data-queen-id="'+safe(q.id)+'" data-family-id="'+safe(f.id)+'" data-hive-id="'+safe(f.hive)+'" onclick="openQueenRegistryFamily(this)">Карточка семьи</button>':'';
+  return '<div class="queen-registry-item"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 0"><div><b>'+safe(q.code||'Без номера')+'</b><div class="muted">'+safe(f?.name||'Семья не найдена')+' · '+safe(f?hname(f.hive):'')+' · '+status+(q.year?' · вывод '+safe(q.year):'')+'</div><div class="muted">'+safe(q.source||'Происхождение не указано')+'</div></div>'+familyLink+(linked&&f.currentQueenId===q.id&&q.status==='current'?'<button type="button" data-queen-id="'+safe(q.id)+'" data-family-id="'+safe(f.id)+'" data-hive-id="'+safe(f.hive)+'" onclick="openQueenRegistryFamily(this,true)">Изменить / заменить</button>':'<span class="pill">История</span>')+'</div><div class="queen-event-heading">История матки</div>'+history+'</div>';
  }).join('');
 }
 function openQueenForm(familyId){
