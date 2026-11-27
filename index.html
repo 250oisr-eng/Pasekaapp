@@ -1269,7 +1269,10 @@ function hiveTechnicalProjection(layout,profile){
  const installed=raw.map(String), flags=layout.honeyBoxInstalled;
  if(new Set([...broodKeys,...honeyKeys]).size!==broodKeys.length+honeyKeys.length||new Set(installed).size!==installed.length||installed.some(k=>!broodKeys.includes(k)))return unavailable('Состав корпусов неоднозначен. Проверь комплектацию.');
  if(layout.mode==='winter'&&(!Array.isArray(layout.installedBoxes)||layout.installedBoxes.length!==installed.length||layout.installedBoxes.map(String).some(k=>!installed.includes(k))||flags.some(Boolean)))return unavailable('Зимний состав не согласован. Проверь комплектацию.');
- if(layout.mode==='summer'&&profile.honey?.installation==='paired'&&flags.some(Boolean)&&!flags.every(Boolean))return unavailable('Медовая пара не согласована. Проверь комплектацию.');
+ if(layout.mode==='summer'&&profile.honey?.installation==='paired'){
+  const pairs=honeyKeys.length===4?[flags.slice(0,2),flags.slice(2,4)]:[flags];
+  if(pairs.some(pair=>pair.some(v=>v!==pair[0]))||(pairs.length===2&&pairs[1][0]&&!pairs[0][0]))return unavailable('Медовые пары не согласованы. Проверь комплектацию.');
+ }
  const bodies=[];
  for(const key of installed){
   const body=layout.boxes?.[key];
@@ -1285,8 +1288,8 @@ function hiveTechnicalProjection(layout,profile){
 function renderFamilyObservationCards(){
  const host=$('selectedFamilies'),summary=$('familyHealthSummary'),hiveId=selectedHiveId;
  if(!host||!summary)return;
- const families=(S.families||[]).filter(f=>f.hive===hiveId),hive=S.hives.find(h=>h.id===hiveId),profile=hive?getHiveProfile(hive):null;
- const projection=hiveTechnicalProjection(S.layouts?.[hiveId],profile);
+ const families=(S.families||[]).filter(f=>f.hive===hiveId);
+ const projection=currentHiveTechnicalProjection();
  host.innerHTML=families.map(f=>{
   const data=familyObservationSnapshot(S.records,S.families,hiveId,f.id);
   if(!data)return '<article class="family-observation"><b>'+safe(f.name||'Семья')+'</b><p class="muted">Идентификатор семьи неоднозначен. Действия недоступны.</p></article>';
@@ -1307,10 +1310,12 @@ function openFamilyInspectionDraft(id){
  if($('recordDlg').open&&$('rhive').value===selectedHiveId){$('rfamily').value=id;updateJournalInspectionCapacity();}
 }
 function currentHiveTechnicalProjection(){
- const hive=S.hives.find(h=>h.id===selectedHiveId);
- const profile=hive?getHiveProfile(hive):null;
+ const hives=S.hives.filter(h=>h.id===selectedHiveId);
+ const profile=hives.length===1?getHiveProfile(hives[0]):null,layout=S.layouts?.[selectedHiveId];
  if(profile&&!validateHiveProfile(profile).ok)return {ok:false,reason:'Профиль не прошёл проверку.',bodies:[]};
- return hiveTechnicalProjection(S.layouts?.[selectedHiveId],profile);
+ const projection=hiveTechnicalProjection(layout,profile);
+ if(projection.ok&&!validateHiveAssemblyProfile(profile,layout).ok)return {ok:false,reason:'Комплектация не прошла проверку. Проверь состав в штатной настройке.',bodies:[]};
+ return projection;
 }
 function renderHiveTechnicalMap(){
  const host=$('hiveTechnicalMap');if(!host||!selectedHiveId)return;
@@ -1330,7 +1335,7 @@ function renderHiveTechnicalMap(){
 function openFrameMapDetail(data){
  if(data.hive!==selectedHiveId)return;
  const map=currentHiveTechnicalProjection(),body=map.bodies.find(b=>b.key===data.body),frame=body?.frames.find(f=>f.position===Number(data.position));
- if(!map.ok||!frame||frame.id!==data.frameId){renderHiveTechnicalMap();alert('Карта изменилась. Выбери рамку ещё раз.');return;}
+ if(!map.ok||!frame||!frame.id||frame.id!==data.frameId){renderHiveTechnicalMap();alert('Карта изменилась. Выбери рамку ещё раз.');return;}
  $('frameMapTitle').textContent='Рамка '+frame.position+' · корпус '+body.key;
  const actions={move:'Перемещение',updated:'Изменение данных',extraction:'Откачка',family_transfer:'Перенос с семьёй',corpus_to_storage:'На склад',corpus_from_storage:'Из хранения',corpus_transfer:'Перестановка корпуса',box_frames_swapped:'Обмен рамок',frame_id_changed:'Изменение внутреннего номера'};
  $('frameMapContent').innerHTML='<p><b>Постоянный код:</b> '+safe(frame.code?PasekaLabels.formatLabelCode('frame',frame.code):'Не назначен')+'</p><p><b>Статус в модели:</b> '+safe(frameStatusName(frame.status))+'</p><p class="muted">Записанное состояние, не результат автоматического осмотра.</p>'+(frame.note?'<p><b>Примечание:</b> '+safe(frame.note)+'</p>':'')+'<h3>История рамки</h3>'+(frame.history.length?'<ul>'+frame.history.slice().reverse().map(x=>'<li>'+safe(x.date||'Дата не указана')+' · '+safe(Object.prototype.hasOwnProperty.call(actions,x.action)?actions[x.action]:'Записанное изменение')+'</li>').join('')+'</ul>':'<p class="muted">История изменений отсутствует.</p>')+'<p class="muted">Подробные операции и редактирование — в настройке комплектации.</p>';

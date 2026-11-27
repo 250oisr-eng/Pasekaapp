@@ -41,3 +41,11 @@ test('technical detail is secondary, and existing family and frame operations ar
  assert.match(html,/id="frameMapDlg" aria-labelledby="frameMapTitle"/);
  assert.match(html,/if\(layout\?\.setupEditing\)\{\$\('hiveTechnicalView'\)\.open=true/);
 });
+
+test('four honey bodies accept the first complete pair, but not a second pair alone',()=>{
+ const p={status:'ready',brood:{boxKeys:['1']},honey:{boxKeys:['H1','H2','H3','H4'],installation:'paired'}};
+ const l={setupComplete:true,mode:'summer',installedBoxes:[1],boxes:{1:{frames:[]}},honeyFrames:[[],[],[],[]],honeyBoxInstalled:[true,true,false,false]};
+ assert.deepEqual(project(l,p).bodies.map(b=>b.key),['1','H1','H2']);
+ assert.equal(project({...l,honeyBoxInstalled:[false,false,true,true]},p).ok,false);
+ assert.equal(project({...l,honeyBoxInstalled:[true,false,false,false]},p).ok,false);
+});
