@@ -79,8 +79,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync,writeFileSync} from 'node:fs';
           const gradle=readFileSync('android/app/build.gradle','utf8');
-          const ids=[...gradle.matchAll(/\\bapplicationId\\s*(?:=\\s*)?["']([^"']+)["']/g)].map(m=>m[1]);
-          console.log('QA_SAF_GRADLE_SOURCE_LINES '+JSON.stringify(gradle.split('\\n').filter(line=>line.includes('applicationId'))));
+          const ids=[...gradle.matchAll(/\bapplicationId\s*(?:=\s*)?["']([^"']+)["']/g)].map(m=>m[1]);
           console.log('QA_SAF_GRADLE_ID_INSPECTION '+JSON.stringify(ids));
           if(ids.length!==1||ids[0]!=='ru.paseka.journal.qa.archive')
             throw Error('QA_SAF_BLOCKED: compiled Android applicationId not isolated');
