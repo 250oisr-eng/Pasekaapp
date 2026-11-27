@@ -56,3 +56,39 @@ test('manual release workflow already uses the locked npm install',()=>{
  const yaml=readFileSync('.github/workflows/pages-manual-release.yml','utf8');
  assert.match(yaml,/run: npm ci --no-audit --no-fund/);
 });
+
+function unreachableLockEntries(packages){
+ const visited=new Set(['']);
+ const queue=[''];
+ function resolvePackage(parent,dependency){
+  let base=parent;
+  while(true){
+   const path=(base?base+'/':'')+'node_modules/'+dependency;
+   if(packages[path])return path;
+   const i=base.lastIndexOf('/node_modules/');
+   if(i>=0){base=base.slice(0,i);continue;}
+   if(base){base='';continue;}
+   return null;
+  }
+ }
+ while(queue.length){
+  const key=queue.shift(),meta=packages[key]||{};
+  const deps={...meta.dependencies,...meta.devDependencies,...meta.optionalDependencies,...meta.peerDependencies};
+  for(const name of Object.keys(deps)){
+   const dependency=resolvePackage(key,name);
+   assert.ok(dependency,'missing locked dependency '+key+' -> '+name);
+   if(!visited.has(dependency)){visited.add(dependency);queue.push(dependency);}
+  }
+ }
+ return Object.keys(packages).filter(key=>!visited.has(key)).sort();
+}
+
+test('no unused or orphaned transitive packages are left in the npm lock graph',()=>{
+ assert.deepEqual(unreachableLockEntries(lock.packages),[]);
+ // Negative fixture: a pinned package is not justified by a name/version alone.
+ const withGhost={...lock.packages,'node_modules/unused-ghost':{
+  version:'1.0.0',resolved:'https://registry.npmjs.org/unused-ghost/-/unused-ghost-1.0.0.tgz',
+  integrity:'sha512-Z2hvc3Q='
+ }};
+ assert.deepEqual(unreachableLockEntries(withGhost),['node_modules/unused-ghost']);
+});
