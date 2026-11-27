@@ -1,6 +1,8 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · main `1a609a9ec46cace85a81663648fee749df677932` после #621.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · main `a0e52b83abb2463a9a3a7560ee3cda0517880516` после #625.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+
+**UX [#638 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/638) · IMPLEMENTED_DRAFT:** отдельный сезонный UI-компонент, календарный/ручной сезон, режимы поле/дом/ночь, пять групп + один AI и автономное демо. Code `0e498648`; CI начат, результат не подтверждён. Интеграция в `index.html` отложена до координации с #637/#622 (пересекающиеся изменения). Реальные данные/SW/production не изменены; OnePlus и визуальная проверка NOT_TESTED. [Контракт](docs/UI-SEASONAL-WORKSPACE-2026-11-27.md).
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
@@ -10,7 +12,7 @@
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 
-**Draft [#625](https://github.com/250oisr-eng/Pasekaapp/pull/625)** — техническая диагностика в разделе «Ещё». Статус CI и ограничения в PR.
+**[#625 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/625)** — техническая диагностика в разделе «Ещё»; exact main checks PASS, физический OnePlus отдельно.
 
 ## Основные интегрированные функции
 
