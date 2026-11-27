@@ -4083,13 +4083,27 @@ test('rendering extraction history never passes Array.map index as hive ID',()=>
  assert.match(source,/x\.item\.boxes\.map\(key=>frameLocationName\(key,x\.item\.hiveId\)\)/);
  const host={innerHTML:''};
  const state={extractions:[{id:'ext',date:'2026-11-25',items:[{hiveId:'h',kilograms:2,boxes:['H1','H2'],returnedAt:null}]}]};
- const fn=new Function('
+ const fn=new Function('$','S','selectedHiveId','frameLocationName','safe','isSectionalHive',source+';return renderHiveExtractionActions');
  fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String,loadFunction('isSectionalHive',{S:state}))();
  assert.match(host.innerHTML,/Корпуса после откачки/);
  assert.match(host.innerHTML,/H1, H2/);
 });
-,'S','selectedHiveId','frameLocationName','safe','isSectionalHive',source+';return renderHiveExtractionActions');
- fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String,loadFunction('isSectionalHive',{S:state}))();
- assert.match(host.innerHTML,/Корпуса после откачки/);
- assert.match(host.innerHTML,/H1, H2/);
+
+test('B07 guarded atomic IndexedDB write aborts when memory changed just before put, preserving both records',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'sectional-guard-'+(++indexedDbTestSequence));
+ try{
+  const prior={meta:{revisionId:'r0',schemaVersion:15},value:'main-before'};
+  const backup={at:'2026-11-27T10:00:00.000Z',state:{meta:{revisionId:'r-1',schemaVersion:15},value:'backup-before'}};
+  await seedIndexedDb(db,[['main',prior,'state'],['backup',backup,'previous']]);
+  const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const next={meta:{revisionId:'r1',schemaVersion:15},value:'next'};
+  let checked=0;
+  await assert.rejects(write(next,'r0',()=>{checked++;return false}),/Состояние страницы изменилось/);
+  assert.equal(checked,1);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),prior);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),backup);
+  assert.deepEqual(await write(next,'r0',()=>true),prior);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),next);
+  assert.deepEqual((await readIndexedDb(db,'backup','previous')).state,prior);
+ }finally{db.close();}
 });

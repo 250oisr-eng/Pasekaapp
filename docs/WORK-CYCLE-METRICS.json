@@ -2058,8 +2058,16 @@
   "b07RegressionCorrection20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "baseSha": "c7fd2f403776ea428414386fb027170fa94a35e3",
-    "ci": "PENDING",
+    "ci": "FAILED_EXACT_SHA",
     "mergeAuthorization": "conditional pass",
-    "releaseAuthorized": false
+    "releaseAuthorized": false,
+    "sha": "25d0ed93cab9f35b8bdfd63febd6d8ef3f093c55",
+    "failure": "regression.test.mjs syntax error (replacement token), Governance PASS"
+  },
+  "b07AtomicGuardRegression20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "baseSha": "25d0ed93cab9f35b8bdfd63febd6d8ef3f093c55",
+    "ci": "PENDING",
+    "mergeAuthorization": "conditional pass"
   }
 }
