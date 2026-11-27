@@ -26,6 +26,16 @@ test('native scheduler uses one persisted periodic job, disallows network and fi
  for(const token of ['getPendingJob(JOB_ID)','setPeriodic(PERIOD_MS, FLEX_MS)','setPersisted(true)','setRequiresStorageNotLow(true)','setBlockNetworkLoads(true)','setAllowFileAccess(false)','setAllowContentAccess(false)','loadDataWithBaseURL("https://localhost/"','jobFinished(parameters, retry)'])assert.ok(java.includes(token),token);
  assert.doesNotMatch(java,/setRequiredNetworkType|setOverrideDeadline|deleteDatabase|clearCache/);
  assert.match(java,/WATCHDOG_TIMEOUT phase=/);
+ // Main-frame data: is an in-memory loadDataWithBaseURL document, not a network request.
+ // Exactly one such document is allowed, and all subsequent requests remain fail-closed.
+ assert.match(java,/new AtomicBoolean\(true\)/);
+ assert.match(java,/private volatile JobParameters active/);
+ assert.match(java,/request\.isForMainFrame\(\)[\s\S]*?"data"\.equals\(request\.getUrl\(\)\.getScheme\(\)\)[\s\S]*?allowInternalMainData\.compareAndSet\(true, false\)/);
+ assert.match(java,/MAIN_FRAME_DATA_ALLOWED_ONCE/);
+ assert.match(java,/return null; \/\/ Only the in-memory data: document, not a network request\./);
+ assert.equal((java.match(/return null;/g)||[]).length,1);
+ assert.match(java,/new WebResourceResponse\("text\/plain", "UTF-8", 403, "Forbidden"/);
+ assert.match(java,/shouldOverrideUrlLoading\(WebView view, WebResourceRequest request\) \{ return true; \}/);
  for(const category of ['HTML_ABSENT','INLINE_NOT_RUN','NO_DB','NO_RUNNER','NO_BRIDGE','NO_METHOD','READY','UNKNOWN','DISPATCH_FAILED'])
   assert.match(java,new RegExp('JS_PROBE_'+category));
  assert.match(java,/JS_CONSOLE_ERROR/);
@@ -54,6 +64,12 @@ test('native patch is idempotent and preserves distinct package/origin',()=>{
  assert.notEqual(diag.appId,qa.appId);
  const probe=dailyQaConfig(config,{probe:true});
  const dom=dailyQaConfig(config,{dom:true});
+ const fixed=dailyQaConfig(config,{fix:true});
+ assert.equal(fixed.appId,'ru.paseka.journal.qa.daily.fix');
+ assert.equal(assertDailyConfig(fixed),fixed.appId);
+ for(const other of [qa,diag,probe,dom])assert.notEqual(fixed.appId,other.appId);
+ assert.throws(()=>dailyQaConfig(config,{dom:true,fix:true}),/unexpected/);
+ assert.throws(()=>assertDailyConfig({...fixed,server:{url:'https://remote.test'}}),/origin/);
  assert.equal(dom.appId,'ru.paseka.journal.qa.daily.dom');
  assert.equal(assertDailyConfig(dom),dom.appId);
  assert.notEqual(dom.appId,qa.appId);
@@ -81,11 +97,11 @@ test('native patch is idempotent and preserves distinct package/origin',()=>{
  const diagnosticActivity='package '+diag.appId+';\npublic class MainActivity extends BridgeActivity {}';
  assert.match(patchActivity(diagnosticActivity,diag.appId),/PasekaDailyArchiveJob\.schedule\(this\)/);
 });
-test('diagnostic workflow builds isolated DOM package with signer and provenance',async()=>{
+test('diagnostic workflow builds isolated fixed worker package with signer and provenance',async()=>{
  const yaml=await read('.github/workflows/android-qa-daily-diagnostic.yml');
- assert.match(yaml,/node scripts\/prepare-android-daily-archives\.mjs dom-config/);
- assert.match(yaml,/packageName!=='ru\.paseka\.journal\.qa\.daily\.dom'/);
- assert.match(yaml,/PASEKA-DAILY-DOM-QA-ONLY\.apk/);
+ assert.match(yaml,/node scripts\/prepare-android-daily-archives\.mjs fix-config/);
+ assert.match(yaml,/packageName!=='ru\.paseka\.journal\.qa\.daily\.fix'/);
+ assert.match(yaml,/PASEKA-DAILY-FIX-QA-ONLY\.apk/);
  assert.match(yaml,/signers\.length!==1/);
  assert.match(yaml,/QA-PROVENANCE\.json/);
  assert.match(yaml,/ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
