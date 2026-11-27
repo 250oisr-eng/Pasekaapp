@@ -33,7 +33,11 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
-  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "upcomingHomeTasks20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
@@ -1648,7 +1652,11 @@
   "overviewModelDiagnostics20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "refreshedMainSha": "1a609a9ec46cace85a81663648fee749df677932",
-    "refreshedLocalNodeTests": {"pass": 1072, "fail": 0, "targetedPass": 13},
+    "refreshedLocalNodeTests": {
+      "pass": 1072,
+      "fail": 0,
+      "targetedPass": 13
+    },
     "sourceMainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
     "codeSha": "78ed9ab3ab58da774c64d01d7ba9171c8a8fdea4",
     "mainCi": [
@@ -1675,5 +1683,97 @@
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null,
     "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Foverview-model-diagnostics"
+  },
+  "inventoryFilteredCsv20261127": {
+    "sourceMainSha": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "branch": "feat/inventory-filtered-csv-export-20261127",
+    "scope": "USER_INITIATED_READ_ONLY_OFFLINE_FILTERED_INVENTORY_CSV",
+    "source": "docs/INVENTORY-FILTERED-CSV-2026-11-27.md",
+    "files": [
+      "index.html",
+      "tests/equipment-inventory-csv.test.mjs"
+    ],
+    "migration": false,
+    "serviceWorkerChanged": false,
+    "backupChanged": false,
+    "productionTouched": false,
+    "device": "NOT_TESTED",
+    "ci": "CI_VERIFIED_CODE_SHA_AND_BROWSER_E2E",
+    "verifiedUserScenarios": 0,
+    "pr": 633,
+    "codeSha": "b09642a44b986e6dbde6e580f4f10f03eecd68ad",
+    "nodeTests": {
+      "tests": 1077,
+      "pass": 1077,
+      "fail": 0
+    },
+    "verifiedCi": [
+      {
+        "name": "Fast quality checks",
+        "id": 46048423361,
+        "conclusion": "success"
+      },
+      {
+        "name": "Build Android APK",
+        "id": 46048431007,
+        "conclusion": "success"
+      },
+      {
+        "name": "Journal real-browser E2E",
+        "id": 46048430922,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance Docs Checks",
+        "id": 46048430929,
+        "conclusion": "success"
+      }
+    ],
+    "newInventoryClickBrowser": "NOT_TESTED",
+    "merged": false,
+    "browserClickValidated": true,
+    "browserOfflineValidated": true,
+    "syntheticMobileExport": "PASS",
+    "syntheticDesktopExport": "PASS",
+    "syntheticStateMutationObserved": false,
+    "staleVisibleIdRegression": {
+      "negativeCases": 1,
+      "expectedNoDownload": true,
+      "exactHeadCi": "PENDING",
+      "device": "NOT_TESTED"
+    }
+  },
+  "concurrentIndependentDrafts20261127": {
+    "mainAtStart": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "drafts": [
+      {
+        "pr": 633,
+        "scope": "filtered_inventory_csv",
+        "codeSha": "b09642a44b986e6dbde6e580f4f10f03eecd68ad",
+        "synthetic": "NODE_ANDROID_BROWSER_PASS",
+        "device": "NOT_TESTED"
+      },
+      {
+        "pr": 634,
+        "scope": "incident_hive_provenance",
+        "codeSha": "d01fd6cd5c2b597b9972b48354aa13f07dd9ccbe",
+        "nodePass": 1074,
+        "android": "PASS",
+        "governance": "PASS",
+        "device": "NOT_TESTED"
+      },
+      {
+        "pr": 635,
+        "scope": "deadout_evidence_loss_guard",
+        "codeSha": "4dea77442de532f1647f9bb30b5f77ec5b76d411",
+        "nodePass": 1075,
+        "android": "PASS",
+        "governance": "PASS",
+        "device": "NOT_TESTED"
+      }
+    ],
+    "release": "NOT_AUTHORIZED",
+    "merges": 0,
+    "productionMutation": false
   }
 }
