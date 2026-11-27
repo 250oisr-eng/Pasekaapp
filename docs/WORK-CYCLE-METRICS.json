@@ -1573,5 +1573,16 @@
     ],
     "deviceChanges": false,
     "completedVerifiedUserScenarios": 0
+  },
+  "forageDictationRetry20261127": {
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "codeSha": "0112fa6d27bd702f3a4a2664007d82f9386474ab",
+    "sourcePr": 165,
+    "nodePass": 1055,
+    "nodeFail": 0,
+    "simulatedSpeechBrowserViewports": 2,
+    "microphone": "NOT_TESTED",
+    "device": "NOT_TESTED",
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Fforage-dictation-retry"
   }
 }

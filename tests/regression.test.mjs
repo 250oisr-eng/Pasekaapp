@@ -73,6 +73,39 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
+test('forage dictation unlocks after a recognition error and ignores callbacks from the failed session',()=>{
+ const sessions=[],messages=[];
+ function FakeRecognition(){sessions.push(this)}
+ FakeRecognition.prototype.start=function(){};
+ const button={disabled:false,textContent:'🎙 Диктовать'};
+ const note={value:'Первое наблюдение',focus(){}};
+ const source={value:'text'};
+ const fields={plantVoiceButton:button,plantNote:note,plantInputSource:source};
+ const deps={window:{SpeechRecognition:FakeRecognition},plantRecognition:null,
+  $:id=>fields[id],confirm:()=>true,alert:message=>messages.push(message)};
+ const dictate=loadFunction('dictatePlantObservation',deps);
+ dictate();
+ assert.equal(button.disabled,true);
+ const [first]=sessions;
+ first.onerror({error:'not-allowed'});
+ assert.equal(button.disabled,false);
+ assert.equal(deps.plantRecognition,null);
+ assert.equal(messages.length,1);
+ dictate();
+ const second=sessions[1];
+ assert.ok(second);
+ first.onend();
+ first.onresult({results:[[{transcript:'Старый результат'}]]});
+ assert.equal(button.disabled,true);
+ assert.equal(deps.plantRecognition,second);
+ assert.equal(note.value,'Первое наблюдение');
+ second.onresult({results:[[{transcript:'Клевер'}]]});
+ second.onend();
+ assert.equal(button.disabled,false);
+ assert.equal(note.value,'Первое наблюдение Клевер');
+ assert.equal(source.value,'voice');
+});
+
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);

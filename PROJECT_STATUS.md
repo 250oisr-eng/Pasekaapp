@@ -4,6 +4,8 @@
 
 **B03 · RESOLVED_INTEGRATION_SCOPE (Draft documentation only):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
+**Медоносы · Draft `0112fa6d`:** повтор диктовки после ошибки и изоляция запоздавших событий. 1055/1055 Node. Нативный offline-движок отдельно (#162/#164/#165). Следующий шаг — рассмотреть готовые Draft по порядку.
+
 ## Основные интегрированные функции
 
 - **#597–#599 MERGED:** первый внешний архив с read-only проверкой, история семьи и безопасные ссылки из поиска на записи/инвентарь. Полное независимое восстановление реальных данных ещё не доказано.
