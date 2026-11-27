@@ -13,7 +13,7 @@
     "lockedTransitivePackages": 100,
     "npmCiCoreWorkflows": 5,
     "newSyntheticTests": 13,
-    "exactHeadCi": "PENDING",
+    "exactHeadCi": "CI_VERIFIED_EXACT_SHA",
     "device": "NOT_TESTED",
     "storageChanges": false,
     "serviceWorkerChanges": false,
@@ -22,7 +22,23 @@
     "completedVerifiedUserScenarios": 0,
     "lockPackagesReachable": 100,
     "lockPackagesOrphaned": 0,
-    "lockGraphNegativeRegression": true
+    "lockGraphNegativeRegression": true,
+    "verifiedHeadSha": "b61282cc99f32b564bb77688bd7c738d765ea092",
+    "nodeTests": {
+      "tests": 1153,
+      "pass": 1153,
+      "fail": 0,
+      "cancelled": 0
+    },
+    "ciRunIds": [
+      46072767441,
+      46072767431,
+      46072767501,
+      46072767414,
+      46072767436,
+      46072767842,
+      46072767473
+    ]
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
