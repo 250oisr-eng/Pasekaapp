@@ -130,3 +130,19 @@ test('OP02 accepts both confirmed endpoints and keeps legacy fields outside the 
   assert.deepEqual(api.validateDailyCompletion(state,task),{ok:true});
  }
 });
+
+
+test('OP02 fails closed if tasks or factual-record index is unavailable',()=>{
+ for(const field of ['tasks','records']){
+  const state=base();
+  delete state[field];
+  const before=structuredClone(state);
+  assert.deepEqual(api.buildDailyPlan(state,request(),id),{ok:false,error:'incomplete_accounting_state'});
+  assert.deepEqual(state,before);
+ }
+ for(const field of ['tasks','records']){
+  const state=base();
+  state[field]={};
+  assert.deepEqual(api.buildDailyPlan(state,request(),id),{ok:false,error:'incomplete_accounting_state'});
+ }
+});
