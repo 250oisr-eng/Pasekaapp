@@ -1578,7 +1578,7 @@
     "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
     "pr": 629,
     "codeStatus": "IMPLEMENTED_DRAFT",
-    "ci": "NOT_VERIFIED",
+    "ci": "NOT_VERIFIED_NEW_HEAD",
     "diagnosticApk": "NOT_BUILT",
     "device": "NE2213_API36_USER_ADB_EVIDENCE",
     "forcedJobStarted": true,
@@ -1589,6 +1589,15 @@
     "existingQaApkTouched": false,
     "productionTouched": false,
     "completedVerifiedUserScenarios": 0,
-    "measuredSavings": null
+    "measuredSavings": null,
+    "liveDevicePhases": [
+      "START",
+      "ASSET_READY",
+      "LOAD_REQUESTED",
+      "PAGE_FINISHED"
+    ],
+    "javascriptPhaseReached": false,
+    "nextProbePackage": "ru.paseka.journal.qa.daily.probe",
+    "rootCause": "UNKNOWN"
   }
 }
