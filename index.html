@@ -1581,7 +1581,8 @@ function renderGlobalSearch(){
  if(exact&&typeof PasekaLabels!=='undefined'&&typeof PasekaLabels.lookupMarking==='function'){
   const answer=PasekaLabels.lookupMarking(S,exact.kind,exact.code);
   const content='<span><b>'+safe(answer.title||'Маркировка')+'</b><small>'+safe(answer.detail||answer.message)+'</small></span>';
-  host.innerHTML=answer.status==='found'&&answer.target?'<button type="button" class="global-search-result" data-kind="marking" data-mark-type="'+safe(exact.kind)+'" data-id="'+safe(exact.code)+'" onclick="openGlobalSearchResult(this)">'+content+'<span aria-hidden="true">↗</span></button>':'<div class="global-search-empty">'+content+'<small>По данным локального учёта</small></div>';
+  const target=answer.target,kind=target?.kind==='body'?'corpus':target?.kind;
+  host.innerHTML=answer.status==='found'&&target?'<button type="button" class="global-search-result" data-kind="'+safe(kind)+'" data-mark-type="'+safe(exact.kind)+'" data-mark-code="'+safe(exact.code)+'" data-id="'+safe(target.id??target.code)+'" data-hive="'+safe(target.hiveId??(kind==='hive'?target.id:''))+'" onclick="openGlobalSearchResult(this)">'+content+'<span aria-hidden="true">↗</span></button>':'<div class="global-search-empty">'+content+'<small>По данным локального учёта</small></div>';
   if(status)status.textContent=answer.status==='found'?'Найден точный номер.':answer.message;return;
  }
  const results=[];
@@ -1613,9 +1614,9 @@ document.addEventListener('keydown',event=>{
 });
 function openGlobalSearchResult(button){
  const kind=button.dataset.kind,hiveId=button.dataset.hive,box=button.dataset.box,index=Number(button.dataset.index);
- if(kind==='marking'){
-  const answer=PasekaLabels.lookupMarking(S,button.dataset.markType,button.dataset.id),target=answer.target;
-  if(answer.status!=='found'||!target){renderGlobalSearch();alert('Объект больше не найден однозначно. Проверь реестр.');return;}
+ if(button.dataset.markType){
+  const answer=PasekaLabels.lookupMarking(S,button.dataset.markType,button.dataset.markCode),target=answer.target;
+  if(answer.status!=='found'||!target||String(target.id??target.code)!==button.dataset.id){renderGlobalSearch();alert('Объект больше не найден однозначно. Проверь реестр.');return;}
   if(target.kind==='hive'){openHive(target.id);return;}
   if(target.kind==='family'){openFamilyHistory(target.id,target.hiveId);return;}
   if(target.kind==='body'){openEquipmentInventory(target.id);return;}
