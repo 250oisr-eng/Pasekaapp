@@ -3788,10 +3788,12 @@ async function toggleHoneyPair(){
  }
  let previous;
  try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную перестановку: '+(error.message||error));return false}
- if(on)l.honeyBoxInstalled=[false,false];
- else l.honeyBoxInstalled=[true,true];
- l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
- logAudit(on?'honey_pair_removed':'honey_pair_installed',{hiveId,boxes:['H1','H2']});
+ try{
+  if(on)l.honeyBoxInstalled=[false,false];
+  else l.honeyBoxInstalled=[true,true];
+  l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
+  logAudit(on?'honey_pair_removed':'honey_pair_installed',{hiveId,boxes:['H1','H2']});
+ }catch(error){S=previous;render();alert('Изменение медовых корпусов отменено: '+(error.message||error));return false}
  return savePhysicalAssemblyMutation(previous);
 }
 function toggleHoneyBox(){toggleHoneyPair()}
