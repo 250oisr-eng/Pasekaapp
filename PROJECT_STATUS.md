@@ -10,7 +10,7 @@
 
 ## План работ и журнал
 
-**Повседневный учёт (Draft):** общая сборка #630–#633/#636 поверх UX main; OP02 не активирована, OnePlus и CI отдельно.
+**Учёт Draft #647:** интеграция #630–#633/#636; Node 1118/1118, Android/Chromium/Governance PASS на code SHA `c4ad3ee3`; OP02 не активна, OnePlus NOT_TESTED.
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 
