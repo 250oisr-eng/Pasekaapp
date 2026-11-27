@@ -3949,3 +3949,30 @@ test('Done button keeps hive assembly editable and unconfirmed when persistence 
   }
  }
 });
+
+test('inventory persistence rollback survives rejected promise and preserves existing physical items',async()=>{
+ for(const outcome of ['false','exception','success']){
+  const before={equipmentInventory:{bodies:{old:{id:'old',kind:'brood',storageLocation:'Склад',condition:'good'}},events:[]},meta:{}};
+  const deps={S:structuredClone(before),warnings:[],renders:0,inventoryRenders:0,reconciliationRenders:0,
+   save:async()=>{if(outcome==='exception')throw new Error('test storage interruption');return outcome==='success'},
+   render(){this.renders++},renderEquipmentInventory(){this.inventoryRenders++},
+   renderEquipmentReconciliation(){this.reconciliationRenders++},
+   alert(message){this.warnings.push(message)}
+  };
+  deps.S.equipmentInventory.bodies.new={id:'new',kind:'honey',storageLocation:'QA-СКЛАД'};
+  const result=await loadFunction('saveInventoryChange',deps)(structuredClone(before));
+  assert.equal(result,outcome==='success');
+  if(outcome==='success'){
+   assert.equal(deps.S.equipmentInventory.bodies.new.id,'new');
+   assert.equal(deps.inventoryRenders,1);assert.equal(deps.reconciliationRenders,1);
+   assert.equal(deps.renders,0);
+  }else{
+   assert.deepEqual(deps.S.equipmentInventory,before.equipmentInventory,
+     'failure must never retain an uncommitted physical item or event');
+   assert.equal(deps.renders,1);
+   assert.equal(deps.inventoryRenders,0);
+   assert.equal(deps.reconciliationRenders,0);
+   assert.equal(deps.warnings.length,1);
+  }
+ }
+});
