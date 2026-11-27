@@ -148,3 +148,7 @@ GitHub REST `branches/main` возвращает `protected=false`; репози
 ### Повторяемый машинный guard пересечений
 
 В `scripts/audit-pr-branch-dependencies.mjs` добавлен экспорт `analyzeRootFileOverlaps`, принимающий **только полный** список файлов PR с `complete=true`. Он исключает stacked PR из пар root↔root, отвергает неполные, повторные, абсолютные и traversal-пути, отделяет `index.html`, `sw.js`, `js/**`, `scripts/**`, `android/**`, `package*.json` и CI workflows от общих status/docs. Возвращает **только** `COMPLETE_PATH_OVERLAP_ONLY_NOT_SEMANTIC_MERGE_CONFLICT`; тесты запрещают превращать совпадение документации в runtime conflict. Это не GitHub merge check и не проверка идентичности кода. Новые код/test коммиты `683087a9`, `112e1024`; CI точного SHA проверяется отдельно.
+
+## Проверка двух production release workflows
+
+В текущем `main` отдельно прочитаны `.github/workflows/pages-manual-release.yml` и `.github/workflows/deploy-cloudflare-worker.yml`. **Оба в проверенной версии имеют единственный триггер `workflow_dispatch`** (нет автоматического `push`/PR/schedule), требуют полный 40-символьный approved `main` SHA, явную строку подтверждения `PUBLISH-PASEKA` либо `PUBLISH-CLOUDFLARE`, проверяют достижимость коммита из main и checkout целевого SHA. Pages workflow дополнительно проверяет `build_type=workflow`. Ни один workflow не запускался. Наличие проверок **не** означает факта публикации, а `main protected=false` остаётся отдельной уязвимостью управления правами. Не утверждать, что проверены все возможные внешние механизмы публикации.
