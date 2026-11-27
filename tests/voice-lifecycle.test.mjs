@@ -13,7 +13,7 @@ function fixture({onTranscript, failConstructor=false}={}) {
   class Utterance {constructor(text){this.text=text;}}
   const synthesis={cancel(){utterances.at(-1)?.onend?.();},speak(u){utterances.push(u);}};
   const windowRef={SpeechRecognition:Speech,speechSynthesis:synthesis};
-  const factory=new Function('window',source+'\\nreturn window.PasekaVoiceSession.createApiaryVoiceSession;')(windowRef);
+  const factory=new Function('window',source+'\nreturn window.PasekaVoiceSession.createApiaryVoiceSession;')(windowRef);
   const session=factory({windowRef,getElement:()=>null,getUtterance:Utterance,onStatus:m=>statuses.push(m),onTranscript:t=>{texts.push(t);onTranscript?.(session,t);},setTimer:fn=>timers.push(fn)});
   return {session,recognizers,timers,utterances,texts,statuses};
 }
