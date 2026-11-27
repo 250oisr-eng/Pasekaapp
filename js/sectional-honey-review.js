@@ -55,7 +55,7 @@ function inventoryReview(state,request,deps){
  const installed=pairGroups(state,ids,{type:'sectional',hiveId:request.hiveId,layoutId:c.layout.id},deps);
  if(!installed.ok)return installed;
  if(deps.physicalLayout.inspect(state).length||deps.coordinator.inspect(state,deps.operationDependencies||{}).length)return fail('sectional_evidence_invalid');
- const pending=rows(state.extractions).flatMap(e=>rows(e.items).filter(i=>i?.hiveId===request.hiveId&&i.sectional&&!i.returnedAt).map(i=>({extractionId:e.id,bodyIds:i.sectional.bodyIds.slice(),pairIds:i.sectional.pairIds.slice()})));
+ const pending=rows(state.extractions).flatMap(e=>rows(e.items).filter(i=>i?.hiveId===request.hiveId&&i.sectional&&i.sectional.kind!=='full-cycle-v1'&&!i.returnedAt).map(i=>({extractionId:e.id,bodyIds:i.sectional.bodyIds.slice(),pairIds:i.sectional.pairIds.slice()})));
  const raw=!pending.length&&typeof deps.coordinator.availableSecondHoneyPairs==='function'&&str(request.techProcessId)?deps.coordinator.availableSecondHoneyPairs(state,request):[];
  const offers=rows(raw).filter(p=>{
   const checked=pairGroups(state,p?.bodyIds,{type:'storage'},deps);
@@ -128,7 +128,7 @@ function prepareAdditionalPair(state,request,deps){
 // B07.5: read-only presentation model. No actionable button or event handler.
 function viewModel(state,request,deps){
  const c=context(state,request?.hiveId,deps);if(!c.ok)return {visible:false};
- if(c.layout.honeyStack==null)return {visible:true,bodyCount:0,installedPairs:[],offers:[],pending:[],canReviewInstallation:true,canCommit:false,reason:'B07_BLOCKED'};
+ if(c.layout.honeyStack==null){if(deps.physicalLayout.inspect(state).length||deps.coordinator.inspect(state,deps.operationDependencies||{}).length)return {visible:false};return {visible:true,bodyCount:0,installedPairs:[],offers:[],pending:[],canReviewInstallation:true,canCommit:false,reason:'B07_BLOCKED'};}
  const v=inventoryReview(state,request,deps);if(!v.ok)return {visible:false};
  return {visible:true,bodyCount:v.bodyCount,installedPairs:v.installedPairs,offers:v.bodyCount===2&&!v.pending.length?v.offers:[],pending:v.pending,readyFrames:v.installedPairs.flatMap(p=>p.bodyIds).reduce((sum,id)=>sum+rows(c.bodies[id].frames).filter(f=>f.status==='sealed').length,0),requiredFrames:v.bodyCount*10,canReviewExtraction:[2,4].includes(v.bodyCount)&&!v.pending.length,canCommit:false,reason:'B07_BLOCKED'};
 }
