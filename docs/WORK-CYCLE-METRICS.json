@@ -33,7 +33,32 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
-  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "queenRegistryNavigation20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "duplicateHiveIdGuard": {
+      "negativeCases": 2,
+      "positiveCases": 1,
+      "spotCheck": "PASS",
+      "fullCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
+    },
+    "corruptRegistryGuard": {
+      "invalidArrayCases": 12,
+      "readOnlyRenderCase": 1,
+      "inMemorySpotCheck": "PASS",
+      "fullExactHeadCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
+    }
+  },
+  "upcomingHomeTasks20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
@@ -1648,7 +1673,11 @@
   "overviewModelDiagnostics20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "refreshedMainSha": "1a609a9ec46cace85a81663648fee749df677932",
-    "refreshedLocalNodeTests": {"pass": 1072, "fail": 0, "targetedPass": 13},
+    "refreshedLocalNodeTests": {
+      "pass": 1072,
+      "fail": 0,
+      "targetedPass": 13
+    },
     "sourceMainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
     "codeSha": "78ed9ab3ab58da774c64d01d7ba9171c8a8fdea4",
     "mainCi": [
