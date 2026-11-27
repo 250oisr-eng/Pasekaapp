@@ -2322,6 +2322,10 @@ function applyQueenChange(state,draft,makeId=()=>crypto.randomUUID()){
  if(code.length>80||source.length>160||notes.length>1000)throw new Error('Проверь длину сведений о матке');
  if(year!==null&&(!Number.isInteger(year)||year<1900||year>new Date().getFullYear()+1))throw new Error('Укажи корректный год вывода матки');
  if(date!=null&&(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(new Date(date+'T00:00:00Z').getTime())||new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date))throw new Error('Укажи существующую дату ввода матки');
+ if(date!=null){
+  const now=new Date(),todayLocal=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  if(date>todayLocal)throw new Error('Дата фактического ввода матки не может быть в будущем');
+ }
  state.queens=Array.isArray(state.queens)?state.queens:[];state.queenEvents=Array.isArray(state.queenEvents)?state.queenEvents:[];
  const current=family.currentQueenId?state.queens.find(q=>q.id===family.currentQueenId):null,editing=!!draft.queenId&&current?.id===draft.queenId;
  const details={code:code||null,year,source:source||null,notes:notes||null};
