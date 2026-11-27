@@ -1,4 +1,5 @@
 {
+  "voiceLifecycle20261127": {"sourceMain":"a0e52b83abb2463a9a3a7560ee3cda0517880516","integration":"IMPLEMENTED_DRAFT","ci":"NOT_VERIFIED","device":"NOT_TESTED","completedVerifiedUserScenarios":0,"storageChanges":false,"measuredSavings":null},
   "p0FirstExternalCopyGuide20261127": {
     "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
     "pr": 597,
