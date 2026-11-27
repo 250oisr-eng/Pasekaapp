@@ -1,0 +1,738 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 4,
+  "start": 45,
+  "rows": [
+    {
+      "branch": "docs/post-merge-593-ux-status-20261127",
+      "closedPrs": [
+        {
+          "number": 594,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 107,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "66f6c794c6b94636fdebfde0172d72ca3bc986d9",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "docs/pr-audit-cycle-f-20261126",
+      "closedPrs": [
+        {
+          "number": 569,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 192,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "4c0d9b9093ee613d2befcf05e7c5e4b6efb5c8c5",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 31
+        },
+        {
+          "path": "docs/PR-AUDIT-CHECKPOINT-2026-11-26-F.md",
+          "status": "added",
+          "additions": 41,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PR-AUDIT-LIVE-CENSUS-2026-11-26-F.json",
+          "status": "added",
+          "additions": 4807,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 33,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 7
+    },
+    {
+      "branch": "docs/pr-audit-final-post-b01-20261126",
+      "closedPrs": [
+        {
+          "number": 554,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 209,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "ca2c01edbd08ec6272a7adbe3949cbfd7d446d4f",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 11
+        },
+        {
+          "path": "docs/PR-AUDIT-2026-11-26.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PR-AUDIT-INVENTORY-2026-11-26.json",
+          "status": "modified",
+          "additions": 153,
+          "deletions": 223
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 34,
+          "deletions": 7
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "docs/РЕЕСТР-БЛОКЕРОВ.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "returnedFiles": 8,
+      "totalCommits": 1
+    },
+    {
+      "branch": "docs/pr-audit-final-sync-20261126",
+      "closedPrs": [
+        {
+          "number": 580,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 164,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "cedcb63441b09a08fd78fd22e5b2a65687da1f5e",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4
+        },
+        {
+          "path": "docs/PR-AUDIT-CHECKPOINT-2026-11-26-J.md",
+          "status": "added",
+          "additions": 25,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PR-AUDIT-LIVE-GRAPH-2026-11-26-I.json",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 24
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 7
+    },
+    {
+      "branch": "docs/pr-audit-i-code-merge-finalize-20261126",
+      "closedPrs": [
+        {
+          "number": 576,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 168,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "09ac5b757b86803eafa616c9f425c8d262145105",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    },
+    {
+      "branch": "docs/pr-audit-qa-553-checkpoint-20261126",
+      "closedPrs": [
+        {
+          "number": 555,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 207,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "a5fcde50472a4ef6f4f304949865d62cce883eb7",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 21,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 1
+    },
+    {
+      "branch": "docs/pr-inventory-and-current-state-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 112,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 1105,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "0c6b982f5faf4bb016d2cd870cff19a1485ecca4",
+      "changedPaths": [
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/АУДИТ-PR-54-58-2026-11-16.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 4
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+          "status": "added",
+          "additions": 167,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 2
+        },
+        {
+          "path": "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 3
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 16,
+          "deletions": 12
+        },
+        {
+          "path": "docs/ТЗ-ТЕХПРОЦЕССА.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        }
+      ],
+      "returnedFiles": 9,
+      "totalCommits": 4
+    },
+    {
+      "branch": "docs/pr-portfolio-audit-cycle-c-20261126",
+      "closedPrs": [
+        {
+          "number": 561,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 200,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7d8af290cb9621ea7e83610a939dbceb19027b20",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 1
+        },
+        {
+          "path": "docs/PR-AUDIT-CHECKPOINT-2026-11-26-C.md",
+          "status": "added",
+          "additions": 44,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 28,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "docs/pr-portfolio-audit-cycle-d-20261126",
+      "closedPrs": [
+        {
+          "number": 565,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 10,
+      "behind": 197,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "a95d055c380b835d150c79c39e4a88af73bd0149",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 1
+        },
+        {
+          "path": "docs/PR-AUDIT-CHECKPOINT-2026-11-26-D.md",
+          "status": "added",
+          "additions": 26,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PR-AUDIT-LIVE-CENSUS-2026-11-26.json",
+          "status": "added",
+          "additions": 4860,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 33,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 10
+    },
+    {
+      "branch": "docs/project-control-post-merge-2026-11-16",
+      "closedPrs": [
+        {
+          "number": 75,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 1114,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "c0555e52d1cf53c04fe3edfd0603bc4d08477518",
+      "changedPaths": [
+        {
+          "path": "AGENTS.md",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 4
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 5
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 4
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "docs/project-control-system-2026-11-16",
+      "closedPrs": [
+        {
+          "number": 74,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 26,
+      "behind": 1115,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "33c7a1f87d7cb2327a8d9dd39ffcdd614a707875",
+      "changedPaths": [
+        {
+          "path": "AGENTS.md",
+          "status": "added",
+          "additions": 36,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "added",
+          "additions": 22,
+          "deletions": 0
+        },
+        {
+          "path": "docs/АРХИТЕКТУРА-ПРИЛОЖЕНИЯ.md",
+          "status": "added",
+          "additions": 102,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "added",
+          "additions": 42,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПАСПОРТ-ПРОЕКТА.md",
+          "status": "added",
+          "additions": 65,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "added",
+          "additions": 70,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "added",
+          "additions": 125,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+          "status": "added",
+          "additions": 89,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+          "status": "added",
+          "additions": 91,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "added",
+          "additions": 78,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ТЗ-ТЕХПРОЦЕССА.md",
+          "status": "added",
+          "additions": 125,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 11,
+      "totalCommits": 26
+    },
+    {
+      "branch": "docs/qa-pr532-partial-port-checkpoint-20261126",
+      "closedPrs": [
+        {
+          "number": 586,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 6,
+      "behind": 158,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "5d19c067e4cc832466bd2ebf497a242c729535aa",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "docs/PR-AUDIT-CHECKPOINT-2026-11-26-L.md",
+          "status": "added",
+          "additions": 23,
+          "deletions": 0
+        },
+        {
+          "path": "docs/PR-AUDIT-ROOTS-2026-11-26-K.json",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 1
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 43,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 6
+    },
+    {
+      "branch": "docs/record-pr146-merge-next-steps-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 147,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 1007,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "bb995e107b92dbd9b66e5e34f87ff271b76f34da",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "docs/record-project-status-journal-merge-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 140,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 1079,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "0cfb2632e82b6b7d7da80503c65b2cd1093e13ec",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 4
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 1
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 7
+    },
+    {
+      "branch": "docs/record-release-authority-finalization-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 108,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 1109,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "f865cd13e315d5ac0a40123f8537b37f6bd4988f",
+      "changedPaths": [
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    }
+  ]
+}
