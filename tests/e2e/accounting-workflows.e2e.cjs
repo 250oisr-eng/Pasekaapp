@@ -85,7 +85,32 @@ async function journey(browser,origin){
   await page.locator('#queenForm button.primary').click();
   await page.locator('#queenDlg').waitFor({state:'hidden'});
   assert.equal(await page.evaluate(()=>S.queens.filter(q=>q.status==='replaced').length),1);
-  // Real journal forms: feeding + inspection with explicit family selection.
+  // Direct hive action opens an empty draft bound to the selected hive; cancel never writes.
+  const beforeQuick=await page.evaluate(()=>JSON.stringify(S.records));
+  for(const [width,height] of [[320,640],[390,844],[844,390]]){
+   await page.setViewportSize({width,height});
+   await openPrimary(page,'hives');
+   await page.locator('#hiveList .hive-row button.primary').first().click();
+   await page.locator('.hive-workspace-actions').getByRole('button',{name:'Осмотр семьи',exact:true}).click();
+   const draft=page.locator('#recordDlg');
+   await draft.waitFor({state:'visible'});
+   assert.equal(await draft.getByLabel('Улей',{exact:true}).inputValue(),ids.h);
+   assert.equal(await draft.getByLabel('Тип',{exact:true}).inputValue(),'Осмотр');
+   assert.equal(await draft.getByLabel('Семья',{exact:true}).inputValue(),'','no inferred family');
+   await draft.getByLabel('Наблюдения / работы',{exact:true}).fill('QA-DRAFT-CANCEL');
+   const footer=await draft.locator('.record-actions').boundingBox();
+   assert.ok(footer&&footer.width>0,'visible action bar');
+   await draft.getByRole('button',{name:'Отмена',exact:true}).click();
+   await draft.waitFor({state:'hidden'});
+   assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),beforeQuick,'cancel leaves records untouched');
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('.hive-workspace-actions').getByRole('button',{name:'Наблюдение',exact:true}).click();
+  assert.equal(await page.locator('#rtype').inputValue(),'Заметка');
+  assert.equal(await page.locator('#rhive').inputValue(),ids.h);
+  await page.locator('#recordDlg').getByRole('button',{name:'Отмена',exact:true}).click();
+  assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),beforeQuick);
+    // Real journal forms: feeding + inspection with explicit family selection.
   await openPrimary(page,'journal');
   for(const entry of [{type:'Подкормка',date:'2026-11-15',text:'QA-ACCOUNTING-FEED',amount:'150 г'},
                      {type:'Осмотр',date:'2026-11-16',text:'QA-ACCOUNTING-INSPECTION'}]){
