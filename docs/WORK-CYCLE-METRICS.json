@@ -2120,5 +2120,39 @@
     "governance": "FAIL",
     "android": "FAIL_SAME_GOVERNANCE_TEST",
     "browser": "PENDING"
+  },
+  "b07Merged20261128": {
+    "stage": "IN_MAIN",
+    "pr": 649,
+    "verifiedHead": "642db8f42ee5af36783dbee23926fba4ece9ad3a",
+    "mainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1101,
+      "total": 1101,
+      "failed": 0,
+      "run": 46068699199
+    },
+    "android": {
+      "status": "PASS",
+      "run": 46068699199
+    },
+    "chromium": {
+      "status": "PASS_SYNTHETIC",
+      "run": 46068699194,
+      "scenario": "actual UI 4→0→2, stock regroup, atomic main+previous backup and reload"
+    },
+    "governance": {
+      "status": "PASS",
+      "run": 46068699235
+    },
+    "workers": "PASS",
+    "mergeAuthorized": true,
+    "activationAuthorized": false,
+    "physicalDeviceVerified": false,
+    "independentRestoreVerified": false,
+    "releaseAuthorized": false,
+    "mainCI": "PENDING",
+    "remainingBlocker": "B07 profile/other technological operations and physical acceptance"
   }
 }
