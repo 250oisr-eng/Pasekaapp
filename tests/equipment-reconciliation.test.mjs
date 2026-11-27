@@ -44,3 +44,32 @@ test('registry lookup shows all exact labels and excludes codes mentioned in oth
  assert.ok(rows.every(row=>row.hidden));
  assert.match(fields.frameRegistryFilterResult.textContent,/нет рамок с кодом Р-ААА/);
 });
+
+test('frame inspection history reaches the oldest issue and returns to the newest page',()=>{
+ const source=html.slice(html.indexOf('const frameHistoryPageSize='),html.indexOf('function putEntranceVideo('));
+ const fields={}, field=id=>fields[id]??=( {focus(){}} );
+ const rows=Array.from({length:17},(_,i)=>({id:'visit-'+i,date:'date-'+i,target:{},issues:[]}));
+ rows[16].issues.push({id:'old-issue',status:'open'});
+ const api=new Function('$','S','PasekaReconciliation','safe','reconciliationTargetLabel','reconciliationIssueLabel','PasekaLabels',source+';return {renderEquipmentReconciliation,changeFrameHistoryPage}')(
+  field,{}, {list:()=>rows},String,()=>'',()=>'',{formatLabelCode:()=>''});
+ api.renderEquipmentReconciliation();
+ assert.equal(field('frameHistoryPrev').disabled,true);
+ assert.match(field('frameReconciliationSummary').textContent,/расхождений: 1$/);
+ const history=()=>field('frameReconciliationHistory').innerHTML;
+ assert.equal(history().match(/<article/g).length,8);
+ api.changeFrameHistoryPage(1);
+ assert.match(history(),/date-8 ·/);
+ api.changeFrameHistoryPage(1);
+ assert.match(history(),/data-inspection="visit-16" data-issue="old-issue"/);
+ assert.equal(field('frameHistoryNext').disabled,true);
+ api.changeFrameHistoryPage(-1);
+ assert.equal(field('frameHistoryPageStatus').textContent,'Страница 2 из 3');
+ api.changeFrameHistoryPage(-1);
+ assert.match(history(),/date-0 ·/);
+ rows.length=8;
+ api.renderEquipmentReconciliation();
+ assert.equal(field('frameHistoryPages').hidden,true);
+ rows.length=0;
+ api.renderEquipmentReconciliation();
+ assert.match(history(),/ещё не записывались/);
+});
