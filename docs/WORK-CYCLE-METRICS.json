@@ -1544,5 +1544,34 @@
     "qaArtifact": 15193929646,
     "qaPackage": "ru.paseka.journal.qa.daily",
     "qaApkSha256": "b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa"
+  },
+  "b03ResolutionReview20261127": {
+    "classification": "RESOLVED_INTEGRATION_SCOPE_DRAFT",
+    "mainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
+    "codeEvidenceSha": "94f883be631d5bb205a1c4bbcfbea20fed554f48",
+    "mergedPrs": [
+      472,
+      623
+    ],
+    "ci": [
+      45993961493,
+      45993961608,
+      45993961524,
+      45993961501,
+      45994063782
+    ],
+    "mainAheadDocumentationOnly": true,
+    "publicationHistory": "NOT_INDEPENDENTLY_VERIFIED",
+    "productionRelease": "NOT_AUTHORIZED",
+    "remaining": [
+      "B01",
+      "B02",
+      "B04",
+      "B05",
+      "B11",
+      "B15"
+    ],
+    "deviceChanges": false,
+    "completedVerifiedUserScenarios": 0
   }
 }
