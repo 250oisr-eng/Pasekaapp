@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "FULL_CYCLE_MEASURED_COMPACT_REJECTED_TRANSFER_TRIAL",
+    "stage": "TRANSFER_MEASURED_NATIVE_SOURCE_RATE_LIMIT_RETRY",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -234,7 +234,51 @@
       "artifactId": 15235816016,
       "productAdmission": false
     },
-    "transferTrial": "implemented_not_verified"
+    "transferTrial": {
+      "run": 46110268302,
+      "codeSha": "a576c09de2c885d4f937dee0b7e5bf84c9120437",
+      "conclusion": "success",
+      "testsPassed": 5,
+      "fitImages": 41,
+      "steps": 400,
+      "threshold": 0.99,
+      "refine": true,
+      "calibrationMacroF1": 0.4040906578220011,
+      "externalFixed": {
+        "tp": 7,
+        "fp": 45,
+        "fn": 5
+      },
+      "externalFresh": {
+        "tp": 172,
+        "fp": 845,
+        "fn": 168
+      },
+      "oldDate": {
+        "tp": 89,
+        "fp": 91,
+        "fn": 40
+      },
+      "julyROI": {
+        "tp": 141,
+        "fp": 214,
+        "fn": 37
+      },
+      "headSha256": "c1d5eb5e4d85bce1969786bf9aa8d70dbd26480a2a4974107c5338873a4a4e1c",
+      "artifactId": 15249707798,
+      "productAdmission": false
+    },
+    "nativeTrial": {
+      "run": 46110789704,
+      "codeSha": "d5e61d182bf06a07c200649fae76cbb2dc421716",
+      "testsPassed": 3,
+      "conclusion": "HTTP429_BEFORE_TRAINING",
+      "rangeBytes": 11593207,
+      "requests": 74,
+      "failedSamples": 16,
+      "retry": "LILA_fit_no_Zenodo",
+      "historicalResearchWorkflowsOptIn": 9
+    }
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",

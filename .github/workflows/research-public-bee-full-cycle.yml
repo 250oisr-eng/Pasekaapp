@@ -1,6 +1,7 @@
 name: Research full public bee cycle
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'tools/run_public_bee_full_cycle.py'
       - 'tests/test_public_bee_full_cycle.py'
@@ -10,7 +11,7 @@ permissions:
   actions: read
 jobs:
   public-cycle:
-    if: github.head_ref == 'research/video-public-model-pilot-20261128'
+    if: github.head_ref == 'research/video-public-model-pilot-20261128' && github.event.action == 'labeled' && github.event.label.name == 'research-replay-bee-full-cycle'
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     env:

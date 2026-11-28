@@ -24,4 +24,10 @@ class NativeTests(unittest.TestCase):
         loss,stats=p.matched_loss(logits,boxes,[[]]);self.assertEqual(stats["matched"],0);loss.backward()
         self.assertTrue((logits.grad>0).all())
         with self.assertRaises(ValueError):p.matched_loss(torch.zeros((1,2,2)),boxes,[[]])
+    def test_native_partitions_do_not_overlap_named_groups(self):
+        fit=set(p.full.EXTERNAL_TRAIN)
+        self.assertNotIn(p.transfer.CAL_PREFIX,fit)
+        self.assertTrue(fit.isdisjoint(p.transfer.TEST_PREFIXES))
+        for name in p.full.EXTERNAL_TEST:
+            self.assertFalse(any(name.startswith(g+"_") for g in fit))
 if __name__=="__main__":unittest.main()

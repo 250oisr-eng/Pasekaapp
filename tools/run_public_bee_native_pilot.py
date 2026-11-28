@@ -10,6 +10,8 @@ import os
 import re
 import tempfile
 import time
+import zipfile
+from urllib.error import HTTPError
 from pathlib import Path
 import numpy as np
 from PIL import Image
@@ -23,6 +25,7 @@ import run_public_bee_transfer_pilot as transfer
 import run_public_bee_roi_pilot as roi
 import run_public_bee_query_head_pilot as base
 import verify_public_bee_pilot_inputs as sources
+import probe_public_bee_external as ext
 
 STEPS=96
 THRESHOLDS=(.05,.10,.20,.35,.50,.65,.80,.90,.95)
@@ -158,6 +161,50 @@ def metric(rows,t):
     result.pop("ortMs",None) # PyTorch inference, no ORT claim.
     return result
 
+def collect_native(report,seen):
+    """Single pinned LILA archive; never contact rate-limited Zenodo."""
+    initial,archive=ext.open_archive()
+    if archive["etag"]!="0x8DC6292D953F766" or archive["bytes"]!=2076021293:
+        raise ValueError("external archive changed")
+    reader=full.BoundedReader(initial.url,initial.size,initial.opener,64*1024*1024,240)
+    report["externalArchive"]=archive
+    fit=[];cal=[];fixed=[];fresh=[]
+    with zipfile.ZipFile(reader) as z:
+        imgs,xmls,_,inventory=ext.index(z);report["externalInventory"]=inventory
+        def read(name,partition):
+            try:return full.read_external(z,imgs,xmls,name,seen)
+            except HTTPError:
+                raise
+            except Exception as exc:
+                report["sampleErrors"].append({"name":name,"partition":partition,"error":str(exc)[:180]})
+                return None
+        def group_keys(group,count):
+            keys=[k for k in imgs.keys()&xmls.keys() if k.startswith(group+"_")]
+            return full.choose(keys,min(count,len(keys))) if keys else []
+        for group in full.EXTERNAL_TRAIN:
+            for name in group_keys(group,8):
+                row=read(name,"native fit "+group)
+                if row is None:continue
+                im,gt,_=row
+                if im.width<1280 or im.height<720 or not gt:
+                    report["sampleErrors"].append({"name":name,"partition":"native fit","error":"not full-sized positive frame"})
+                    continue
+                fit.append(row)
+        for name in group_keys(transfer.CAL_PREFIX,4):
+            row=read(name,"native calibration")
+            if row is not None:cal.append(row)
+        for name in full.EXTERNAL_TEST:
+            row=read(name,"native fixed comparison")
+            if row is not None:fixed.append(row)
+        for group in transfer.TEST_PREFIXES:
+            for name in group_keys(group,4):
+                row=read(name,"native named comparison "+group)
+                if row is not None:fresh.append(row)
+    report["externalRange"]={"bytes":reader.received,"requests":reader.requests}
+    if len(fit)<10 or len(cal)<3 or not fixed or not fresh:
+        raise ValueError("insufficient valid named LILA samples")
+    return fit,cal,fixed,fresh
+
 def run(out):
     from safetensors.torch import save_file
     torch.set_num_threads(min(4,os.cpu_count() or 1));torch.set_num_interop_threads(1);torch.manual_seed(base.SEED)
@@ -170,11 +217,9 @@ def run(out):
         (out/"report.json").write_text(json.dumps(report,indent=2,sort_keys=True,allow_nan=False)+"\n")
         print("RF_NATIVE_CHECKPOINT",json.dumps(report["phases"]),flush=True)
     try:
-        seen=set();train_rows,june_cal,external=full.collect(report,seen)
-        ext_cal,fresh=transfer.extra_external(report,seen)
-        report["partitions"]={"fit":[r[2] for r in train_rows],"juneCalibration":[r[2] for r in june_cal],
-           "externalCalibration":[r[2] for r in ext_cal],"externalFixed":[r[2] for r in external],
-           "externalNamedComparison":[r[2] for r in fresh]}
+        seen=set()
+        report["zenodoRequested"]=False
+        report["oldDateStatus"]="NOT_RUN_RATE_LIMITED_SOURCE"
         with tempfile.TemporaryDirectory(prefix="paseka-native-") as directory:
             root=Path(directory);md=root/"model";md.mkdir()
             sources.download(base.MODEL_URL,md/"model.safetensors",base.MAX_MODEL,base.MODEL_SHA,121926336)
@@ -182,11 +227,19 @@ def run(out):
                 sources.download(f"https://huggingface.co/Roboflow/rf-detr-nano/resolve/{rev}/{name}",md/name,65536,sha,size)
             model,names,report["modelLoading"]=model_load(md)
             processor=AutoImageProcessor.from_pretrained(md,local_files_only=True,trust_remote_code=False)
+            train_rows,ext_cal,external,fresh=collect_native(report,seen)
+            report["partitions"]={"fit":[r[2] for r in train_rows],
+                "externalCalibration":[r[2] for r in ext_cal],"externalFixed":[r[2] for r in external],
+                "externalNamedComparison":[r[2] for r in fresh]}
             tiles=[tile for im,gt,_ in train_rows for tile in full.training_tiles(im,gt)]
             report["phases"]["input"]="VERIFIED_BOUNDED_SAMPLES_AND_ONE_CLASS_MODEL";checkpoint()
             report["training"]=train(model,processor,names,tiles);del tiles
             report["phases"]["training"]="ACTUAL_DECODER_AND_HEAD_UPDATES";checkpoint()
-            a,report["juneCalibrationExtraction"]=collect_predictions(model,processor,transfer.wrap(june_cal))
+            zones=roi.zone_catalog()
+            june_cal=transfer.samples_video(root,roi.TRAIN,base.TRAIN_VIDEO,base.TRAIN_TRACKS,zones[roi.TRAIN],
+                lambda refs:base.choose_frames(refs,8),seen,report)
+            report["partitions"]["juneCalibration"]=[r[2] for r in june_cal]
+            a,report["juneCalibrationExtraction"]=collect_predictions(model,processor,june_cal)
             b,report["externalCalibrationExtraction"]=collect_predictions(model,processor,transfer.wrap(ext_cal))
             curve=[{"threshold":t,"june":metric(a,t),"external":metric(b,t)} for t in THRESHOLDS]
             for x in curve:x["macroF1"]=(x["june"]["f1"]+x["external"]["f1"])/2
@@ -198,13 +251,11 @@ def run(out):
                 "class":"bee","transformers":"5.11.0","method":"single-group final Hungarian loss"})
             report["delta"]={"bytes":path.stat().st_size,"sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
             report["phases"]["calibration"]="FROZEN";checkpoint()
-            old=full.collect_2018(report,seen)
-            zones=roi.zone_catalog()
             july=transfer.samples_video(root,roi.CONTROL,roi.CONTROL_VIDEO,roi.CONTROL_TRACKS,zones[roi.CONTROL],
                 lambda refs:roi.consecutive(refs,12),seen,report)
             report["comparisons"]={}
             for name,rows in (("externalFixed",transfer.wrap(external)),("externalNamedComparison",transfer.wrap(fresh)),
-                               ("oldDate",transfer.wrap(old)),("julyBPublisherROI",july)):
+                               ("julyBPublisherROI",july)):
                 if not rows:report["comparisons"][name]={"status":"NO_VALID_SAMPLE"};continue
                 preds,perf=collect_predictions(model,processor,rows)
                 report["comparisons"][name]={"samples":len(rows),"extraction":perf,"metrics":metric(preds,t)}
