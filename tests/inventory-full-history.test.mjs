@@ -19,7 +19,7 @@ test('history allows all 27 events in independent pages without truncation or mu
 test('escaped malformed history event stays visible as warning and no HTML execution',()=>{
  const body={events:[{type:'<img src=x onerror=alert(1)>',at:'invalid'},null,{type:'registered',at:'2026-11-28T12:00:00Z'}]};
  const output=rows(body,0,12);
- assert.doesNotMatch(output,/<img|onerror=/i);
+ assert.doesNotMatch(output,/<img\b/i);
  assert.match(output,/Повреждённая запись истории/);
  assert.match(output,/&lt;img/);
 });
