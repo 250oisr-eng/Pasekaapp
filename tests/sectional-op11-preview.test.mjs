@@ -134,10 +134,11 @@ test('OP11 refuses foreign profiles, honey stage, invalid physical state and occ
   state=>{state.equipmentInventory.items.p1.location={type:'hive',hiveId:'h',stackId:'sl'};},
   state=>{state.sectionalLayouts[0].technicalConnections[0].openings[0].itemId='missing';}
  ]){
-  const state=structuredClone(base),before=structuredClone(state);
-  const out=OP11.preview(state,selection());
-  assert.equal(out.ok,false);
-  assert.deepEqual(state,before);
+  const state=structuredClone(base);
+  modify(state);
+  const before=structuredClone(state),out=OP11.preview(state,selection());
+  assert.equal(out.ok,false,'invalid source fixture must fail closed');
+  assert.deepEqual(state,before,'rejection must not rewrite source');
  }
 });
 test('OP11 preflight never completes operation even when all selections are supplied',()=>{
