@@ -609,17 +609,17 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
  <div class="card"><h3 style="margin-top:0">Новый инцидент</h3><form id="incidentForm" onsubmit="savePesticideIncident(event)">
   <label for="incidentObservedAt">Дата и время обнаружения</label><input id="incidentObservedAt" type="datetime-local" required>
   <label for="incidentScope">Какие ульи затронуты?</label><select id="incidentScope" onchange="renderIncidentHiveChoices()"><option value="selected_hives">Выбранные ульи</option><option value="whole_apiary">Вся пасека</option><option value="unknown">Пока неизвестно</option></select>
-  <div id="incidentHiveChoices"></div>
+  <div id="incidentHiveChoices"></div><div id="incidentFamilyChoices"></div>
   <label for="incidentDeadBees">Оценка количества погибших пчёл (если считали)</label><input id="incidentDeadBees" type="number" min="0" max="10000000" step="1" inputmode="numeric" placeholder="Необязательно">
   <label for="incidentSymptoms">Что именно наблюдалось?</label><textarea id="incidentSymptoms" rows="3" maxlength="2000" placeholder="Например: скопление погибших пчёл перед летком, необычное поведение"></textarea>
   <label for="incidentLocationLabel">Место / ориентир</label><input id="incidentLocationLabel" maxlength="200" placeholder="Поле, дорога, участок, ориентир">
-  <div class="row" style="justify-content:flex-start"><button type="button" onclick="captureIncidentLocation()">Получить GPS с телефона</button><span class="muted" id="incidentGpsStatus">GPS не запрашивался</span></div>
+  <div class="row" style="justify-content:flex-start"><button type="button" onclick="captureIncidentLocation()">Получить GPS с телефона</button><button type="button" onclick="clearIncidentGps()">Убрать GPS</button><span class="muted" id="incidentGpsStatus">GPS не запрашивался</span></div>
   <input id="incidentLatitude" type="hidden"><input id="incidentLongitude" type="hidden"><input id="incidentGpsAccuracy" type="hidden"><input id="incidentGpsCapturedAt" type="hidden">
   <label for="incidentCrop">Предполагаемая культура рядом (не подтверждено)</label><input id="incidentCrop" maxlength="160" placeholder="Например: рапс, сад, поле">
   <label for="incidentSubstance">Предполагаемое вещество (если известно, не подтверждено)</label><input id="incidentSubstance" maxlength="200" placeholder="Не указывай догадку как установленный факт">
   <label for="incidentArea">Описание участка / предполагаемого источника</label><input id="incidentArea" maxlength="300">
   <label for="incidentWeather">Погодные обстоятельства</label><textarea id="incidentWeather" rows="2" maxlength="1000" placeholder="Только известные наблюдения"></textarea>
-  <label for="incidentPhotoInput">Фотографии с камеры смартфона (до 3)</label><input id="incidentPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="loadIncidentPhotos(this)"><div class="media-note">До 2 МБ на фотографию. Фото хранятся локально и не отправляются автоматически.</div><div id="incidentPhotoPreview" class="media-grid"></div>
+  <label for="incidentPhotoInput">Фотографии с камеры смартфона (до 3)</label><input id="incidentPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="loadIncidentPhotos(this)"><div class="media-note">До 2 МБ на фотографию. Фото хранятся локально и не отправляются автоматически.</div><div id="incidentPhotoPreview" class="media-grid"></div><button type="button" onclick="clearIncidentPhotos()">Убрать фотографии</button>
   <h4>Обращения и образцы</h4>
   <label for="incidentReportedTo">Куда передана информация</label><input id="incidentReportedTo" maxlength="200" placeholder="Организация / специалист">
   <label for="incidentReportReference">Номер обращения / регистрации</label><input id="incidentReportReference" maxlength="160">
@@ -2306,29 +2306,60 @@ function renderIncidentHiveChoices(){
  const host=$('incidentHiveChoices');if(!host)return;
  const selected=new Set([...host.querySelectorAll('input[name="incidentHiveId"]:checked')].map(x=>x.value));
  const scope=$('incidentScope')?.value||'selected_hives';host.hidden=scope!=='selected_hives';
- host.innerHTML=S.hives.map(h=>'<label style="display:flex;align-items:center;gap:8px;padding:6px 0"><input type="checkbox" name="incidentHiveId" value="'+safe(h.id)+'" '+(selected.has(h.id)?'checked':'')+' style="width:auto;margin:0">'+safe(hname(h.id))+'</label>').join('')||'<p class="muted">Сначала добавь улей.</p>';
+ host.innerHTML=S.hives.map(h=>'<label style="display:flex;align-items:center;gap:8px;padding:6px 0"><input type="checkbox" name="incidentHiveId" onchange="renderIncidentFamilyChoices()" value="'+safe(h.id)+'" '+(selected.has(h.id)?'checked':'')+' style="width:auto;margin:0">'+safe(hname(h.id))+'</label>').join('')||'<p class="muted">Сначала добавь улей.</p>';
+ renderIncidentFamilyChoices();
+}
+function renderIncidentFamilyChoices(){
+ const host=$('incidentFamilyChoices');if(!host)return;
+ const selected=new Set([...host.querySelectorAll('input:checked')].map(x=>x.value));
+ const scope=$('incidentScope').value;
+ const hiveIds=scope==='whole_apiary'?new Set(S.hives.map(h=>h.id)):scope==='selected_hives'?new Set([...$('incidentHiveChoices').querySelectorAll('input:checked')].map(x=>x.value)):new Set();
+ const families=S.families.filter(f=>hiveIds.has(f.hive));
+ host.innerHTML=families.length?'<p class="muted">Пострадавшие семьи (если установлены)</p>'+families.map(f=>'<label style="display:flex;align-items:center;gap:8px"><input style="width:auto;margin:0" type="checkbox" name="incidentFamilyId" value="'+safe(f.id)+'" '+(selected.has(f.id)?'checked':'')+'>'+safe(hname(f.hive)+' · '+(f.name||f.code||'Семья'))+'</label>').join(''):'';
+
+}
+let incidentPhotoReading=false,incidentSaving=false,incidentGpsPending=false,incidentGpsRequest=0;
+function clearIncidentPhotos(){
+ if(incidentPhotoReading||incidentSaving)return;
+ pendingIncidentMedia=[];$('incidentPhotoInput').value='';renderIncidentPhotoPreview();
+}
+function clearIncidentGps(){
+ incidentGpsRequest++;incidentGpsPending=false;
+ for(const id of ['incidentLatitude','incidentLongitude','incidentGpsAccuracy','incidentGpsCapturedAt'])$(id).value='';
+ $('incidentGpsStatus').textContent='GPS не запрашивался';
 }
 function renderIncidentPhotoPreview(){
  const host=$('incidentPhotoPreview');if(!host)return;
- host.innerHTML=pendingIncidentMedia.map(x=>'<div><img src="'+x.data+'" alt="'+safe(x.name)+'"><div class="muted">'+safe(x.name)+'</div></div>').join('');
+ host.innerHTML=pendingIncidentMedia.map(x=>'<div><img src="'+safe(x.data)+'" alt="'+safe(x.name)+'"><div class="muted">'+safe(x.name)+'</div></div>').join('');
 }
 async function loadIncidentPhotos(input){
- const files=[...(input?.files||[])];if(files.length>3){alert('Можно выбрать не более трёх фотографий.');input.value='';return}
+ if(incidentPhotoReading||incidentSaving)return;
+ const files=[...(input?.files||[])];if(!files.length)return;
+ if(files.length>3){alert('Можно выбрать не более трёх фотографий. Прежние вложения сохранены.');input.value='';return}
+ incidentPhotoReading=true;input.disabled=true;
  try{
   const next=await Promise.all(files.map(file=>new Promise((resolve,reject)=>{
    if(!['image/jpeg','image/png','image/webp','image/heic'].includes(file.type)||file.size>2*1024*1024)return reject(new Error('Поддерживаются JPG, PNG, WebP или HEIC до 2 МБ каждый.'));
    const reader=new FileReader();reader.onload=()=>resolve({kind:'image',name:file.name,type:file.type,data:String(reader.result),sizeBytes:file.size,capturedAt:file.lastModified?new Date(file.lastModified).toISOString():new Date().toISOString()});reader.onerror=()=>reject(new Error('Не удалось прочитать фотографию.'));reader.readAsDataURL(file);
   })));
   pendingIncidentMedia=next;renderIncidentPhotoPreview();
- }catch(error){pendingIncidentMedia=[];renderIncidentPhotoPreview();alert(error.message||'Не удалось добавить фотографии');input.value=''}
+ }catch(error){alert((error.message||'Не удалось добавить фотографии')+'. Прежние вложения сохранены.');input.value=''}
+ finally{incidentPhotoReading=false;input.disabled=false;}
 }
 function captureIncidentLocation(){
+ if(incidentSaving||incidentGpsPending)return;
  const status=$('incidentGpsStatus');if(!navigator.geolocation){if(status)status.textContent='GPS недоступен в этом браузере';return}
  if(status)status.textContent='Запрашиваем разрешение телефона…';
+ incidentGpsPending=true;const request=++incidentGpsRequest;
  navigator.geolocation.getCurrentPosition(position=>{
-  $('incidentLatitude').value=String(position.coords.latitude);$('incidentLongitude').value=String(position.coords.longitude);$('incidentGpsAccuracy').value=String(Math.round(position.coords.accuracy));$('incidentGpsCapturedAt').value=new Date().toISOString();
+  if(request!==incidentGpsRequest)return;incidentGpsPending=false;
+  $('incidentLatitude').value=String(position.coords.latitude);$('incidentLongitude').value=String(position.coords.longitude);$('incidentGpsAccuracy').value=String(Math.round(position.coords.accuracy));$('incidentGpsCapturedAt').value=Number.isFinite(position.timestamp)?new Date(position.timestamp).toISOString():'';
   if(status)status.textContent='GPS получен · точность около '+Math.round(position.coords.accuracy)+' м';
- },error=>{if(status)status.textContent=error.code===1?'Доступ к GPS запрещён':error.code===2?'GPS-координаты недоступны':'Истекло время ожидания GPS'}, {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+ },error=>{
+  if(request!==incidentGpsRequest)return;incidentGpsPending=false;
+  const reason=error.code===1?'Доступ к GPS запрещён':error.code===2?'GPS-координаты недоступны':'Истекло время ожидания GPS';
+  if(status)status.textContent=reason+($('incidentLatitude').value?' · прежние координаты сохранены':'');
+ }, {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 }
 function renderPesticideIncidentModule(){
  const list=$('incidentList');if(!list)return;
@@ -2339,21 +2370,26 @@ function renderPesticideIncidentModule(){
  if(!summary.total){list.innerHTML='<p class="muted">Инцидентов пока нет.</p>';return}
  const scopes={selected_hives:'Выбранные ульи',whole_apiary:'Вся пасека',unknown:'Охват неизвестен'};
  list.innerHTML=summary.items.map(row=>{
-  const hiveLabels=(row.affectedHiveSnapshots||[]).map(x=>x.label||'Улей').join(', '),scopeLabel=scopes[row.scope]||'Охват не указан';
+  const hiveLabels=(Array.isArray(row.affectedHiveSnapshots)?row.affectedHiveSnapshots:[]).map(x=>x?.label||'Улей').join(', '),familyLabels=(Array.isArray(row.affectedFamilySnapshots)?row.affectedFamilySnapshots:[]).map(x=>{const snapshot=(Array.isArray(row.affectedHiveSnapshots)?row.affectedHiveSnapshots:[]).find(h=>h?.id===x?.hiveId);return (x?.name||'Семья')+' · '+(snapshot?.label||'Улей не указан')}).join(', '),scopeLabel=scopes[row.scope]||'Охват не указан';
   const gps=row.latitude!=null?'GPS '+row.latitude+', '+row.longitude+(row.locationAccuracyM!=null?' ±'+row.locationAccuracyM+' м':''):'GPS не фиксировался';
   const evidence=[row.media?.length?row.media.length+' фото':'',row.sampleId?'Проба '+row.sampleId:'',row.reportReference?'Обращение '+row.reportReference:'',row.sampleCollectedAt?'Отбор: '+new Date(row.sampleCollectedAt).toLocaleString('ru-RU'):''].filter(Boolean).join(' · ');
-  const context=[row.suspectedCrop?'Культура (версия): '+row.suspectedCrop:'',row.suspectedSubstance?'Вещество (версия): '+row.suspectedSubstance:'',row.reportedTo?'Передано: '+row.reportedTo:'',row.sampleTransferredTo?'Образец передан: '+row.sampleTransferredTo:''].filter(Boolean).join(' · ');
-  const photos=(row.media||[]).filter(photo=>photo&&typeof photo.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(photo.data)).map(photo=>'<img src="'+safe(photo.data)+'" alt="'+safe(photo.name||'Фото инцидента')+'" style="width:76px;height:76px;object-fit:cover;border-radius:8px">').join('');
-  return '<div style="padding:12px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(new Date(row.observedAt).toLocaleString('ru-RU'))+'</b><span class="pill">Причина не установлена</span></div><div class="muted">'+safe(scopeLabel)+(hiveLabels?' · '+safe(hiveLabels):'')+'</div>'+(row.deadBeesCount!=null?'<div>Оценка погибших пчёл: '+safe(row.deadBeesCount)+'</div>':'')+(row.symptoms?'<div>'+safe(row.symptoms)+'</div>':'')+'<div class="muted">'+safe(row.locationLabel||'Место не подписано')+' · '+safe(gps)+'</div>'+(context?'<div class="muted">'+safe(context)+'</div>':'')+(evidence?'<div class="muted">'+safe(evidence)+'</div>':'')+(photos?'<div class="row" style="gap:6px;margin-top:8px">'+photos+'</div>':'')+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>';
+  const context=[row.suspectedCrop?'Культура (версия): '+row.suspectedCrop:'',row.suspectedSubstance?'Вещество (версия): '+row.suspectedSubstance:'',row.reportedTo?'Передано: '+row.reportedTo:'',row.sampleTransferredTo?'Образец передан: '+row.sampleTransferredTo:'',row.suspectedArea?'Участок (версия): '+row.suspectedArea:'',row.weatherNotes?'Погода: '+row.weatherNotes:'',row.sampleSeal?'Пломба: '+row.sampleSeal:'',row.gpsCapturedAt?'GPS зафиксирован: '+row.gpsCapturedAt:''].filter(Boolean).join(' · ');
+  const photos=(Array.isArray(row.media)?row.media:[]).filter(photo=>photo&&typeof photo.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(photo.data)).map(photo=>'<img src="'+safe(photo.data)+'" alt="'+safe(photo.name||'Фото инцидента')+'" style="width:76px;height:76px;object-fit:cover;border-radius:8px">').join('');
+  return '<div style="padding:12px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(new Date(row.observedAt).toLocaleString('ru-RU'))+'</b><span class="pill">Причина не установлена</span></div><div class="muted">'+safe(scopeLabel)+(hiveLabels?' · '+safe(hiveLabels):'')+'</div>'+(familyLabels?'<div>Семьи на момент наблюдения: '+safe(familyLabels)+'</div>':'')+(row.deadBeesCount!=null?'<div>Оценка погибших пчёл: '+safe(row.deadBeesCount)+'</div>':'')+(row.symptoms?'<div>'+safe(row.symptoms)+'</div>':'')+'<div class="muted">'+safe(row.locationLabel||'Место не подписано')+' · '+safe(gps)+'</div>'+(context?'<div class="muted">'+safe(context)+'</div>':'')+(evidence?'<div class="muted">'+safe(evidence)+'</div>':'')+(photos?'<div class="row" style="gap:6px;margin-top:8px">'+photos+'</div>':'')+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>';
  }).join('');
 }
 async function savePesticideIncident(event){
  event?.preventDefault?.();
- const input={observedAt:$('incidentObservedAt').value,scope:$('incidentScope').value,hiveIds:[...document.querySelectorAll('input[name="incidentHiveId"]:checked')].map(x=>x.value),deadBeesCount:$('incidentDeadBees').value,symptoms:$('incidentSymptoms').value,locationLabel:$('incidentLocationLabel').value,latitude:$('incidentLatitude').value,longitude:$('incidentLongitude').value,locationAccuracyM:$('incidentGpsAccuracy').value,gpsCapturedAt:$('incidentGpsCapturedAt').value,suspectedCrop:$('incidentCrop').value,suspectedSubstance:$('incidentSubstance').value,suspectedArea:$('incidentArea').value,weatherNotes:$('incidentWeather').value,reportedTo:$('incidentReportedTo').value,reportReference:$('incidentReportReference').value,sampleId:$('incidentSampleId').value,sampleCollectedAt:$('incidentSampleCollectedAt').value,sampleSeal:$('incidentSampleSeal').value,sampleTransferredTo:$('incidentSampleTransferredTo').value,notes:$('incidentNotes').value};
- let incident;try{incident=PasekaIncident.buildPesticideIncidentDraft(input,S.hives,pendingIncidentMedia,uid,new Date().toISOString())}catch(error){alert(error.message||'Проверь сведения об инциденте');return}
+ if(incidentSaving)return;
+ if(incidentPhotoReading||incidentGpsPending){alert('Дождись завершения чтения фото или получения GPS.');return;}
+ const input={observedAt:$('incidentObservedAt').value,scope:$('incidentScope').value,hiveIds:[...document.querySelectorAll('input[name="incidentHiveId"]:checked')].map(x=>x.value),familyIds:[...document.querySelectorAll('input[name="incidentFamilyId"]:checked')].map(x=>x.value),deadBeesCount:$('incidentDeadBees').value,symptoms:$('incidentSymptoms').value,locationLabel:$('incidentLocationLabel').value,latitude:$('incidentLatitude').value,longitude:$('incidentLongitude').value,locationAccuracyM:$('incidentGpsAccuracy').value,gpsCapturedAt:$('incidentGpsCapturedAt').value,suspectedCrop:$('incidentCrop').value,suspectedSubstance:$('incidentSubstance').value,suspectedArea:$('incidentArea').value,weatherNotes:$('incidentWeather').value,reportedTo:$('incidentReportedTo').value,reportReference:$('incidentReportReference').value,sampleId:$('incidentSampleId').value,sampleCollectedAt:$('incidentSampleCollectedAt').value,sampleSeal:$('incidentSampleSeal').value,sampleTransferredTo:$('incidentSampleTransferredTo').value,notes:$('incidentNotes').value};
+ let incident;try{incident=PasekaIncident.buildPesticideIncidentDraft(input,S.hives,pendingIncidentMedia,uid,new Date().toISOString(),S.families)}catch(error){alert(error.message||'Проверь сведения об инциденте');return}
+ incidentSaving=true;const form=$('incidentForm');form.inert=true;
+ try{
  const previous=cloneApiaryState();S.pesticideIncidents=S.pesticideIncidents||[];S.pesticideIncidents.push(incident);logAudit('pesticide_incident_created',{incidentId:incident.id,scope:incident.scope,affectedHiveIds:incident.affectedHiveIds});
  if(!await save()){S=previous;render();return}
- $('incidentForm').reset();pendingIncidentMedia=[];$('incidentObservedAt').value=localIncidentDateTime();$('incidentGpsStatus').textContent='GPS не запрашивался';renderPesticideIncidentModule();
+ form.reset();pendingIncidentMedia=[];clearIncidentGps();$('incidentObservedAt').value=localIncidentDateTime();renderPesticideIncidentModule();
+ }finally{incidentSaving=false;form.inert=false;}
 }
 function renderDeadoutPhotoPreview(){
  const host=$('deadoutPhotoPreview');if(!host)return;
