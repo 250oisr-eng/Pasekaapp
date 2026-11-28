@@ -220,7 +220,7 @@ function prepareOP07Fixture(){
  if(!started.ok)throw new Error('OP-04 fixture setup failed: '+JSON.stringify(started));
  const bodyIds=['honey1','honey2'];
  for(const [index,id] of bodyIds.entries()){
-  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'honey-pair-1',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
+  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,kind:'honey',framesPerBox:10,frame:{heightMm:180}},pairId:'honey-pair-1',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
   fixture.state.equipmentLabels.bodies[id]=index===0?'ААХ':'ААЦ';
  }
  fixture.state.equipmentInventory.items['ex-left']=item('ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
@@ -250,7 +250,7 @@ function setupFour(){
  const p=prepareOP07Fixture(),s=p.fixture.state;
  p.layout.honeyStack.purpose='early';
  for(const [i,id] of ['honey3','honey4'].entries()){
-  s.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'honey-pair-2',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
+  s.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,kind:'honey',framesPerBox:10,frame:{heightMm:180}},pairId:'honey-pair-2',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
   s.equipmentLabels.bodies[id]=i===0?'ААЧ':'ААШ';
  }
  p.layout.honeyStack.bodyIds.push('honey3','honey4');
