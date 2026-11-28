@@ -241,3 +241,64 @@ test('OP13 early-honey cannot bypass stale revision, profile, or already recorde
   assert.deepEqual(s,before);
  }
 });
+
+function withHoneySupers(count=4){
+ const s=withEarlyStock();
+ for(let i=1;i<=count;i++){
+  const id='honey'+i;
+  s.equipmentInventory.bodies[id]={
+   id,kind:'honey',condition:'good',storageLocation:'Склад',
+   spec:{profileId:PROFILE,kind:'honey',framesPerBox:10,frame:{heightMm:180}},
+   frames:Array.from({length:10},(_,k)=>({
+    frameId:id+'-f'+k,combType:'drawn_comb',history:[]
+   }))
+  };
+ }
+ for(const id of ['excluder1','excluder2']){
+  s.equipmentInventory.items[id]=makeItem(id,'honeyQueenExcluder',
+   {type:'storage',label:'Склад'});
+ }
+ return s;
+}
+const honeyRequest=count=>({...earlyRequest(),
+ honeyBodyIds:Array.from({length:count},(_,i)=>'honey'+(i+1)),
+ largeExcluderIds:['excluder1','excluder2']});
+
+test('OP14 early honey two or four honey supers are previewed without installation',()=>{
+ for(const count of [2,4]){
+  const s=withHoneySupers(),before=structuredClone(s);
+  const out=OP13.previewEarlyHoneySupers(s,honeyRequest(count));
+  assert.equal(out.ok,true,JSON.stringify(out));
+  assert.equal(out.superCountIfConfirmed,count);
+  assert.deepEqual(out.proposedHoneyBodyIds,honeyRequest(count).honeyBodyIds);
+  assert.equal(out.combTypeConfirmed,'drawn_comb_only');
+  assert.equal(out.physicalHoneyBoxesInstalled,false);
+  assert.equal(out.largeExcludersInstalled,false);
+  assert.equal(out.readyForPersistence,false);assert.equal(out.completionRecorded,false);
+  assert.deepEqual(s,before);
+ }
+});
+test('OP14 honey preview rejects unsafe super counts, reused grids, bad geometry, wax ambiguity',()=>{
+ const cases=[
+  (s,r)=>{r.honeyBodyIds=['honey1']},
+  (s,r)=>{r.honeyBodyIds=['honey1','honey1']},
+  (s,r)=>{r.honeyBodyIds=['honey1','honey2','honey3']},
+  (s,r)=>{r.largeExcluderIds=['excluder1','excluder1']},
+  (s,r)=>{r.largeExcluderIds=['excluder1','missing']},
+  (s,r)=>{s.equipmentInventory.items.excluder2.condition='retired'},
+  (s,r)=>{s.equipmentInventory.bodies.honey1.spec.frame.heightMm=195},
+  (s,r)=>{delete s.equipmentInventory.bodies.honey1.spec.frame.heightMm},
+  (s,r)=>{s.equipmentInventory.bodies.honey1.spec.kind='brood'},
+  (s,r)=>{s.equipmentInventory.bodies.honey1.storageLocation=''},
+  (s,r)=>{s.equipmentInventory.bodies.honey1.frames.pop()},
+  (s,r)=>{s.equipmentInventory.bodies.honey1.frames[0].combType='wax_foundation'},
+  (s,r)=>{s.equipmentInventory.bodies.honey1.frames[0].combType='unknown'}
+ ];
+ for(const mutate of cases){
+  const s=withHoneySupers(),request=honeyRequest(2);
+  mutate(s,request);const before=structuredClone(s);
+  const out=OP13.previewEarlyHoneySupers(s,request);
+  assert.equal(out.ok,false,JSON.stringify(request));
+  assert.deepEqual(s,before);
+ }
+});
