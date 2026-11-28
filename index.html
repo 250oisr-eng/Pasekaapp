@@ -587,7 +587,7 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
   <div class="muted">Диктовка использует распознавание речи браузера или Android. Перед запуском будет предупреждение: в зависимости от устройства аудио может обрабатываться внешним сервисом. Запись звука не сохраняется — в поле попадёт распознанный текст.</div>
   <div class="row forage-submit"><button class="primary" id="plantSaveButton" type="submit">Сохранить наблюдение</button><button type="button" onclick="resetPlantObservationForm()">Очистить форму</button></div>
  </form></div>
- <div class="card"><div class="row"><h3 style="margin:0">Наблюдения</h3><span class="muted" id="plantObservationCount">0</span></div><label for="plantHistorySearch">Поиск наблюдений</label><input id="plantHistorySearch" type="search" placeholder="Растение, место, заметка" oninput="resetPlantHistoryPage()"><label for="plantHistoryPhase">Стадия цветения</label><select id="plantHistoryPhase" onchange="resetPlantHistoryPage()"><option value="all">Все стадии</option><option value="beginning">Начало</option><option value="mass">Массовое цветение</option><option value="ending">Заканчивает цвести</option><option value="finished">Отцвело</option><option value="unknown">Не уточнено</option></select><label for="plantHistoryYear">Год наблюдения</label><select id="plantHistoryYear" onchange="resetPlantHistoryPage()"><option value="">Все годы</option></select><div id="plantObservationsList" class="plant-observation-list" tabindex="-1" role="region" aria-label="История наблюдений цветения"></div><div id="plantHistoryPages" hidden><button type="button" id="plantHistoryPrev" onclick="changePlantHistoryPage(-1)">Более новые</button> <span id="plantHistoryPageStatus" aria-live="polite"></span> <button type="button" id="plantHistoryNext" onclick="changePlantHistoryPage(1)">Более ранние</button></div></div>
+ <div class="card"><div class="row"><h3 style="margin:0">Наблюдения</h3><span class="muted" id="plantObservationCount">0</span></div><label for="plantHistorySearch">Поиск наблюдений</label><input id="plantHistorySearch" type="search" placeholder="Растение, место, заметка" oninput="resetPlantHistoryPage()"><label for="plantHistoryPhase">Стадия цветения</label><select id="plantHistoryPhase" onchange="resetPlantHistoryPage()"><option value="all">Все стадии</option><option value="beginning">Начало</option><option value="mass">Массовое цветение</option><option value="ending">Заканчивает цвести</option><option value="finished">Отцвело</option><option value="unknown">Не уточнено</option></select><label for="plantHistoryYear">Год наблюдения</label><select id="plantHistoryYear" onchange="resetPlantHistoryPage()"><option value="">Все годы</option></select><button type="button" onclick="downloadFilteredPlantObservationsCsv()">Скачать CSV по фильтрам (без фото и GPS)</button><div id="plantObservationsList" class="plant-observation-list" tabindex="-1" role="region" aria-label="История наблюдений цветения"></div><div id="plantHistoryPages" hidden><button type="button" id="plantHistoryPrev" onclick="changePlantHistoryPage(-1)">Более новые</button> <span id="plantHistoryPageStatus" aria-live="polite"></span> <button type="button" id="plantHistoryNext" onclick="changePlantHistoryPage(1)">Более ранние</button></div></div>
 </section>
 <section id="varroa" class="panel">
  <div class="card"><h2 style="margin-top:0">Контроль Varroa</h2><p class="muted">Ручной учёт результатов измерений. Приложение рассчитывает показатели, но не ставит диагноз и не назначает обработку. Дополнительные электронные устройства не требуются.</p></div>
@@ -5397,6 +5397,28 @@ function filterPlantObservationHistory(rows,query,phase,year){
 }
 function resetPlantHistoryPage(){renderPlantModule.page=0;renderPlantModule()}
 function changePlantHistoryPage(direction){renderPlantModule.page=(renderPlantModule.page||0)+direction;renderPlantModule();$('plantObservationsList').focus()}
+function buildFilteredPlantObservationsCsv(rows){
+ if(!Array.isArray(rows)||!rows.length)throw new Error('По выбранным фильтрам нет наблюдений для CSV.');
+ const header=['Дата','Растение','Стадия цветения','Обилие','Посещение пчёлами','Место','Заметка','ID наблюдения'];
+ const lines=[header.map(journalCsvCell).join(';')];
+ for(const row of rows){
+  if(!row||typeof row!=='object'||Array.isArray(row)||typeof row.id!=='string'||!row.id.trim())throw new Error('В истории найдено повреждённое наблюдение. Экспорт остановлен.');
+  const fields=[row.observedAt||'',row.plantName||'',row.phase||'unknown',row.abundance||'unknown',row.beeVisits||'not_checked',row.locationLabel||'',row.note||'',row.id];
+  lines.push(fields.map(journalCsvCell).join(';'));
+ }
+ return '\uFEFF'+lines.join('\r\n')+'\r\n';
+}
+function downloadFilteredPlantObservationsCsv(){
+ try{
+  if(!Array.isArray(S.plantObservations))throw new Error('История наблюдений повреждена.');
+  const rows=filterPlantObservationHistory(S.plantObservations,$('plantHistorySearch')?.value,$('plantHistoryPhase')?.value||'all',$('plantHistoryYear')?.value||'');
+  const csv=buildFilteredPlantObservationsCsv(rows);
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
+  a.href=url;a.download='paseka-plants-'+today()+'-'+Date.now()+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(error){alert(error.message||'Не удалось экспортировать наблюдения медоносов.');}
+}
 function renderPlantModule(){
  const plantHistoryPageSize=20;
  const host=$('plantObservationsList');if(!host)return;const dateField=$('plantObservedAt');if(dateField&&!dateField.value)dateField.value=today();const all=Array.isArray(S.plantObservations)?S.plantObservations:[];
