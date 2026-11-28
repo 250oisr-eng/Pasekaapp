@@ -74,3 +74,11 @@
 **Степень доказательства:** подтверждены тексты test-описаний и отдельные assert из полученных GitHub файлов; не доказано совпадение динамического поведения. `npm test`, Chromium, Android, OnePlus не исполнялись, поскольку в данном инструментальном окружении нет доступного GitHub checkout и сети для `git clone`; CI для PR #656 не найден. Данные не изменялись. На этом read-only этапе новая регрессия не выявлена, создавать дублирующий тестовый PR не требуется.
 
 **Решение по следующему циклу:** вместо переноса старых тестов — диагностика `getQueenPresenceStatus` и OP04 old-identity guard в `js/family-lineage.js`; любые изменения только после source-contract сверки и локальных регрессий. Дополнительно — read-only сравнение `scripts/verify-exported-archive.mjs` для безопасного handling больших архивов. Никаких live операционных изменений.
+
+## Независимая сверка family-lineage (код, без записи данных)
+
+Прочитан текущий `main/js/family-lineage.js` и старая ветка `feat/queen-absence-confirmation-event-2026-11-17`, дополнительно `feat/family-lineage-model-clean-2026-11-17`:
+- `getQueenPresenceStatus` **есть** в текущем main и экспортирован через `window.PasekaFamilyLineage`. Это не пропущенная функция (старая ветка тоже её содержит).
+- В main также есть `confirmQueenAbsence` и `recordQueenLayingObserved`; последнего нет в старом snapshot. Подтверждение отсутствия требует `userConfirmed===true`, реального OP-04 split event, валидного времени, совместимого семейного ID. `getQueenPresenceStatus` проверяет согласованность ID матки и события отсутствия, возвращает `historical`, `confirmed_absent`, `confirmed_present`, `inconsistent` или `unresolved` (либо null для отсутствующей семьи).
+- Старая `feat/family-lineage-model-clean` не содержит новую `confirmQueenAbsence` и новый контроль `recordQueenLayingObserved`; полная замена main файлом из неё недопустима. Отсутствие старой символьной ошибки `OP04_SOURCE_QUEEN_NOT_IDENTIFIED` в main **не** означает отсутствие проверки, так как текущий `applySplit` отдельно проверяет ссылки и состояние имеющейся матки, а идентичность детей оставляет unresolved. Семантическую эквивалентность всех веток нельзя объявить без исполнения регрессий.
+- **Решение:** перенос API из трёх старых family-lineage вариантов не обоснован; code implementation не предпринимать без воспроизведённого отсутствующего поведения.
