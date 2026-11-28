@@ -1,14 +1,18 @@
 # PROJECT_STATUS — Пасека 2.0
 
+**28.11.2026 · [#647 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/647)** `31fdfe86`: повседневный учёт, офлайн-экспорт, изолированный OP02, runtime assets и npm lock; exact HEAD `8a221bc7`, Node 1153/1153, Fast/Android/Chromium/3 QA/Gov 7/7 PASS. Дерево merge совпало с проверенным HEAD. 100/100 pinned deps reachable. [Аудит](docs/PR-BRANCH-DEPENDENCY-AUDIT-2026-11-28.md). Без удаления веток, релиза или активации B07.
+
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
-**UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 исправления 1096/1096, Android/Chromium PASS; #650 separate QA built. **[#649 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/649):** `dcf8a7c5`, exact-head 1101/1101 + Android/Chromium/Governance/Workers PASS; real Chromium synthetic UI 4→0→2, regroup, atomic main+previous backup, reload. Profile gate closed, B07 BLOCKED for remaining technology/physical acceptance. Main CI pending. No release.
+**UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 исправления 1096/1096, Android/Chromium PASS; #650 separate QA built. **#649 IN_MAIN** (`dcf8a7c5`): OP07/08 секционный медосбор, атомарное сохранение и проверки. На точном main Fast/Android/Chromium/Governance SUCCESS. B07 profile gate остаётся BLOCKED; данные пользователя не затронуты. No release.
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
 ## План работ и журнал
+
+**#647 IN_MAIN:** интеграция с #649 проверена; аудит 671 ветка / 404 PR / 351 stacked; без массовых операций. Следующие #648/#651 требуют согласования с новым main.
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 
@@ -21,10 +25,10 @@
 - **#609–#610 MERGED:** одно касание «Очистить» в глобальном поиске, Escape/фокус, aria-live статус числа результатов; 12 результатов и прежние ссылки не изменены. PR `b243e510`: Node **1021/1021**, Android/Chromium 11 viewport и search 320/390/768/Governance PASS.
 - **#608/#611 MERGED:** постинтеграционный статус, история и метрики. Физические OnePlus/TalkBack не проверялись. Публикация не запускалась.
 
-## Последняя интеграция и текущий QA-цикл
+## Текущие проверенные QA-сценарии
 
-- **#612 MERGED:** история выбранной семьи открывается непосредственно из быстрого поиска (выборочный перенос старого #600); устаревшие/перенесённые/неоднозначные ID блокируются. Squash main `14b398c97354800062b170e835a97bf7c76b7eb5`. PR code+docs head `4ab891f3c7cfbf26dc4feffc1499f23686c8b560`: Node **1023/1023**, Android build SUCCESS (#45967365737), Chromium E2E mobile/desktop SUCCESS (#45967366165), Governance SUCCESS (#45967365751). Реальные данные не изменены.
-- **#613 MERGED / BINARY_PROOF:** отдельный тестовый APK `ru.paseka.journal.qa` с собственным sandbox, без изменения рабочего `ru.paseka.journal`. Main `ab1be71add0e16b20eb47c7a1eaf585411039a46`. CI PR exact source SHA `acd35f567d87c640f2eb620312679cb981d2305f`: **1027/1027 Node**, Android debug build + [isolated QA #45967904156](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45967904156) SUCCESS, Governance SUCCESS. Проверены aapt package ID, apksigner fingerprint и APK SHA256 `e0651987d176e6a45f6a03b2ae2c39f613a9725463942d5583f63b49158eeca6`. QA artifact ID `15183717921`, expires 04.12.2026. **DEVICE_CYCLE_1_USER_REPORTED_PASS (8/8):** пользователь сообщил об успешной установке отдельного QA, пустой стартовой пасеке, навигации 4–3–4 без наложений, доступе к разделам/ИИ, Back/сворачивании и повороте; рабочее приложение и данные не изменились по наблюдению пользователя. **Не независимая техническая аттестация.** **DEVICE_CYCLE_2_USER_REPORTED_PASS (8/8):** тестовый улей/семья/наблюдение, поиск истории, возврат, reopen, авиарежим и отсутствие дубликатов сообщены PASS. Не доказывает force-stop/power-loss/restore. TalkBack и яркий свет NOT_TESTED. [Аппаратный протокол](docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md). Код/production-данные не изменены.
+- **#612 IN_MAIN:** переход из быстрого поиска в историю семьи с проверкой неоднозначных ID; Node 1023/1023, Android/Chromium/Governance SUCCESS на историческом SHA. Подробные SHA и ссылки в журнале.
+- **#613 IN_MAIN / BINARY_PROOF:** отдельный `ru.paseka.journal.qa` sandbox; CI PASS на точном историческом SHA. Владелец сообщил два физических цикла 8/8 и 8/8, но независимая техническая аттестация, TalkBack, power-loss и реальное восстановление не проверены. [Аппаратный протокол](docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md).
 
 ## Исторический внешний QA
 

@@ -689,7 +689,7 @@ body[data-page="hiveDetail"] #selectedHivePanel{max-width:980px;margin-inline:au
  <div class="section-shortcuts" role="group" aria-label="Подразделы: Пасека"><button type="button" data-subtab="entrance" onclick="showTab('entrance')">Лёток</button></div>
  <div class="workspace-filter-row"><input id="hiveSearch" type="search" placeholder="Поиск: улей, семья, рамка…" aria-label="Поиск по ульям, семьям и рамкам" oninput="renderHiveDirectory()"><select id="hiveModeFilter" aria-label="Фильтр по сборке" onchange="renderHiveDirectory()"><option value="all">Все сборки</option><option value="summer">Летняя</option><option value="winter">Зимняя</option></select></div>
  <div id="hiveList"></div>
- <div class="card" style="margin-top:14px"><div class="row"><div><b>Реестр маток</b><div class="muted">Текущие и выбывшие матки, история ввода и замены</div></div></div><div id="queenRegistryList"></div></div>
+ <div class="card" style="margin-top:14px"><div class="row"><div><b>Реестр маток</b><div class="muted">Текущие и выбывшие матки, история ввода и замены</div></div></div><label for="queenRegistrySearch">Поиск матки</label><input id="queenRegistrySearch" type="search" placeholder="Номер, семья, происхождение" oninput="renderQueenRegistry()"><label for="queenRegistryStatus">Статус матки</label><select id="queenRegistryStatus" onchange="renderQueenRegistry()"><option value="all">Все матки</option><option value="current">Текущие</option><option value="historical">Выбывшие</option><option value="unknown">Статус не определён</option></select><p id="queenRegistryResultCount" class="muted" aria-live="polite"></p><div id="queenRegistryList"></div></div>
 </section>
 <section id="entrance" class="panel">
  <div class="card">
@@ -727,9 +727,10 @@ body[data-page="hiveDetail"] #selectedHivePanel{max-width:980px;margin-inline:au
 <section id="journal" class="panel">
  <div class="row"><div><h2>Журнал</h2><div class="muted">Хронология наблюдений и работ</div></div><button class="primary" onclick="newRecord()">＋ Запись</button></div>
  <label for="journalHive">Улей</label><select id="journalHive" onchange="selectJournalHive(this.value)"></select>
- <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются. Повторные записи одной плановой задачи отмечаются отдельно и не входят в суммы.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"><button type="button" onclick="clearJournalFilters()">Сбросить</button><button type="button" onclick="downloadFilteredJournalCsv()">Скачать CSV</button></div>
- <div class="muted" id="journalCsvScope">CSV содержит только текст выбранных записей, без фото, видео, вложений и архивных событий. Не является резервной копией.</div>
- <div id="journalResultCount" class="muted journal-result-count"></div><div id="records" class="journal-timeline"></div>
+ <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются. Повторные записи одной плановой задачи отмечаются отдельно и не входят в суммы.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><div><label for="journalDateFilter">Дата / начало периода</label><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"></div><div><label for="journalEndDateFilter">Конец периода</label><input id="journalEndDateFilter" type="date" aria-label="Конец периода" onchange="renderJournalRecords()"></div><button type="button" onclick="clearJournalFilters()">Сбросить</button><button type="button" onclick="downloadFilteredJournalCsv()">Скачать CSV</button></div>
+ <div class="muted" id="journalCsvScope">Без конечной даты выбирается один день. CSV содержит только текст выбранных записей, без фото, видео, вложений и архивных событий. Не является резервной копией.</div>
+ <details class="card" id="journalPeriodReport"><summary>Сводка по всем ульям за выбранные даты</summary><p class="muted">Количество сохранённых записей по типам событий. Учитываются даты. При переходе к улью период сохраняется, остальные фильтры сбрасываются.</p><div id="journalPeriodReportContent" aria-live="polite"></div></details>
+ <div id="journalResultCount" class="muted journal-result-count" tabindex="-1"></div><div id="records" class="journal-timeline"></div>
 </section>
 <section id="settings" class="panel">
  <div class="section-shortcuts" role="group" aria-label="Подразделы: Ещё"><button type="button" data-subtab="incidents" onclick="showTab('incidents')">Инцидент</button><button type="button" data-subtab="deadout" onclick="showTab('deadout')">Потери</button><button type="button" data-subtab="varroa" onclick="showTab('varroa')">Клещ</button></div>
@@ -1340,10 +1341,39 @@ function openFrameMapDetail(data){
 function recordFamilyHtml(r){if(!r.family)return '';const family=S.families.find(f=>f.id===r.family),snapshot=r.familySnapshotAtTime,name=r.familyNameAtTime||family?.name||snapshot?.name||'Семья удалена';const moved=family&&family.hive!==r.hive,archived=!family&&!!snapshot;return '<p class="muted">Семья: '+safe(name)+(moved?' · на момент записи находилась в этом улье':archived?' · историческая связь, семья из удалённого улья':'')+'</p>'}
 function recordExtraHtml(r){const pairs=[];if(r.type==='Осмотр'){const m={seen:'Матка обнаружена',notSeen:'Матка не обнаружена',eggs:'Матка не найдена, но есть яйца',yes:'Свежие яйца есть',no:'Свежих яиц нет',solid:'Расплод ровный',mosaic:'Расплод пёстрый',weak:'Мало расплода',none:'Расплода нет',swarm:'Роевые маточники',supersedure:'Маточники тихой смены',emergency:'Свищевые маточники',unknown:'Маточники не определены',one:'Один роевой признак',several:'Несколько роевых признаков'};[['queen','Матка'],['eggs','Яйца'],['broodPattern','Расплод'],['queenCells','Маточники'],['swarmSigns','Роевые признаки']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+(m[r[k]]||r[k]))})}if(r.type==='Обработка'){[['treatmentProduct','Препарат'],['treatmentActive','Действующее вещество'],['treatmentMethod','Способ'],['treatmentDose','Доза по инструкции'],['treatmentCheck','Контроль'],['treatmentWaiting','Срок ожидания по этикетке'],['treatmentBatch','Партия / серия']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+r[k])})}if(r.type==='Подкормка'){[['feedingType','Вид корма'],['feedingSubstance','Состав'],['feedingAmount','Количество'],['feedingConcentration','Концентрация / пропорция'],['feedingMethod','Способ подачи']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+r[k])})}return pairs.length?'<p class="muted">'+pairs.map(safe).join(' · ')+'</p>':''}
 
+function queenRegistryFamily(state,queenId,familyId,hiveId){
+ if(!state||!Array.isArray(state.queens)||!Array.isArray(state.families)||!Array.isArray(state.hives))return null;
+ const queens=state.queens.filter(q=>q?.id===queenId);
+ const families=state.families.filter(f=>f?.id===familyId);
+ const hives=state.hives.filter(h=>h?.id===hiveId);
+ if(!queenId||!familyId||!hiveId||queens.length!==1||families.length!==1||hives.length!==1||queens[0].familyId!==familyId||families[0].hive!==hiveId)return null;
+ return families[0];
+}
+function openQueenRegistryFamily(button,edit=false){
+ const {queenId,familyId,hiveId}=button.dataset;
+ const family=queenRegistryFamily(S,queenId,familyId,hiveId);
+ if(!family){renderQueenRegistry();alert('Связанная семья больше недоступна. Обновлены записи реестра.');return;}
+ if(edit){
+  const queen=S.queens.find(q=>q.id===queenId);
+  if(queen.status!=='current'||family.currentQueenId!==queenId){renderQueenRegistry();alert('Матка уже не является текущей. Проверь реестр.');return;}
+  openQueenForm(family.id);
+ }else openFamilyHistory(family.id,hiveId);
+}
 function renderQueenRegistry(){
  const host=$('queenRegistryList');if(!host)return;
- const rows=(S.queens||[]).slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
- if(!rows.length){host.innerHTML='<div class="muted">Матки ещё не зарегистрированы. Открой карточку семьи и нажми «Матка».</div>';return}
+ if((S.queens!=null&&!Array.isArray(S.queens))||!Array.isArray(S.families)||!Array.isArray(S.hives)||(S.queenEvents!=null&&!Array.isArray(S.queenEvents))){
+  host.textContent='Реестр маток повреждён. Проверь целостность данных; записи не изменены.';
+  const count=$('queenRegistryResultCount');if(count)count.textContent='Проверка данных требуется';
+  return;
+ }
+ const all=Array.isArray(S.queens)?S.queens:[],query=String($('queenRegistrySearch')?.value||'').trim().toLocaleLowerCase('ru-RU'),scope=$('queenRegistryStatus')?.value||'all';
+ const rows=all.filter(q=>{
+  const f=S.families.find(x=>x.id===q.familyId);
+  const status=q.status==='current'?'current':['replaced','dead','removed'].includes(q.status)?'historical':'unknown';
+  return (scope==='all'||scope===status)&&(!query||[q.code,q.source,q.year,q.notes,f?.name,f?.hive? hname(f.hive):''].filter(Boolean).join(' ').toLocaleLowerCase('ru-RU').includes(query));
+ }).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+ const count=$('queenRegistryResultCount');if(count)count.textContent='Показано: '+rows.length+' из '+all.length;
+ if(!rows.length){host.innerHTML='<div class="muted">'+(all.length?'По выбранным условиям маток нет.':'Матки ещё не зарегистрированы. Открой карточку семьи и нажми «Матка».')+'</div>';return}
  const eventLabels={introduced:'Введена в семью',replaced:'Зарегистрирована замена',legacy_imported:'Перенесена из старой записи',note:'Сведения обновлены',dead:'Погибла',removed:'Выведена из семьи'};
  host.innerHTML=rows.map(q=>{
   const f=S.families.find(x=>x.id===q.familyId),status=q.status==='current'?'Текущая':q.status==='replaced'?'Заменена':q.status==='dead'?'Погибла':q.status==='removed'?'Выведена из семьи':'Статус не определён';
@@ -1355,7 +1385,9 @@ function renderQueenRegistry(){
    const date=e.date||'дата не указана',label=eventLabels[e.type]||'Событие';
    return '<div class="queen-event"><b>'+safe(label)+'</b><span class="muted"> · '+safe(date)+'</span>'+(previous?'<div class="muted">Предыдущая матка: '+safe(previous.code||'Без номера')+'</div>':'')+(e.notes?'<div class="muted">'+safe(e.notes)+'</div>':'')+'</div>';
   }).join('')+'</div>':'<div class="muted">События по этой матке ещё не записаны.</div>';
-  return '<div class="queen-registry-item"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 0"><div><b>'+safe(q.code||'Без номера')+'</b><div class="muted">'+safe(f?.name||'Семья не найдена')+' · '+safe(f?hname(f.hive):'')+' · '+status+(q.year?' · вывод '+q.year:'')+'</div><div class="muted">'+safe(q.source||'Происхождение не указано')+'</div></div>'+(f&&f.currentQueenId===q.id?'<button type="button" onclick="openQueenForm(\''+f.id+'\')">Изменить / заменить</button>':'<span class="pill">История</span>')+'</div><div class="queen-event-heading">История матки</div>'+history+'</div>';
+  const linked=f&&queenRegistryFamily(S,q.id,f.id,f.hive);
+  const familyLink=linked?'<button type="button" data-queen-id="'+safe(q.id)+'" data-family-id="'+safe(f.id)+'" data-hive-id="'+safe(f.hive)+'" onclick="openQueenRegistryFamily(this)">Карточка семьи</button>':'';
+  return '<div class="queen-registry-item"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 0"><div><b>'+safe(q.code||'Без номера')+'</b><div class="muted">'+safe(f?.name||'Семья не найдена')+' · '+safe(f?hname(f.hive):'')+' · '+status+(q.year?' · вывод '+safe(q.year):'')+'</div><div class="muted">'+safe(q.source||'Происхождение не указано')+'</div></div>'+familyLink+(linked&&f.currentQueenId===q.id&&q.status==='current'?'<button type="button" data-queen-id="'+safe(q.id)+'" data-family-id="'+safe(f.id)+'" data-hive-id="'+safe(f.hive)+'" onclick="openQueenRegistryFamily(this,true)">Изменить / заменить</button>':'<span class="pill">История</span>')+'</div><div class="queen-event-heading">История матки</div>'+history+'</div>';
  }).join('');
 }
 function openQueenForm(familyId){
@@ -1485,6 +1517,51 @@ function renderFeedingLedger(){
 
 // Read-only journal list shared by the visible timeline and CSV export.
 // A CSV export does not contain attached Blob/File media or archived records.
+function journalRecordMatchesPeriod(record,date,endDate){
+ if(endDate)return /^\d{4}-\d{2}-\d{2}$/.test(record.date||'')&&record.date<=endDate&&(!date||record.date>=date);
+ return !date||record.date===date;
+}
+function journalPeriodSummary(state,date,endDate){
+ const byHive=new Map();
+ for(const hive of state.hives)if(hive?.id&&!byHive.has(hive.id))byHive.set(hive.id,{hiveId:hive.id,total:0,types:new Map()});
+ for(const record of state.records){
+  if(!record||record.archivedAt||!journalRecordMatchesPeriod(record,date,endDate))continue;
+  const id=record.hive||'';
+  if(!byHive.has(id))byHive.set(id,{hiveId:id,total:0,types:new Map()});
+  const group=byHive.get(id),type=record.type||'Тип не указан';
+  group.total++;
+  group.types.set(type,(group.types.get(type)||0)+1);
+ }
+ return [...byHive.values()];
+}
+function renderJournalPeriodSummary(){
+ const host=$('journalPeriodReportContent');if(!host)return;
+ const date=$('journalDateFilter')?.value||'',endDate=$('journalEndDateFilter')?.value||'';
+ if(date&&endDate&&date>endDate){host.textContent='Конец периода раньше начала. Исправь даты.';return;}
+ const rows=journalPeriodSummary(S,date,endDate),total=rows.reduce((sum,row)=>sum+row.total,0);
+ host.innerHTML='<p><b>Всего записей: '+total+'</b></p>'+rows.map(row=>{
+  const matches=S.hives.filter(h=>h.id===row.hiveId);
+  const known=matches.length>0;
+  const name=known?hname(row.hiveId):row.hiveId?'Исторический улей · '+row.hiveId:'Улей не указан';
+  const types=[...row.types].sort(([a],[b])=>String(a).localeCompare(String(b),'ru')).map(([type,count])=>safe(type)+' — '+count).join(' · ');
+  const link=matches.length===1&&row.hiveId?'<button type="button" data-hive-id="'+safe(row.hiveId)+'" aria-label="'+safe('Открыть журнал: '+name)+'" onclick="openJournalFromPeriodSummary(this.dataset.hiveId)">Открыть журнал</button>':'';
+  return '<div class="task-item"><b>'+safe(name)+' · '+row.total+'</b><p class="muted">'+(types||'Записей нет')+'</p>'+link+'</div>';
+ }).join('');
+}
+function openJournalFromPeriodSummary(hiveId){
+ if(!hiveId||S.hives.filter(h=>h.id===hiveId).length!==1){
+  alert('Улей больше недоступен. Обнови сводку.');
+  return;
+ }
+ const search=$('journalSearch'),type=$('journalTypeFilter'),family=$('journalFamilyFilter');
+ if(search)search.value='';
+ if(type)type.value='all';
+ if(family)family.value='all';
+ selectJournalHive(hiveId);
+ const result=$('journalResultCount');
+ result?.focus({preventScroll:true});
+ result?.scrollIntoView({block:'start'});
+}
 function filteredJournalRows(familyById=null){
  if(!activeJournalHive)return [];
  if(!familyById){
@@ -1492,9 +1569,10 @@ function filteredJournalRows(familyById=null){
   for(const family of S.families){if(!familyById.has(family.id))familyById.set(family.id,family);}
  }
  const type=$('journalTypeFilter')?.value||'all',familyId=$('journalFamilyFilter')?.value||'all';
- const date=String($('journalDateFilter')?.value||''),search=String($('journalSearch')?.value||'').trim().toLocaleLowerCase('ru-RU');
+ const date=String($('journalDateFilter')?.value||''),endDate=String($('journalEndDateFilter')?.value||''),search=String($('journalSearch')?.value||'').trim().toLocaleLowerCase('ru-RU');
  return S.records.filter(r=>r&&!r.archivedAt&&r.hive===activeJournalHive).filter(r=>{
-  if((type!=='all'&&r.type!==type)||(familyId!=='all'&&r.family!==familyId)||(date&&r.date!==date))return false;
+  if((type!=='all'&&r.type!==type)||(familyId!=='all'&&r.family!==familyId))return false;
+  if(!journalRecordMatchesPeriod(r,date,endDate))return false;
   if(!search)return true;
   const family=familyById.get(r.family),mediaNames=(r.media||[]).map(m=>m.name||'').join(' ');
   const haystack=[r.date,r.type,r.text,r.frameId,family?.name,r.familyNameAtTime,r.familySnapshotAtTime?.name,mediaNames].join(' ').toLocaleLowerCase('ru-RU');
@@ -1503,7 +1581,7 @@ function filteredJournalRows(familyById=null){
 }
 function journalCsvCell(value){
  let text=String(value??'');
- if(/^[\x00-\x20\s\u200B-\u200F\u2060]*[=+\-@]/u.test(text))text="'"+text;
+ if(/^[\x00-\x20\s\u200B-\u200F\u2060\uFEFF\u202A-\u202E\u2066-\u2069]*[=+\-@]/u.test(text))text="'"+text;
  return '"'+text.replace(/"/g,'""')+'"';
 }
 function buildFilteredJournalCsv(rows,hiveId){
@@ -1526,6 +1604,8 @@ function journalCsvFilename(hiveId,date,tick){
 }
 function downloadFilteredJournalCsv(){
  if(!activeJournalHive){alert('Сначала выбери улей для экспорта журнала.');return;}
+ const date=$('journalDateFilter')?.value||'',endDate=$('journalEndDateFilter')?.value||'';
+ if(date&&endDate&&date>endDate){alert('Конец периода раньше начала. Исправь даты перед экспортом CSV.');return;}
  const rows=filteredJournalRows();
  if(!rows.length){alert('По выбранным фильтрам нет записей для CSV.');return;}
  try{
@@ -1559,12 +1639,15 @@ function renderJournalRecords(){
  }
  const rows=activeJournalHive?available:[];
  const filtered=filteredJournalRows(familyById);
- const count=$('journalResultCount');if(count)count.textContent=activeJournalHive?(filtered.length+' из '+rows.length+' записей'):'Выбери улей, чтобы открыть его журнал';
+ renderJournalPeriodSummary();
+ const dateStart=$('journalDateFilter')?.value,dateEnd=$('journalEndDateFilter')?.value;
+ const invalidPeriod=Boolean(dateStart&&dateEnd&&dateStart>dateEnd);
+ const count=$('journalResultCount');if(count)count.textContent=activeJournalHive&&invalidPeriod?'Конец периода раньше начала. Исправь даты.':activeJournalHive?(filtered.length+' из '+rows.length+' записей'):'Выбери улей, чтобы открыть его журнал';
  host.classList.toggle('has-entries',filtered.length>0);
  host.innerHTML=activeJournalHive?(filtered.map(r=>'<article class="card journal-entry" data-record-id="'+safe(r.id)+'"><div class="journal-entry-head"><span class="journal-entry-type">'+safe(r.type)+'</span><time datetime="'+safe(r.date)+'">'+safe(r.date)+'</time></div>'+(r.text?'<p class="journal-entry-text">'+safe(r.text)+'</p>':'')+recordFamilyHtml(r)+recordExtraHtml(r)+(r.media?.length?'<div class="journal-entry-media">'+mediaHtml(r.media)+'</div>':'')+'<div class="row journal-entry-actions"><button type="button" data-record-id="'+safe(r.id)+'" onclick="editRecord(this.dataset.recordId)">Изменить</button><button type="button" data-record-id="'+safe(r.id)+'" onclick="deleteRecord(this.dataset.recordId)">В архив</button></div></article>').join('')||(rows.length?'<div class="empty">По выбранным фильтрам записей нет.</div>':'<div class="empty">Для этого улья записей пока нет.</div>')):'<div class="empty">Сначала выбери улей, чтобы открыть его журнал.</div>';
 }
 function clearJournalFilters(){
- ['journalSearch','journalDateFilter'].forEach(id=>{const el=$(id);if(el)el.value=''});
+ ['journalSearch','journalDateFilter','journalEndDateFilter'].forEach(id=>{const el=$(id);if(el)el.value=''});
  const type=$('journalTypeFilter'),family=$('journalFamilyFilter');if(type)type.value='all';if(family)family.value='all';renderJournalRecords();
 }
 function clearGlobalSearch(){
@@ -1676,6 +1759,67 @@ function filterEquipmentInventory(){
  });
  const result=$('inventoryFilterResult');if(result)result.textContent='Показано: '+visible+' из '+total;
 }
+
+function inventoryCsvCell(value){
+ let text=String(value??'');
+ // CSV is for external spreadsheets: never let a leading formula survive invisible
+ // Unicode direction/spacing controls, BOM or ordinary whitespace.
+ let i=0;
+ while(i<text.length){
+  const cp=text.codePointAt(i);
+  const invisible=cp<=32||cp===0x00a0||cp===0x1680||cp===0x2028||cp===0x2029||
+   cp===0x202f||cp===0x205f||cp===0x2060||cp===0x3000||cp===0xfeff||
+   (cp>=0x2000&&cp<=0x200f)||(cp>=0x202a&&cp<=0x202e)||(cp>=0x2066&&cp<=0x2069);
+  if(!invisible)break;
+  i+=cp>0xffff?2:1;
+ }
+ if(i<text.length&&'=+-@'.includes(text[i]))text="'"+text;
+ return '"'+text.replace(/"/g,'""')+'"';
+}
+function buildInventoryCsv(rows){
+ if(!Array.isArray(rows)||!rows.length)throw new Error('Нет корпусов для экспорта.');
+ const header=['Код корпуса','Тип','Состояние','Местонахождение','Рамок','Комплект','ID корпуса','Примечание'];
+ const lines=[header.map(inventoryCsvCell).join(';')],seen=new Set();
+ for(const r of rows){
+  if(!r||typeof r!=='object'||typeof r.id!=='string'||!r.id.trim()||seen.has(r.id)||
+     typeof r.labelCode!=='string'||!r.labelCode.trim()||!['brood','honey'].includes(r.kind)||
+     !['good','needs_repair','repair','retired'].includes(r.condition)||
+     typeof r.location!=='string'||!r.location.trim()||
+     !(r.frameCount===null||(Number.isSafeInteger(r.frameCount)&&r.frameCount>=0))||
+     (r.pairId!=null&&typeof r.pairId!=='string')||
+     (r.notes!=null&&typeof r.notes!=='string'))throw new Error('Повреждённая или повторная запись корпуса: CSV не создан.');
+  seen.add(r.id);
+  const fields=[r.labelCode,inventoryKindLabel(r.kind),inventoryConditionLabel(r.condition),
+   r.location,r.frameCount===null?'не учитываются':r.frameCount,r.pairId||'',r.id,r.notes||''];
+  lines.push(fields.map(inventoryCsvCell).join(';'));
+ }
+ return '\uFEFF'+lines.join('\r\n')+'\r\n';
+}
+function exportFilteredInventoryCsv(){
+ try{
+  const host=$('equipmentInventoryContent');if(!host)throw new Error('Инвентарь не открыт.');
+  filterEquipmentInventory();
+  const ids=[...host.querySelectorAll('[data-inventory-body]')].filter(card=>!card.hidden).map(card=>card.dataset.inventoryId);
+  if(!ids.length)throw new Error('По выбранным фильтрам нет корпусов для CSV.');
+  const rows=ids.map(id=>{
+   const body=S.equipmentInventory?.bodies?.[id];
+   if(!body||body.id!==id)throw new Error('Корпус больше не найден в инвентаре.');
+   const loc=PasekaInventory.locateBody(S,id,profileForHive);
+   if(!loc||loc.type==='error')throw new Error('Местоположение корпуса неоднозначно: CSV не создан.');
+   return {id,labelCode:PasekaLabels.formatLabelCode('body',body.labelCode),
+    kind:body.kind,condition:body.condition,location:inventoryLocationLabel(body),
+    frameCount:inventoryBodyFrameCount(body,loc),pairId:body.pairId,notes:body.notes};
+  });
+  const csv=buildInventoryCsv(rows);
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  try{
+   const a=document.createElement('a');a.href=url;
+   a.download='paseka-inventory-'+today()+'-'+Date.now()+'.csv';
+   document.body.appendChild(a);a.click();a.remove();
+  }finally{setTimeout(()=>URL.revokeObjectURL(url),60000)}
+ }catch(error){alert(error.message||'Не удалось создать CSV инвентаря.')}
+}
+
 function clearEquipmentInventoryFilters(){
  equipmentInventoryFilterText='';equipmentInventoryFilterKind='all';equipmentInventoryFilterCondition='all';equipmentInventoryFilterLocation='all';
  for(const [id,value] of [['inventorySearch',''],['inventoryFilterKind','all'],['inventoryFilterCondition','all'],['inventoryFilterLocation','all']]){const el=$(id);if(el)el.value=value}
@@ -1718,10 +1862,10 @@ function renderEquipmentInventory(){
    const opts=S.hives.filter(h=>!isSectionalHive(h.id)).flatMap(h=>profileHoneyKeys(h.id).filter(()=>profileForHive(h.id)?.honey?.installation!=='paired').map(key=>'<option value="'+safe(h.id)+'|'+safe(key)+'">'+safe(hname(h.id))+' · '+safe(frameLocationName(key,h.id))+'</option>')).join('');
    action=opts?'<label>Установить в медовый корпус</label><select id="inv-target-'+safe(body.id)+'"><option value="">Выбери позицию</option>'+opts+'</select><button type="button" data-body-id="'+safe(body.id)+'" onclick="installInventoryStock(this.dataset.bodyId)">Установить корпус</button>':'<p class="muted">Для этого типоразмера требуется парная установка.</p>';
   }
-  const searchText=[body.id,body.labelCode,body.storageLocation,body.notes,body.pairId,inventoryKindLabel(body.kind),inventoryLocationLabel(body),...frameCodes].filter(Boolean).join(' '),locationType=loc?.type||'error';return '<article class="card" data-inventory-body="1" id="inventory-body-'+safe(body.id)+'" tabindex="-1" data-search="'+safe(searchText)+'" data-kind="'+safe(body.kind)+'" data-condition="'+safe(body.condition)+'" data-location="'+safe(locationType)+'"><div class="row"><b>'+safe(PasekaLabels.formatLabelCode('body',body.labelCode)||'Код отсутствует')+'</b><span class="pill">'+inventoryKindLabel(body.kind)+'</span></div><p class="muted">'+safe(inventoryLocationLabel(body))+(body.pairId?' · комплект '+safe(body.pairId.slice(-8)):'')+' · рамок: '+frameCountLabel+'</p><label>Техническое состояние</label><select id="inv-condition-'+safe(body.id)+'" '+(sectionalLocked&&body.condition==='good'?'disabled title="Для установленного секционного корпуса состояние должно оставаться исправным"':'')+'><option value="good" '+(body.condition==='good'?'selected':'')+'>Исправен</option><option value="needs_repair" '+(body.condition==='needs_repair'?'selected':'')+'>Требует осмотра/ремонта</option><option value="repair" '+(body.condition==='repair'?'selected':'')+'>В ремонте</option><option value="retired" '+(body.condition==='retired'?'selected':'')+'>Списан</option></select><label>Место хранения (для складского корпуса)</label><input id="inv-place-'+safe(body.id)+'" maxlength="120" '+(sectionalLocked?'disabled title="Местоположение определяется физической секционной раскладкой"':'')+' value="'+safe(body.storageLocation||'')+'" placeholder="Например, сарай · стеллаж 2"><label>Примечание</label><input id="inv-notes-'+safe(body.id)+'" maxlength="500" value="'+safe(body.notes||'')+'" placeholder="Состояние окраски, ремонт, размеры…"><button type="button" onclick="saveInventoryBodyDetails(\''+safe(body.id)+'\')">Сохранить сведения</button>'+action+'<details><summary>История корпуса ('+(body.events||[]).length+')</summary>'+(historyRows||'<p class="muted">История пока пуста.</p>')+'</details></article>';
+  const searchText=[body.id,body.labelCode,body.storageLocation,body.notes,body.pairId,inventoryKindLabel(body.kind),inventoryLocationLabel(body),...frameCodes].filter(Boolean).join(' '),locationType=loc?.type||'error';return '<article class="card" data-inventory-body="1" data-inventory-id="'+safe(body.id)+'" id="inventory-body-'+safe(body.id)+'" tabindex="-1" data-search="'+safe(searchText)+'" data-kind="'+safe(body.kind)+'" data-condition="'+safe(body.condition)+'" data-location="'+safe(locationType)+'"><div class="row"><b>'+safe(PasekaLabels.formatLabelCode('body',body.labelCode)||'Код отсутствует')+'</b><span class="pill">'+inventoryKindLabel(body.kind)+'</span></div><p class="muted">'+safe(inventoryLocationLabel(body))+(body.pairId?' · комплект '+safe(body.pairId.slice(-8)):'')+' · рамок: '+frameCountLabel+'</p><label>Техническое состояние</label><select id="inv-condition-'+safe(body.id)+'" '+(sectionalLocked&&body.condition==='good'?'disabled title="Для установленного секционного корпуса состояние должно оставаться исправным"':'')+'><option value="good" '+(body.condition==='good'?'selected':'')+'>Исправен</option><option value="needs_repair" '+(body.condition==='needs_repair'?'selected':'')+'>Требует осмотра/ремонта</option><option value="repair" '+(body.condition==='repair'?'selected':'')+'>В ремонте</option><option value="retired" '+(body.condition==='retired'?'selected':'')+'>Списан</option></select><label>Место хранения (для складского корпуса)</label><input id="inv-place-'+safe(body.id)+'" maxlength="120" '+(sectionalLocked?'disabled title="Местоположение определяется физической секционной раскладкой"':'')+' value="'+safe(body.storageLocation||'')+'" placeholder="Например, сарай · стеллаж 2"><label>Примечание</label><input id="inv-notes-'+safe(body.id)+'" maxlength="500" value="'+safe(body.notes||'')+'" placeholder="Состояние окраски, ремонт, размеры…"><button type="button" onclick="saveInventoryBodyDetails(\''+safe(body.id)+'\')">Сохранить сведения</button>'+action+'<details><summary>История корпуса ('+(body.events||[]).length+')</summary>'+(historyRows||'<p class="muted">История пока пуста.</p>')+'</details></article>';
  }).join('');
  const templateOptions=S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+' · '+safe(getHiveProfile(h)?.name||'профиль')+'</option>').join('');
- host.innerHTML='<div class="card"><b>Добавить корпус на склад</b><p class="muted">Выбери улей-образец: приложение запишет типоразмер. Это не создаёт запись о реальном корпусе до подтверждения кнопкой.</p><label>Улей с нужным типоразмером</label><select id="inventoryTemplateHive">'+templateOptions+'</select><label>Тип корпуса</label><select id="inventoryStockKind"><option value="brood">Гнездовой — один корпус</option><option value="honey">Медовый — по правилам профиля (один или пара)</option></select><label>Место хранения</label><input id="inventoryStoragePlace" maxlength="120" placeholder="Например, сарай · стеллаж 2"><label>Примечание</label><input id="inventoryStockNotes" maxlength="500" placeholder="Новый, окрашен, требует сборки…"><button type="button" class="primary" onclick="createInventoryStock()">Зарегистрировать на складе</button></div><h3>Физические корпуса ('+bodies.length+')</h3><div class="card"><label for="inventorySearch">Поиск по коду, месту, заметкам или ID</label><input id="inventorySearch" type="search" maxlength="120" placeholder="Например, Р-7КМ или сарай" value="'+safe(equipmentInventoryFilterText)+'" oninput="filterEquipmentInventory()"><div class="row"><label>Тип <select id="inventoryFilterKind" onchange="filterEquipmentInventory()"><option value="all">Все</option><option value="brood" '+(equipmentInventoryFilterKind==='brood'?'selected':'')+'>Гнездовые</option><option value="honey" '+(equipmentInventoryFilterKind==='honey'?'selected':'')+'>Медовые</option></select></label><label>Состояние <select id="inventoryFilterCondition" onchange="filterEquipmentInventory()"><option value="all">Любое</option><option value="good" '+(equipmentInventoryFilterCondition==='good'?'selected':'')+'>Исправен</option><option value="needs_repair" '+(equipmentInventoryFilterCondition==='needs_repair'?'selected':'')+'>Требует внимания</option><option value="repair" '+(equipmentInventoryFilterCondition==='repair'?'selected':'')+'>В ремонте</option><option value="retired" '+(equipmentInventoryFilterCondition==='retired'?'selected':'')+'>Списан</option></select></label><label>Место <select id="inventoryFilterLocation" onchange="filterEquipmentInventory()"><option value="all">Все места</option><option value="hive" '+(equipmentInventoryFilterLocation==='hive'?'selected':'')+'>В ульях</option><option value="sectional" '+(equipmentInventoryFilterLocation==='sectional'?'selected':'')+'>В секционном улье</option><option value="hive_uninstalled" '+(equipmentInventoryFilterLocation==='hive_uninstalled'?'selected':'')+'>Сняты из сборки</option><option value="storage" '+(equipmentInventoryFilterLocation==='storage'?'selected':'')+'>На складе</option><option value="error" '+(equipmentInventoryFilterLocation==='error'?'selected':'')+'>Ошибка привязки</option></select></label></div><p id="inventoryFilterResult" class="muted" aria-live="polite"></p><button type="button" onclick="clearEquipmentInventoryFilters()">Сбросить фильтры</button></div>'+(rows||'<p class="muted">Пока нет зарегистрированных физических корпусов. Можно учесть корпус из редактора улья или добавить новый на склад.</p>');
+ host.innerHTML='<div class="card"><b>Добавить корпус на склад</b><p class="muted">Выбери улей-образец: приложение запишет типоразмер. Это не создаёт запись о реальном корпусе до подтверждения кнопкой.</p><label>Улей с нужным типоразмером</label><select id="inventoryTemplateHive">'+templateOptions+'</select><label>Тип корпуса</label><select id="inventoryStockKind"><option value="brood">Гнездовой — один корпус</option><option value="honey">Медовый — по правилам профиля (один или пара)</option></select><label>Место хранения</label><input id="inventoryStoragePlace" maxlength="120" placeholder="Например, сарай · стеллаж 2"><label>Примечание</label><input id="inventoryStockNotes" maxlength="500" placeholder="Новый, окрашен, требует сборки…"><button type="button" class="primary" onclick="createInventoryStock()">Зарегистрировать на складе</button></div><h3>Физические корпуса ('+bodies.length+')</h3><div class="card"><label for="inventorySearch">Поиск по коду, месту, заметкам или ID</label><input id="inventorySearch" type="search" maxlength="120" placeholder="Например, Р-7КМ или сарай" value="'+safe(equipmentInventoryFilterText)+'" oninput="filterEquipmentInventory()"><div class="row"><label>Тип <select id="inventoryFilterKind" onchange="filterEquipmentInventory()"><option value="all">Все</option><option value="brood" '+(equipmentInventoryFilterKind==='brood'?'selected':'')+'>Гнездовые</option><option value="honey" '+(equipmentInventoryFilterKind==='honey'?'selected':'')+'>Медовые</option></select></label><label>Состояние <select id="inventoryFilterCondition" onchange="filterEquipmentInventory()"><option value="all">Любое</option><option value="good" '+(equipmentInventoryFilterCondition==='good'?'selected':'')+'>Исправен</option><option value="needs_repair" '+(equipmentInventoryFilterCondition==='needs_repair'?'selected':'')+'>Требует внимания</option><option value="repair" '+(equipmentInventoryFilterCondition==='repair'?'selected':'')+'>В ремонте</option><option value="retired" '+(equipmentInventoryFilterCondition==='retired'?'selected':'')+'>Списан</option></select></label><label>Место <select id="inventoryFilterLocation" onchange="filterEquipmentInventory()"><option value="all">Все места</option><option value="hive" '+(equipmentInventoryFilterLocation==='hive'?'selected':'')+'>В ульях</option><option value="sectional" '+(equipmentInventoryFilterLocation==='sectional'?'selected':'')+'>В секционном улье</option><option value="hive_uninstalled" '+(equipmentInventoryFilterLocation==='hive_uninstalled'?'selected':'')+'>Сняты из сборки</option><option value="storage" '+(equipmentInventoryFilterLocation==='storage'?'selected':'')+'>На складе</option><option value="error" '+(equipmentInventoryFilterLocation==='error'?'selected':'')+'>Ошибка привязки</option></select></label></div><p id="inventoryFilterResult" class="muted" aria-live="polite"></p><button type="button" onclick="clearEquipmentInventoryFilters()">Сбросить фильтры</button><button type="button" onclick="exportFilteredInventoryCsv()">Скачать CSV по фильтрам</button></div>'+(rows||'<p class="muted">Пока нет зарегистрированных физических корпусов. Можно учесть корпус из редактора улья или добавить новый на склад.</p>');
  const registryAudit=PasekaLabels.auditFrameRegistry(S),auditIssueNames={duplicate_frame_identity:'Повторяется UID или физическая идентичность рамки',duplicate_frame_label_code:'Дублируется постоянный код рамки',invalid_frame_label_code:'Некорректный код рамки',missing_frame_uid:'У рамки отсутствует внутренний UID',missing_frame_label_code:'У рамки отсутствует постоянный код',frame_history_event_id_missing:'Запись истории рамки не имеет ID',duplicate_frame_history_event_id:'Повторяется ID события истории рамок',invalid_frame_history_event:'Повреждена запись истории рамки',frame_location_missing:'Не определено местоположение рамки',frame_storage_location_missing:'Не найден складской корпус рамки',retired_frame_record_mismatch:'Запись списания не совпадает с архивной рамкой',retired_frame_date_missing:'Не указана дата списания',frame_history_location_mismatch:'Последняя запись истории не совпадает с текущим местом',invalid_body_label_code:'Некорректный код корпуса',duplicate_body_label_code:'Дублируется код корпуса'},auditRows=registryAudit.issues.map(issue=>'<li><b>'+(issue.severity==='error'?'Ошибка':'Предупреждение')+':</b> '+safe(auditIssueNames[issue.code]||issue.code)+' <span class="muted">'+safe(issue.details?.labelCode||issue.details?.frameUid||issue.details?.frameId||issue.details?.hiveId||'')+'</span></li>').join('');
  const labelledFrames=PasekaLabels.listLabelledFrames(S),frameRows=labelledFrames.map(frame=>{
   const place=frame.locationType==='retired'?'Списана · '+(frame.previousLocation?.type==='hive'?hname(frame.previousLocation.hiveId)+' · '+frameLocationName(frame.previousLocation.box,frame.previousLocation.hiveId):frame.previousLocation?.storageLocation||'прежнее место не указано'):frame.locationType==='storage'?'На складе · корпус '+String(frame.bodyId||'').slice(-8):hname(frame.hiveId)+' · '+frameLocationName(frame.box,frame.hiveId)+' · позиция '+frame.position;
@@ -4169,6 +4313,18 @@ function syncBoxOrigin(){const wrap=$('offshootParentWrap'),sel=$('offshootParen
 function syncBoxFamily(){const f=S.families.find(x=>x.id===$('boxFamily').value);if(f){$('boxBreed').value=f.breed||'Неизвестная';$('boxFamilyName').value=f.name||'';$('boxOrigin').value=f.origin||'';if($('offshootParent'))$('offshootParent').value=f.parentFamilyId||'';syncBoxOrigin()}}
 function editBox(key){const hid=selectedStructureHive(),l=layoutFor(hid),profile=profileForHive(hid),isCustom=profile?.family!=='farrar',isHoney=isHoneyBoxKey(key,hid);if(!l.setupEditing&&!isHoney){alert('Комплектация зафиксирована. Нажми «Изменить», чтобы редактировать корпуса.');return}if(isHoney&&l.mode==='winter'){alert('В зимней сборке медовые корпуса не используются.');return}if(isHoney&&!l.honeyBoxInstalled[profileHoneyKeys(hid).indexOf(String(key))]){alert('Сначала установи этот медовый корпус.');return}editingBox=String(key);editingFrame=0;const b=isHoney?null:l.boxes[editingBox],frames=frameArray(l,editingBox),winter=l.mode==='winter'&&!!l.setupComplete;$('boxDlgTitle').textContent=frameLocationName(editingBox);corpusMoveTargets=[];$('corpusMoveTo').innerHTML='<option value="">Выбери улей и корпус</option>';for(const hive of S.hives){layoutFor(hive.id);const keys=[...profileBroodKeys(hive.id),...profileHoneyKeys(hive.id)];for(const boxKey of keys){if(hive.id===hid&&String(boxKey)===String(editingBox))continue;const index=corpusMoveTargets.push({hiveId:hive.id,boxKey:String(boxKey)})-1,code=corpusLabelCode(hive.id,String(boxKey))||'код не назначен',option=document.createElement('option');option.value=String(index);option.textContent=hname(hive.id)+' · '+frameLocationName(String(boxKey),hive.id)+' · '+code;$('corpusMoveTo').appendChild(option)}}$('boxDlgHint').innerHTML=frames.length+' рамок · код корпуса: '+(corpusLabelCode(hid,editingBox)||'не назначен')+' <button type="button" onclick="assignCurrentCorpusLabelCode()">Назначить код корпуса</button> <button type="button" onclick="registerCurrentCorpusInInventory()">Учесть в инвентаре</button>';$('boxInstalledLabel').style.display=(isHoney||winter)?'none':'';$('boxInstalled').checked=isHoney?l.honeyBoxInstalled[profileHoneyKeys(hid).indexOf(editingBox)]:l.installedBoxes.includes(/^\\d+$/.test(editingBox)?Number(editingBox):editingBox);$('boxBeeFields').style.display=(isHoney||winter||isCustom)?'none':'';$('boxFamilyLabel').style.display=(isHoney||winter||isCustom)?'none':'';$('boxFamily').style.display=(isHoney||winter||isCustom)?'none':'';$('boxFamily').innerHTML='<option value="">Семья не назначена</option>'+S.families.filter(f=>f.hive===selectedStructureHive()).map(f=>'<option value="'+f.id+'">'+safe(f.name)+' · '+safe(f.breed)+'</option>').join('');$('boxFamily').value=b?.family||'';$('boxOrigin').value=b?.origin||'';$('boxBreed').value=b?.breed||'Неизвестная';$('boxFamilyName').value=b?.familyName||nextFamilyCode();if($('offshootParent')){$('offshootParent').innerHTML='<option value="">Выбери исходную семью</option>'+S.families.filter(f=>(f.hive===selectedStructureHive()||f.id===b?.parentFamilyId)&&f.id!==b?.family).map(f=>'<option value="'+f.id+'">'+safe(f.name)+(f.hive!==selectedStructureHive()?' · сейчас в '+safe(hname(f.hive)):'')+'</option>').join('')+(b?.parentFamilySnapshot&&!S.families.some(f=>f.id===b.parentFamilyId)?'<option value="'+b.parentFamilySnapshot.id+'">'+safe(b.parentFamilySnapshot.name)+' · архивная исходная семья</option>':'');$('offshootParent').value=b?.parentFamilyId||'';syncBoxOrigin()}$('addFrameBtn').style.display=frames.length<frameCapacity(editingBox)?'':'none';renderFrameEditor();$('boxDlg').showModal()}
 function frameStatusName(id){return FRAME_STATUSES.find(x=>x[0]===id)?.[1]||'Не указан'}
+function allowedFrameStatuses(type){
+ return type==='comb'?FRAME_STATUSES:type==='foundation'||type==='strip'?FRAME_STATUSES.filter(([id])=>id==='foundation'):[];
+}
+function isFrameStatusAllowed(type,status){return allowedFrameStatuses(type).some(([id])=>id===status)}
+function frameStatusOptions(type,status){
+ const valid=isFrameStatusAllowed(type,status);
+ return (valid?'':'<option value="" selected disabled>Уточните статус</option>')+
+  allowedFrameStatuses(type).map(([id,label])=>'<option value="'+id+'" '+(id===status?'selected':'')+'>'+label+'</option>').join('');
+}
+function frameStatusWarning(type,status){
+ return isFrameStatusAllowed(type,status)?'':'Сохранённое сочетание типа и статуса требует уточнения. Выберите правильный тип и статус; прежние данные автоматически не изменяются.';
+}
 function renderFrameEditor(){
  const l=layoutFor(selectedStructureHive()),frames=frameArray(l,editingBox);
  $('frameEditor').innerHTML=frames.map((x,i)=>'<button class="status-'+safe(x.status||'foundation')+' '+(i===editingFrame?'selected':'')+'" onclick="chooseFrame('+i+')" >'+'<small>'+(x.labelCode?safe(PasekaLabels.formatLabelCode('frame',x.labelCode)):'код не назначен')+'</small><br><b>'+frameStatusName(x.status)+'</b></button>').join('');
@@ -4176,16 +4332,25 @@ function renderFrameEditor(){
  $('frameDetails').style.display='block';
  const destinations=[...profileBroodKeys(),...profileHoneyKeys()].filter(k=>String(k)!==editingBox);
  const history=(x.history||[]).map(h=>'<p class="muted">'+safe(h.date)+': '+(h.action==='move'?'Перемещение: '+safe(frameLocationName(h.from.location))+' → '+safe(frameLocationName(h.to.location)):h.action==='frame_id_changed'?'Внутренний номер записи изменён: '+safe(h.from)+' → '+safe(h.to)+' · постоянный код рамки сохранён':h.action==='family_transfer'?'Перенос с семьёй: '+safe(hname(h.from.hiveId))+', корпус №'+safe(h.from.box)+' → '+safe(hname(h.to.hiveId))+', корпус №'+safe(h.to.box):h.action==='corpus_to_storage'?'Перемещение рамки вместе с корпусом на склад: '+safe(hname(h.from?.hiveId))+' · '+safe(frameLocationName(h.from?.box||'?'))+' → '+safe(h.to?.storageLocation||'склад'):h.action==='corpus_from_storage'?'Установка рамки вместе с корпусом из хранения: '+safe(h.from?.storageLocation||'склад')+' → '+safe(hname(h.to?.hiveId))+' · '+safe(frameLocationName(h.to?.box||'?')):h.action==='corpus_transfer'?'Перестановка корпуса: '+safe(hname(h.from.hiveId))+' · '+safe(frameLocationName(h.from.box,h.from.hiveId))+' → '+safe(hname(h.to.hiveId))+' · '+safe(frameLocationName(h.to.box,h.to.hiveId)):h.action==='box_frames_swapped'?'Обмен при переносе семьи: '+safe(hname(h.from.hiveId))+', корпус №'+safe(h.from.box)+' → '+safe(hname(h.to.hiveId))+', корпус №'+safe(h.to.box):h.action==='updated'?'Изменено: '+[h.from?.type!==h.to?.type?'тип '+safe(FRAME_TYPES.find(t=>t.id===h.from?.type)?.name||h.from?.type||'—')+' → '+safe(FRAME_TYPES.find(t=>t.id===h.to?.type)?.name||h.to?.type||'—'):'',h.from?.status!==h.to?.status?'состояние '+safe(frameStatusName(h.from?.status))+' → '+safe(frameStatusName(h.to?.status)):'',(h.from?.note||'')!==(h.to?.note||'')?'заметка изменена':''].filter(Boolean).join('; '):h.action==='extraction'?'Откачка мёда: '+safe(frameStatusName(h.from))+' → Откачана':safe(frameStatusName(h.from?.status))+' → '+safe(frameStatusName(h.to?.status)))+'</p>').join('');
- $('frameDetails').innerHTML=`<b>${x.labelCode?'Рамка '+safe(PasekaLabels.formatLabelCode('frame',x.labelCode)):'Код рамки не назначен'}</b><button type="button" onclick="assignCurrentFrameLabelCode()">Назначить постоянный код рамки</button><div class="muted">Сейчас находится: ${frameLocationName(editingBox)} · позиция ${editingFrame+1} · изначальный корпус: ${frameLocationName(x.originBox||editingBox)}</div><div class="muted">Постоянный код закреплён за физической рамкой и сохраняется при переносе между ульями и корпусами. Служебный ID не используется для маркировки.</div><label>Тип рамки</label><select id="frameType" onchange="syncFrameType()">${FRAME_TYPES.map(t=>'<option value="'+t.id+'" '+(x.type===t.id?'selected':'')+'>'+t.name+'</option>').join('')}</select><label>Текущий статус</label><select id="frameStatus" onchange="syncFrameStatus()">${FRAME_STATUSES.map(t=>'<option value="'+t[0]+'" '+(x.status===t[0]?'selected':'')+'>'+t[1]+'</option>').join('')}</select><label>Заметка</label><input id="frameNote" value="${safe(x.note||'')}" placeholder="Например, отстроена наполовину"><label>Переместить рамку в другой корпус</label><select id="frameMoveTo">${destinations.map(k=>'<option value="'+k+'">'+frameLocationName(k)+'</option>').join('')}</select><button type="button" onclick="moveFrame()">Переместить рамку</button><details><summary>История рамки (${(x.history||[]).length})</summary>${history}</details>`;
+ $('frameDetails').innerHTML=`<b>${x.labelCode?'Рамка '+safe(PasekaLabels.formatLabelCode('frame',x.labelCode)):'Код рамки не назначен'}</b><button type="button" onclick="assignCurrentFrameLabelCode()">Назначить постоянный код рамки</button><div class="muted">Сейчас находится: ${frameLocationName(editingBox)} · позиция ${editingFrame+1} · изначальный корпус: ${frameLocationName(x.originBox||editingBox)}</div><div class="muted">Постоянный код закреплён за физической рамкой и сохраняется при переносе между ульями и корпусами. Служебный ID не используется для маркировки.</div><label>Тип рамки</label><select id="frameType" onchange="syncFrameType()">${FRAME_TYPES.some(t=>t.id===x.type)?'':'<option value="" selected disabled>Уточните тип</option>'}${FRAME_TYPES.map(t=>'<option value="'+t.id+'" '+(x.type===t.id?'selected':'')+'>'+t.name+'</option>').join('')}</select><label>Текущий статус</label><select id="frameStatus" onchange="syncFrameStatus()">${frameStatusOptions(x.type,x.status)}</select><p class="muted" id="frameStatusWarning" role="status">${safe(frameStatusWarning(x.type,x.status))}</p><label>Заметка</label><input id="frameNote" value="${safe(x.note||'')}" placeholder="Например, отстроена наполовину"><label>Переместить рамку в другой корпус</label><select id="frameMoveTo">${destinations.map(k=>'<option value="'+k+'">'+frameLocationName(k)+'</option>').join('')}</select><button type="button" onclick="moveFrame()">Переместить рамку</button><details><summary>История рамки (${(x.history||[]).length})</summary>${history}</details>`;
 }
-function syncFrameType(){const t=$('frameType').value;if(t==='comb')$('frameStatus').value='drawn';else if($('frameStatus').value==='drawn')$('frameStatus').value='foundation'}
-function syncFrameStatus(){if($('frameStatus').value==='drawn')$('frameType').value='comb'}
+function syncFrameType(){
+ const type=$('frameType').value,status=$('frameStatus');
+ const next=type==='comb'?'drawn':type==='foundation'||type==='strip'?'foundation':'';
+ status.innerHTML=frameStatusOptions(type,next);
+ syncFrameStatus();
+}
+function syncFrameStatus(){
+ const type=$('frameType').value,status=$('frameStatus').value;
+ const warning=$('frameStatusWarning');
+ if(warning)warning.textContent=frameStatusWarning(type,status);
+}
 async function swapPhysicalCorpora(){const selected=$('corpusMoveTo').value;if(selected==='')return alert('Выбери корпус, с которым нужно поменяться.');const target=corpusMoveTargets[Number(selected)];if(!target)return alert('Выбранная позиция больше не существует.');const fromHiveId=selectedStructureHive(),fromBoxKey=String(editingBox),fromLayout=layoutFor(fromHiveId),toLayout=layoutFor(target.hiveId),fromId=fromLayout.corpusIds?.[fromBoxKey],toId=toLayout.corpusIds?.[target.boxKey],fromCode=PasekaLabels.formatLabelCode('body',S.equipmentLabels?.bodies?.[fromId])||'код не назначен',toCode=PasekaLabels.formatLabelCode('body',S.equipmentLabels?.bodies?.[toId])||'код не назначен',fromName=hname(fromHiveId)+' · '+frameLocationName(fromBoxKey,fromHiveId),toName=hname(target.hiveId)+' · '+frameLocationName(target.boxKey,target.hiveId);if(!confirm('Поменять физические корпуса местами?\\n\\n'+fromName+' ('+fromCode+') ⇄ '+toName+' ('+toCode+').\\nРамки переместятся вместе с корпусами. Корпуса с назначенной семьёй так перемещать нельзя.'))return;const previous=cloneApiaryState(),result=PasekaBodies.swapLocations(S,{fromHiveId,fromBoxKey,toHiveId:target.hiveId,toBoxKey:target.boxKey},today());if(!result.ok){const messages={family_present:'В одном из корпусов назначена семья. Сначала используй отдельную операцию переноса семьи.',duplicate_corpus_mapping:'Обнаружен повторный внутренний ID корпуса. Сначала исправь целостность данных.',corpus_missing:'Не удалось найти физический корпус в одной из позиций.',frames_missing:'Не удалось прочитать рамки одного из корпусов.',invalid_frame_history:'История рамок одного из корпусов повреждена. Перестановка отменена без изменения данных.',incompatible_corpus:'Эти корпуса несовместимы по назначению или размерам. Перестановка запрещена.',installation_mismatch:'Один корпус установлен, а другой снят. Сначала приведи их положение к одинаковому состоянию.'};alert(messages[result.error.code]||'Перестановка отменена: '+result.error.code);return}S=result.state;const inventoryResult=PasekaInventory.recordSwap(S,result.moved,new Date().toISOString(),profileForHive);if(!inventoryResult.ok){S=previous;render();const reason=inventoryResult.error==='transaction_failed'&&inventoryResult.message==='invalid_body_event_journal'?'журнал событий одного из корпусов повреждён':inventoryResult.message||inventoryResult.error;alert('Перестановка отменена: не удалось записать историю физического корпуса ('+reason+'). Исходное состояние восстановлено.');return}logAudit('physical_corpora_swapped',{from:result.moved.from,to:result.moved.to,swappedCorpusId:result.moved.swappedCorpusId,fromLabel:result.moved.fromLabel,toLabel:result.moved.toLabel});if(!await save()){S=previous;render();alert('Корпуса не переставлены: не удалось сохранить изменения. Исходные данные восстановлены.');return}renderStructure();const currentId=layoutFor(fromHiveId).corpusIds[fromBoxKey],currentCode=PasekaLabels.formatLabelCode('body',S.equipmentLabels?.bodies?.[currentId])||'не назначен';$('boxDlgHint').innerHTML=frameArray(layoutFor(fromHiveId),fromBoxKey).length+' рамок · код корпуса: '+safe(currentCode)+' <button type="button" onclick="assignCurrentCorpusLabelCode()">Назначить код корпуса</button>';alert('Физические корпуса переставлены. Постоянные коды корпусов и рамок сохранены.')}
 function corpusLabelCode(hiveId,key){if(isSectionalHive(hiveId)){const match=/^(?:honey:(.+)|brood:[^:]+:(.+))$/.exec(String(key??''));const id=match?.[1]||match?.[2];return id?PasekaLabels.formatLabelCode('body',S.equipmentLabels?.bodies?.[id]):'';}const l=layoutFor(hiveId),id=l.corpusIds?.[String(key)];return id?PasekaLabels.formatLabelCode('body',S.equipmentLabels?.bodies?.[id]):''}
 function assignCurrentCorpusLabelCode(){try{const hiveId=selectedStructureHive(),l=layoutFor(hiveId),id=l.corpusIds?.[String(editingBox)],code=PasekaLabels.assignBodyCode(S,id),registered=PasekaInventory.registerAtPosition(S,{hiveId,boxKey:String(editingBox),profile:profileForHive(hiveId)},PasekaLabels,uid,new Date().toISOString());if(!registered.ok)throw new Error(registered.message||registered.error);logAudit('corpus_registered',{hiveId,boxKey:String(editingBox),corpusId:id,labelCode:code,kind:registered.body.kind});logAudit('corpus_label_assigned',{hiveId,box:editingBox,corpusId:id,labelCode:code});$('boxDlgHint').innerHTML=frameArray(l,editingBox).length+' рамок · постоянный код корпуса: '+safe(PasekaLabels.formatLabelCode('body',code))+' <button type="button" disabled>Код закреплён</button>';save()}catch(e){alert(e.message||e)}}
 function assignCurrentFrameLabelCode(){try{const l=layoutFor(selectedStructureHive()),f=frameArray(l,editingBox)[editingFrame];if(!f)return;const code=PasekaLabels.assignFrameCode(S,f);logAudit('frame_label_assigned',{hiveId:selectedStructureHive(),box:editingBox,frameId:f.frameId,labelCode:code});save();renderFrameEditor()}catch(e){alert(e.message||e)}}
-function commitFrameEdit(){const l=layoutFor(selectedStructureHive()),hiveId=selectedStructureHive(),x=frameArray(l,editingBox)[editingFrame];if(!x)return;const next={type:$('frameType').value,status:$('frameStatus').value,note:$('frameNote').value};const previous={type:x.type,status:x.status,note:x.note||''};const changed=x.type!==next.type||x.status!==next.status||x.note!==next.note;if(changed){x.history=x.history||[];PasekaLabels.appendFrameEvent(x,'updated',{from:previous,to:next},new Date().toISOString());logAudit('frame_updated',{hiveId,box:editingBox,frameId:x.frameId,from:previous,to:next});Object.assign(x,next)}}
-function chooseFrame(i){commitFrameEdit();editingFrame=i;renderFrameEditor()}
+function commitFrameEdit(){const l=layoutFor(selectedStructureHive()),hiveId=selectedStructureHive(),x=frameArray(l,editingBox)[editingFrame];if(!x)return true;const next={type:$('frameType').value,status:$('frameStatus').value,note:$('frameNote').value};if(!isFrameStatusAllowed(next.type,next.status)){alert('Для вощины и полоски вощины допустим только статус «Вощина». Уточните тип и статус рамки.');return false}const previous={type:x.type,status:x.status,note:x.note||''};const changed=x.type!==next.type||x.status!==next.status||x.note!==next.note;if(changed){x.history=x.history||[];PasekaLabels.appendFrameEvent(x,'updated',{from:previous,to:next},new Date().toISOString());logAudit('frame_updated',{hiveId,box:editingBox,frameId:x.frameId,from:previous,to:next});Object.assign(x,next)}return true}
+function chooseFrame(i){if(!commitFrameEdit())return;editingFrame=i;renderFrameEditor()}
 function addFrame(){const l=layoutFor(selectedStructureHive()),arr=frameArray(l,editingBox);if(arr.length>=frameCapacity(editingBox))return alert('Корпус заполнен');const fr={frameId:nextFrameId(l,editingBox),originBox:editingBox,location:editingBox,type:'foundation',status:'foundation',history:[]};PasekaLabels.assignFrameCode(S,fr);arr.push(fr);editingFrame=arr.length-1;logAudit('frame_added',{hiveId:selectedStructureHive(),box:editingBox,frameId:fr.frameId,labelCode:fr.labelCode});save();renderFrameEditor()}
 function planFrameMoves(state,requests){
  const errors=[],moves=[],fail=(code,details={})=>errors.push({code,details});
@@ -4387,7 +4552,7 @@ async function moveFrame(){
  };
  let plan=planFrameMoves(S,[request]);
  if(!plan.ok)return alert(explain(plan.errors));
- commitFrameEdit();
+ if(!commitFrameEdit())return;
  plan=planFrameMoves(S,[request]);
  if(!plan.ok)return alert(explain(plan.errors));
  const applied=applyFrameMovePlan(S,plan,today());
@@ -4402,7 +4567,7 @@ async function moveFrame(){
 function saveBox(){
  const l=layoutFor(selectedStructureHive()),hiveId=selectedStructureHive(),profile=profileForHive(hiveId);
  if(profile&&profile.family!=='farrar'){
-  commitFrameEdit();save().then(()=>{if($('boxDlg')?.open)$('boxDlg').close();renderStructure()});return;
+  if(!commitFrameEdit())return;save().then(()=>{if($('boxDlg')?.open)$('boxDlg').close();renderStructure()});return;
  }
  const oldBox=l.boxes[editingBox],oldFamily=oldBox?.family||'',wasInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(Number(editingBox)):(l.installedBoxes||[]).includes(Number(editingBox));
  if(!isHoneyBoxKey(editingBox,selectedStructureHive())){
@@ -4425,7 +4590,7 @@ function saveBox(){
     const retainedSnapshot=family?.parentFamilySnapshot||b.parentFamilySnapshot;const archivedParentValid=!parent&&retainedSnapshot?.id===parentFamilyId;if((!parent&&!archivedParentValid)||parent?.id===fid||(parent&&parent.hive!==hiveId&&parent.id!==retainedParentId&&!archivedParentValid)){alert('Для отводка выбери существующую исходную семью или сохрани ранее записанную архивную родословную.');return}if(family&&familyLineageWouldCycle(fid,parentFamilyId)){alert('Нельзя назначить потомка исходной семьёй: это создаст цикл в родословной.');return}
     parentSnapshotToKeep=archivedParentValid?retainedSnapshot:null;
    }
-   commitFrameEdit();
+   if(!commitFrameEdit())return;
    const previousFamily=b.family?S.families.find(x=>x.id===b.family):null;
    if(previousFamily&&previousFamily.id!==fid&&previousFamily.box===n)delete previousFamily.box;
    b.origin=origin;b.breed=breed;b.familyName=familyName;b.parentFamilyId=parentFamilyId;b.parentFamilySnapshot=parentSnapshotToKeep;
@@ -4450,7 +4615,7 @@ function saveBox(){
    else l.installedBoxes=l.installedBoxes.filter(x=>x!==n);
   }
  }else{
-  commitFrameEdit();
+  if(!commitFrameEdit())return;
  }
  const newFamily=l.boxes[editingBox]?.family||'';
  const nowInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(Number(editingBox)):(l.installedBoxes||[]).includes(Number(editingBox));
