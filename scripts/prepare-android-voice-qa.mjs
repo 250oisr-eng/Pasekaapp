@@ -4,7 +4,7 @@ import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {prepareDailyWorkerAndroid} from './prepare-android-daily-archives.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-export const QA_ID='ru.paseka.journal.qa.voice3';
+export const QA_ID='ru.paseka.journal.qa.voice4';
 const PIN='961d5ff98a17f4aa6de69864d0aa71fa5bac682301d2b5d17a3f24c5c99a46d4',MODEL='vosk-model-small-ru-0.22.zip';
 const DAILY='        PasekaDailyArchiveJob.schedule(this);';
 const SUPER='        super.onCreate(state);';
@@ -13,7 +13,7 @@ export function voiceQaConfig(config){
  if(config?.appId!=='ru.paseka.journal'||config.webDir!=='www'||config.android?.allowMixedContent!==false||
    config.server?.url||config.server?.allowNavigation||(config.server?.hostname||'localhost')!=='localhost'||
    (config.server?.androidScheme||'https')!=='https')throw Error('VOICE_QA_BLOCKED: source package or origin');
- return {...config,appId:QA_ID,appName:'Пасека QA — номера'};
+ return {...config,appId:QA_ID,appName:'Пасека QA — комплекс'};
 }
 export function patchVoiceActivity(source){
  if(!source.startsWith('package '+QA_ID+';')||source.split(DAILY).length!==2||source.split(SUPER).length!==2)

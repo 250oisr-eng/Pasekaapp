@@ -45,3 +45,63 @@ test('deadout workflow is wired into the smartphone UI, local schema and offline
  assert.match(html,/S\.meta\.schemaVersion=12/);
  assert.match(sw,/\.\/js\/deadout-review\.js/);
 });
+
+
+test('invalid photo collection is rejected instead of silently discarding evidence',()=>{
+ for(const bad of [{corrupted:true},'',{length:1,0:{kind:'image'}},42]){
+  assert.throws(()=>deadout.buildDeadoutReviewDraft(base,hives,bad,()=> 'bad','2027-03-10T10:00:00Z'),
+   /список фотографий повреждён/i);
+ }
+ assert.equal(deadout.buildDeadoutReviewDraft(base,hives,null,()=> 'no-media','2027-03-10T10:00:00Z').media.length,0);
+});
+test('unavailable hive number is stored as unknown, not invented as zero or NaN',()=>{
+ const record=deadout.buildDeadoutReviewDraft(base,[{id:'h1'}],[],()=> 'id','2027-03-10T10:00:00Z');
+ assert.equal(record.hiveNumberAtTime,null);
+ assert.equal(JSON.stringify(record).includes('"hiveNumberAtTime":null'),true);
+ assert.deepEqual(deadout.inspectDeadoutIntegrity({hives:[{id:'h1'}],deadoutReviews:[record]}),[]);
+});
+test('damaged hive registry and malformed inspection IDs report integrity errors without throwing',()=>{
+ const record=deadout.buildDeadoutReviewDraft(base,hives,[],()=> 'id','2027-03-10T10:00:00Z');
+ const corrupted={meta:{schemaVersion:12},hives:{broken:true},deadoutReviews:[record]};
+ const before=JSON.stringify(corrupted);
+ const errors=deadout.inspectDeadoutIntegrity(corrupted);
+ assert.ok(errors.some(x=>x.code==='deadout_invalid_hive_registry'));
+ assert.equal(JSON.stringify(corrupted),before);
+ for(const id of ['  ','',null]){
+  const list=deadout.inspectDeadoutIntegrity({hives,deadoutReviews:[{...record,id}]});
+  assert.ok(list.some(x=>x.code==='deadout_invalid_or_duplicate_id'));
+ }
+ const malformed=deadout.inspectDeadoutIntegrity({hives,deadoutReviews:[[]]});
+ assert.ok(malformed.some(x=>x.code==='deadout_invalid_or_duplicate_id'));
+});
+
+
+test('mortality review rejects duplicate hive identifiers before any observation is drafted',()=>{
+ const duplicates=[{id:'h1',number:1},{id:'h1',number:2}];
+ const before=JSON.stringify(duplicates);
+ assert.throws(()=>deadout.buildDeadoutReviewDraft(base,duplicates,[],()=> 'id','2027-03-10T10:00:00Z'),/однозначным ID/);
+ assert.equal(JSON.stringify(duplicates),before);
+ const unique=deadout.buildDeadoutReviewDraft(base,hives,[],()=> 'safe','2027-03-10T10:00:00Z');
+ assert.equal(unique.hiveNumberAtTime,1);
+});
+
+test('deadout preserves explicit family and hive snapshots without mutating the apiary',()=>{
+ const hives=[{id:'h1',number:null},{id:'h2',number:2}];
+ const families=[{id:'f1',hive:'h1',name:'Семья 1'},{id:'f2',hive:'h2',name:'Семья 2'}];
+ const before=JSON.stringify({hives,families});
+ const draft=input=>deadout.buildDeadoutReviewDraft(input,hives,[],()=> 'd','now',families);
+ const row=draft({...base,familyId:'f1'});
+ assert.equal(row.hiveNumberAtTime,null);
+ assert.deepEqual(row.hiveSnapshotAtTime,{id:'h1',number:null});
+ assert.deepEqual(row.familySnapshotAtTime,{id:'f1',hiveId:'h1',name:'Семья 1'});
+ assert.equal(row.diagnosis,null);
+ assert.equal(JSON.stringify({hives,families}),before);
+ assert.deepEqual(deadout.inspectDeadoutIntegrity({hives:[],families:[],deadoutReviews:[row]}),[]);
+ assert.throws(()=>draft({...base,familyId:'f2'}),/другому улью/);
+ families.push({...families[0]});
+ assert.throws(()=>draft({...base,familyId:'f1'}),/недоступна/);
+ assert.ok(deadout.inspectDeadoutIntegrity({hives,deadoutReviews:[{...row,familySnapshotAtTime:{...row.familySnapshotAtTime,hiveId:'h2'}}]}).some(e=>e.code==='deadout_invalid_family_snapshot'));
+ const legacy=deadout.buildDeadoutReviewDraft(base,[{id:'h1',number:1}],[],()=> 'old','now');
+ delete legacy.hiveSnapshotAtTime;delete legacy.familyId;delete legacy.familySnapshotAtTime;
+ assert.deepEqual(deadout.inspectDeadoutIntegrity({hives:[],deadoutReviews:[legacy]}),[]);
+});

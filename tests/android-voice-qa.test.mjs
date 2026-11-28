@@ -252,7 +252,7 @@ test('natural dialogue can add detail, reread and reject a negated confirmation'
  assert.equal(s.receive('не подтверждаю').draft,undefined);assert.equal(s.receive('да').draft,undefined);
 });
 test('conversation QA package is separate from previous installed voice QA',async()=>{
- assert.equal(QA_ID,'ru.paseka.journal.qa.voice3');
+ assert.equal(QA_ID,'ru.paseka.journal.qa.voice4');
  const source=await readFile(new URL('../index.html',import.meta.url),'utf8'),generated=patchVoiceHtml(source);
  assert.match(generated,/id="qaVoiceNatural"/);assert.match(generated,/Расскажи обычными словами/);
  assert.equal(assertDailyConfig(voiceQaConfig(config)),QA_ID);

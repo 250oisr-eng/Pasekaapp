@@ -28,7 +28,7 @@ function addSpringMoves(state,techProcessId,strongPosition='lower'){
  const bodyIdsByFamily={};
  for(const row of layout){
   const base=row.familyId+'-body',extra=row.familyId+'-extra';
-  bodyIdsByFamily[row.familyId]=row.bodyCount===2?[base,extra]:[base,extra];
+  bodyIdsByFamily[row.familyId]=row.bodyCount===2?[base,extra]:[base];
   state.equipmentInventory.bodies[base]={id:base};
   state.equipmentInventory.bodies[extra]={id:extra};
   if(row.bodyCount===1){
@@ -41,7 +41,7 @@ function addSpringMoves(state,techProcessId,strongPosition='lower'){
  const moves=[];
  for(const row of layout.filter(item=>item.bodyCount===1)){
   const bodyIds=bodyIdsByFamily[row.familyId],bottomId='bottom-'+row.familyId;
-  const result=api.recordPlacementChanged(state,{familyIds,familyId:row.familyId,techProcessId,from:{position:row.position,bodyIds:[bodyIds[0]]},to:{position:'separate_bottom',bottomItemId:bottomId,bodyIds}},makeId,'2026-04-20T10:00:00.000Z');
+  const result=api.recordPlacementChanged(state,{familyIds,familyId:row.familyId,techProcessId,from:{position:row.position,bodyIds:[bodyIds[0]]},to:{position:'separate_bottom',bottomItemId:bottomId,bodyIds:[bodyIds[0]]}},makeId,'2026-04-20T10:00:00.000Z');
   assert.equal(result.ok,true);
   moves.push(result.event);
  }
@@ -163,44 +163,91 @@ test('alternative wintering requires three independent families, two real instal
  assert.equal(bad.ok,false);
 });
 
-test('alternative wintering accepts the strongest family in any vertical position',()=>{
- for(const strongPosition of ['lower','middle','upper']){
+test('OP12 permits only the strongest lower two-body family and rejects permutations without writes',()=>{
+ for(const position of ['lower','middle','upper']){
   const state=baseState();
-  const items={
+  state.equipmentInventory.items={
    d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'diaphragm-a'}},
    d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'diaphragm-b'}}
   };
-  state.equipmentInventory.items=items;
-  const layout=['lower','middle','upper'].map((position,index)=>({familyId:['f1','f2','f3'][index],position,bodyCount:position===strongPosition?2:1}));
-  const result=api.configureAlternativeWintering(state,{familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','d2'],layout,techProcessId:'alt-'+strongPosition},makeId,'2026-10-01T10:00:00.000Z');
-  assert.equal(result.ok,true,strongPosition);
-  assert.deepEqual(api.inspect(state),[]);
+  const layout=['lower','middle','upper'].map((pos,i)=>({familyId:['f1','f2','f3'][i],position:pos,bodyCount:pos===position?2:1}));
+  const before=structuredClone(state);
+  const result=api.configureAlternativeWintering(state,{familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','d2'],layout,techProcessId:'alt-'+position},makeId,'2026-10-01T10:00:00.000Z');
+  if(position==='lower'){
+   assert.equal(result.ok,true);
+   assert.deepEqual(api.inspect(state),[]);
+  }else{
+   assert.equal(result.ok,false,position);
+   assert.equal(result.error,'alternative_wintering_body_distribution_invalid',position);
+   assert.deepEqual(state,before,'rejected wintering must preserve all family and queen records');
+  }
  }
 });
 
-test('OP-12 evidence accepts any [2,1,1] vertical permutation',()=>{
- for(const strongPosition of ['lower','middle','upper']){
+test('OP12 audit and operation-evidence both reject an imported historical 1+2+1 or 1+1+2 layout',()=>{
+ for(const position of ['lower','middle','upper']){
   const state=baseState(),familyIds=['f1','f2','f3'];
-  const layout=['lower','middle','upper'].map((position,index)=>({familyId:familyIds[index],position,bodyCount:position===strongPosition?2:1}));
   state.equipmentInventory.items={
    d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'d1'}},
    d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'d2'}}
   };
-  api.configureAlternativeWintering(state,{familyIds,diaphragmItemIds:['d1','d2'],layout,techProcessId:'alt-'+strongPosition},makeId,'2026-10-01T10:00:00.000Z');
-  const record={id:'alt-'+strongPosition,hiveId:'h1',state:{phase:'ALT_WINTERING',diaphragms:[{itemId:'d1'},{itemId:'d2'}],sections:layout.map(row=>({familyId:row.familyId,winteringPosition:row.position,bodyIds:Array.from({length:row.bodyCount},(_,i)=>row.familyId+'-b'+i)}))}};
-  assert.deepEqual(api.validateOperationEvidence(state,record,'OP-12'),[],strongPosition);
+  const valid=['lower','middle','upper'].map((pos,i)=>({familyId:familyIds[i],position:pos,bodyCount:pos==='lower'?2:1}));
+  const op=api.configureAlternativeWintering(state,{familyIds,diaphragmItemIds:['d1','d2'],layout:valid,techProcessId:'alt-'+position},makeId,'2026-10-01T10:00:00.000Z');
+  assert.equal(op.ok,true);
+  const layout=state.familyEvents.at(-1).layout;
+  for(const row of layout)row.bodyCount=row.position===position?2:1;
+  const before=structuredClone(state);
+  const record={id:'alt-'+position,hiveId:'h1',state:{phase:'ALT_WINTERING',diaphragms:[{itemId:'d1'},{itemId:'d2'}],
+   sections:layout.map(row=>({familyId:row.familyId,winteringPosition:row.position,
+    bodyIds:Array.from({length:row.bodyCount},(_,i)=>row.familyId+'-b'+i)}))}};
+  const audit=api.inspect(state),evidence=api.validateOperationEvidence(state,record,'OP-12');
+  if(position==='lower'){assert.deepEqual(audit,[]);assert.deepEqual(evidence,[]);}
+  else{
+   assert.ok(audit.some(error=>error.code==='alternative_wintering_body_distribution_invalid'),position);
+   assert.ok(evidence.some(error=>error.code==='OP12_BODY_LAYOUT_REQUIRED'),position);
+  }
+  assert.deepEqual(state,before,'inspection and operation evidence must not edit historical records');
  }
 });
 
-test('OP-13 moves the two one-body families regardless of their vertical positions',()=>{
- for(const strongPosition of ['lower','middle','upper']){
-  const state=baseState(),info=addSpringMoves(state,'tech-13-'+strongPosition,strongPosition);
-  const record={id:'tech-13-'+strongPosition,hiveId:'h1',state:{operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'}],sections:info.sectionsAfterMove}};
-  assert.deepEqual(api.validateOperationEvidence(state,record,'OP-13'),[],strongPosition);
-  assert.equal(info.moves.length,2);
-  assert.ok(state.families.every(f=>f.recordStatus==='active'&&f.currentQueenId));
-  assert.deepEqual(api.inspect(state),[]);
- }
+test('OP13 moves the upper two one-body families while retaining the two-body lower family',()=>{
+ const state=baseState(),info=addSpringMoves(state,'tech-13-lower','lower');
+ const record={id:'tech-13-lower',hiveId:'h1',state:{operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'}],sections:info.sectionsAfterMove}};
+ assert.deepEqual(api.validateOperationEvidence(state,record,'OP-13'),[]);
+ assert.equal(info.moves.length,2);
+ assert.ok(state.families.every(f=>f.recordStatus==='active'&&f.currentQueenId));
+ assert.deepEqual(api.inspect(state),[]);
+});
+
+test('OP13 legacy two-body placement evidence remains readable without being produced by new writes',()=>{
+ const s=baseState(),info=addSpringMoves(s,'legacy-op13');
+ const e=s.familyEvents.find(e=>e.type==='placement_changed');
+ assert.deepEqual(e.to.bodyIds,[e.from.bodyIds[0]]);
+ const spare=e.from.bodyIds[0].replace('-body','-extra');
+ assert.ok(s.equipmentInventory.bodies[spare]);
+ e.to.bodyIds.push(spare);
+ const sections=info.sectionsAfterMove.map(row=>row.familyId===e.familyId
+  ?{...row,bodyIds:[...e.to.bodyIds]}:row);
+ const record={id:'legacy-op13',hiveId:'h1',state:{
+  operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'}],
+  sections
+ }};
+ assert.deepEqual(api.inspect(s),[],'old 2-body record cannot be silently rewritten or rejected');
+ assert.deepEqual(api.validateOperationEvidence(s,record,'OP-13'),[]);
+});
+test('OP13 rejects two-body relocation on new write; second body belongs to a later event',()=>{
+ const s=baseState(),info=addSpringMoves(s,'no-auto-expansion');
+ const e=s.familyEvents.find(e=>e.type==='placement_changed');
+ s.familyEvents=s.familyEvents.filter(x=>x.type!=='placement_changed');
+ const other=e.from.bodyIds[0].replace('-body','-extra');
+ const before=structuredClone(s);
+ const out=api.recordPlacementChanged(s,{
+  familyIds:['f1','f2','f3'],familyId:e.familyId,techProcessId:'no-auto-expansion',
+  from:e.from,to:{...e.to,bodyIds:[e.from.bodyIds[0],other]}
+ },makeId,'2026-04-20T12:00:00.000Z');
+ assert.equal(out.ok,false);
+ assert.equal(out.error,'placement_body_references_invalid');
+ assert.deepEqual(s,before);
 });
 
 test('OP-13 refuses to move the two-body family from the alternative wintering column',()=>{
@@ -211,35 +258,33 @@ test('OP-13 refuses to move the two-body family from the alternative wintering c
  assert.equal(result.error,'placement_source_not_single_body_family');
 });
 
-test('OP-14 early-honey sequence accepts the two single-body families at any vertical positions',()=>{
- for(const strongPosition of ['lower','middle','upper']){
-  const state=baseState(),techProcessId='tech-14-'+strongPosition;
-  addSpringMoves(state,techProcessId,strongPosition);
-  const physicalSetup=addEarlyHoneyPhysicalSetup(state);
-  const record={id:techProcessId,hiveId:'h1',state:{earlyHoneySetup:physicalSetup,operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'},{operationId:'OP-14',status:'DONE'}],sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
-  assert.ok(api.validateOperationEvidence(state,record,'OP-14').some(x=>x.code==='OP14_EARLY_HONEY_HARVEST_CONFIRMATION_REQUIRED'));
-  const missingPhysical=api.recordEarlyHoneyHarvest(state,{familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId},makeId,'2026-05-01T09:00:00.000Z');
-  assert.equal(missingPhysical.ok,false);
-  const harvested=api.recordEarlyHoneyHarvest(state,{
-   familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,physicalSetup,
-   honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,
-   diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId
-  },makeId,'2026-05-01T10:00:00.000Z');
-  assert.equal(harvested.ok,true);
-  const merged=api.applyMerge(state,{
-   sourceFamilyIds:['f1','f2','f3'],operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId,
-   resultFamily:{id:'early-merge',hive:'h1'}
-  },makeId,'2026-05-04T10:00:00.000Z');
-  assert.equal(merged.ok,true);
-  const split=api.applySplit(state,{
-   sourceFamilyId:'early-merge',operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId,
-   resultFamilies:children('after-'+strongPosition)
-  },makeId,'2026-05-10T10:00:00.000Z');
-  assert.equal(split.ok,true);
-  record.state.sections=split.families.map((family,index)=>({familyId:family.id,index:index+1,queenIdentityStatus:'unresolved'}));
-  assert.deepEqual(api.validateOperationEvidence(state,record,'OP-14'),[],strongPosition);
-  assert.deepEqual(api.inspect(state),[],strongPosition);
- }
+test('OP14 early-honey sequence preserves source-order wintering before a confirmed harvest/merge/split',()=>{
+ const state=baseState(),techProcessId='tech-14-lower';
+ addSpringMoves(state,techProcessId,'lower');
+ const physicalSetup=addEarlyHoneyPhysicalSetup(state);
+ const record={id:techProcessId,hiveId:'h1',state:{earlyHoneySetup:physicalSetup,operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'},{operationId:'OP-14',status:'DONE'}],sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
+ assert.ok(api.validateOperationEvidence(state,record,'OP-14').some(x=>x.code==='OP14_EARLY_HONEY_HARVEST_CONFIRMATION_REQUIRED'));
+ const missingPhysical=api.recordEarlyHoneyHarvest(state,{familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId},makeId,'2026-05-01T09:00:00.000Z');
+ assert.equal(missingPhysical.ok,false);
+ const harvested=api.recordEarlyHoneyHarvest(state,{
+  familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,physicalSetup,
+  honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,
+  diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId
+ },makeId,'2026-05-01T10:00:00.000Z');
+ assert.equal(harvested.ok,true);
+ const merged=api.applyMerge(state,{
+  sourceFamilyIds:['f1','f2','f3'],operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId,
+  resultFamily:{id:'early-merge',hive:'h1'}
+ },makeId,'2026-05-04T10:00:00.000Z');
+ assert.equal(merged.ok,true);
+ const split=api.applySplit(state,{
+  sourceFamilyId:'early-merge',operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId,
+  resultFamilies:children('after-lower')
+ },makeId,'2026-05-10T10:00:00.000Z');
+ assert.equal(split.ok,true);
+ record.state.sections=split.families.map((family,index)=>({familyId:family.id,index:index+1,queenIdentityStatus:'unresolved'}));
+ assert.deepEqual(api.validateOperationEvidence(state,record,'OP-14'),[]);
+ assert.deepEqual(api.inspect(state),[]);
 });
 
 test('split refuses a queen linked to a different family without mutating lineage',()=>{
@@ -444,7 +489,7 @@ test('split preserves retired merge candidates and exposes only surviving queens
  assert.deepEqual(api.inspect(state),[]);
 });
 
-test('OP-13 placement must retain the existing single brood body and add one separate body',()=>{
+test('OP-13 placement must retain exactly the existing single brood body, no auto-expansion',()=>{
  const state=baseState(),info=addSpringMoves(state,'body-retention');
  state.familyEvents=state.familyEvents.filter(event=>event.type!=='placement_changed');
  const row=info.layout.find(item=>item.bodyCount===1),bodyIds=info.bodyIdsByFamily[row.familyId];
@@ -452,7 +497,7 @@ test('OP-13 placement must retain the existing single brood body and add one sep
  const invalid=api.recordPlacementChanged(state,{
   familyIds:['f1','f2','f3'],familyId:row.familyId,techProcessId:'body-retention',
   from:{position:row.position,bodyIds:[bodyIds[0]]},
-  to:{position:'separate_bottom',bottomItemId:'bottom-'+row.familyId,bodyIds:['replacement',bodyIds[1]]}
+  to:{position:'separate_bottom',bottomItemId:'bottom-'+row.familyId,bodyIds:['replacement']}
  },makeId,'2026-04-20T10:00:00.000Z');
  assert.equal(invalid.ok,false);
  assert.equal(invalid.error,'placement_existing_body_not_preserved');

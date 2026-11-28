@@ -1,0 +1,229 @@
+(()=>{'use strict';
+// DOCX P73–P77: OP13 read-only spring separation; not an operation commit.
+const PROFILE='sectional-multiqueen-v1',order=['lower','middle','upper'];
+const obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+const rows=x=>Array.isArray(x)?x:[];
+const id=x=>typeof x==='string'&&x.trim().length>0;
+const reject=(error,details={})=>({ok:false,error,details});
+function inspect(state,request){
+ if(!obj(state)||!obj(request)||!id(request.hiveId)||!id(request.expectedRevisionId))
+  return reject('op13_hive_and_revision_required');
+ if(state.meta?.revisionId!==request.expectedRevisionId)return reject('op13_stale_revision');
+ const hive=rows(state.hives).filter(h=>h?.id===request.hiveId);
+ if(hive.length!==1||(hive[0].profileId!==PROFILE&&hive[0].profile?.id!==PROFILE))
+  return reject('op13_sectional_profile_required');
+ const layouts=rows(state.sectionalLayouts).filter(l=>l?.hiveId===request.hiveId);
+ if(layouts.length!==1)return reject('op13_unique_source_layout_required');
+ const layout=layouts[0],validator=window.PasekaSectionalPhysicalLayout;
+ if(typeof validator?.validate!=='function')return reject('op13_physical_validator_missing');
+ const checked=validator.validate(layout,state);
+ if(!checked.valid)return reject('op13_invalid_winter_layout',{codes:checked.errors.map(error=>error.code)});
+ if(layout.mode!=='ALTERNATIVE_WINTERING_COLUMN'||layout.profileId!==PROFILE||
+    layout.honeyStack!=null||rows(layout.stacks).length!==1)
+  return reject('op13_source_must_be_alternative_wintering');
+ const sectionByPosition=new Map(rows(layout.sections).map(section=>[section?.position,section]));
+ if(sectionByPosition.size!==3||order.some(position=>!sectionByPosition.has(position)))
+  return reject('op13_three_winter_positions_required');
+ const sourceCounts=order.map(position=>rows(sectionByPosition.get(position)?.broodBodyIds).length);
+ if(JSON.stringify(sourceCounts)!==JSON.stringify([2,1,1]))
+  return reject('op13_two_body_family_must_be_lower',{actual:sourceCounts,expected:[2,1,1]});
+ const familyIds=order.map(position=>sectionByPosition.get(position).familyId);
+ if(new Set(familyIds).size!==3)return reject('op13_three_distinct_families_required');
+ const families=familyIds.map(fid=>rows(state.families).find(f=>f?.id===fid&&f.hive===request.hiveId&&f.recordStatus!=='historical'));
+ if(families.some(f=>!f))return reject('op13_active_family_missing');
+ const history=rows(state.familyEvents).filter(e=>e?.operationId==='OP-12'&&
+  e.type==='alternative_wintering_configured'&&e.hiveId===request.hiveId);
+ // Multi-year apiaries may have several OP12 cycles. Do not silently use the oldest.
+ const event=id(request.techProcessId)?history.filter(e=>e.techProcessId===request.techProcessId):history;
+ if(event.length!==1)return reject('op13_unique_confirmed_op12_evidence_required');
+ const original=event[0],byPosition=new Map(rows(original.layout).map(row=>[row?.position,row]));
+ if(byPosition.size!==3||order.some((position,i)=>byPosition.get(position)?.bodyCount!==sourceCounts[i]||
+    byPosition.get(position)?.familyId!==familyIds[i]))
+  return reject('op13_winter_evidence_layout_mismatch');
+ const diaphragms=rows(layout.meshDiaphragms).map(row=>row?.itemId);
+ if(diaphragms.length!==2||new Set(diaphragms).size!==2||
+    diaphragms.some(key=>!original.diaphragmItemIds?.includes(key)))
+  return reject('op13_diaphragm_provenance_mismatch');
+ const alreadyMoved=rows(state.familyEvents).some(e=>e?.type==='placement_changed'&&
+  e.operationId==='OP-13'&&e.hiveId===request.hiveId&&
+  e.techProcessId===(original.techProcessId||null));
+ if(alreadyMoved)return reject('op13_spring_move_already_recorded');
+ return {ok:true,sourceRevisionId:request.expectedRevisionId,
+  source:{strongFamilyId:familyIds[0],strongBodyIds:[...sectionByPosition.get('lower').broodBodyIds],
+   smallFamilies:order.slice(1).map(position=>({
+    familyId:sectionByPosition.get(position).familyId,
+    position,bodyId:sectionByPosition.get(position).broodBodyIds[0]
+   })),diaphragmItemIds:diaphragms},techProcessId:original.techProcessId||null};
+}
+function preview(state,request){
+ const source=inspect(state,request);
+ if(!source.ok)return source;
+ if(request.firstFlightDate!=null){
+  const value=request.firstFlightDate;
+  const parsed=typeof value==='string'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)
+   ? Date.parse(value+'T00:00:00.000Z') : NaN;
+  if(!Number.isFinite(parsed)||new Date(parsed).toISOString().slice(0,10)!==value)
+   return reject('op13_first_flight_date_invalid');
+ }
+ if(!obj(request.bottomAssignments))return reject('op13_two_bottom_assignments_required');
+ const expected=source.source.smallFamilies.map(f=>f.familyId),provided=Object.keys(request.bottomAssignments);
+ if(provided.length!==2||expected.some(fid=>!id(request.bottomAssignments[fid]))||
+    provided.some(fid=>!expected.includes(fid)))
+  return reject('op13_bottom_assignments_incomplete');
+ const bottoms=expected.map(fid=>request.bottomAssignments[fid]);
+ if(new Set(bottoms).size!==2)return reject('op13_bottom_reused');
+ const items=state.equipmentInventory?.items;
+ if(!obj(items))return reject('op13_inventory_missing');
+ for(const itemId of bottoms){
+  const item=items[itemId];
+  if(!obj(item)||item.id!==itemId||item.kind!=='bottom'||item.condition!=='good'||item.location?.type!=='storage')
+   return reject('op13_bottom_not_available',{itemId});
+ }
+ // OP13 moves each existing ONE-body family to its own bottom. A second body
+ // belongs to a later explicitly confirmed expansion, never invented here.
+ const plans=source.source.smallFamilies.map(row=>({
+  familyId:row.familyId,fromPosition:row.position,
+  retainedBodyId:row.bodyId,toBottomItemId:request.bottomAssignments[row.familyId],
+  bodyIdsAfterMove:[row.bodyId],queenIdentityNotChanged:true
+ }));
+ return {
+  ok:true,readOnly:true,readyForPersistence:false,completionRecorded:false,
+  operationId:'OP-13',hiveId:request.hiveId,techProcessId:source.techProcessId,sourceRevisionId:source.sourceRevisionId,
+  strongFamilyId:source.source.strongFamilyId,strongFamilyBodyIds:[...source.source.strongBodyIds],
+  moves:plans,diaphragmItemIdsToRemove:[...source.source.diaphragmItemIds],
+  firstFlightDate:typeof request.firstFlightDate==='string'?request.firstFlightDate:null,
+  seasonalTiming:'approximately_one_and_half_months_after_first_flight_guideline_only',
+  strengthObservedByBeekeeper:request.strengthObserved===true,
+  additionalBroodBodiesNotAutomaticallyInstalled:true,
+  confirmationsStillRequired:[
+   'beekeepers_observation_of_strength_and_flight',
+   'both_separate_bottoms_installed',
+   'two_one_body_families_physically_moved',
+   'mesh_diaphragms_physically_removed',
+   'technical_openings_and_ventilation_verified',
+   'equipment_moves_and_family_histories_recorded_atomically',
+   'independent_archive_and_recovery_before_write'
+  ]
+ };
+}
+// DOCX 75–79 is a different branch: if the beekeeper chooses EARLY honey,
+// a spare brood body is provided to EACH relocated smaller family so that
+// technical passages can be arranged. Do not silently add those boxes during
+// the ordinary one-body relocation of DOCX 73–75.
+function previewEarlyHoneySetup(state,request){
+ if(request?.scenario!=='EARLY_HONEY')return reject('op13_early_honey_explicit_scenario_required');
+ const separated=preview(state,request);
+ if(!separated.ok)return separated;
+ if(!obj(request.expansionBodyIds))return reject('op13_early_honey_expansion_bodies_required');
+ const ids=separated.moves.map(row=>row.familyId),provided=Object.keys(request.expansionBodyIds);
+ if(provided.length!==2||provided.some(fid=>!ids.includes(fid))||
+   ids.some(fid=>!id(request.expansionBodyIds[fid])))
+  return reject('op13_early_honey_expansion_assignments_incomplete');
+ const secondIds=ids.map(fid=>request.expansionBodyIds[fid]);
+ if(new Set(secondIds).size!==2)return reject('op13_early_honey_body_reused');
+ const installed=new Set(rows(state.sectionalLayouts).flatMap(layout=>
+  rows(layout?.sections).flatMap(section=>rows(section?.broodBodyIds))
+   .concat(rows(layout?.honeyStack?.bodyIds))));
+ const oldLayouts=obj(state.layouts)?Object.values(state.layouts):[];
+ for(const layout of oldLayouts)for(const bodyId of Object.values(obj(layout?.corpusIds)?layout.corpusIds:{}))
+  if(id(bodyId))installed.add(bodyId);
+ for(const bodyId of secondIds){
+  const body=state.equipmentInventory?.bodies?.[bodyId];
+  if(!obj(body)||body.id!==bodyId||body.kind!=='brood'||body.condition!=='good'||
+     body.spec?.profileId!==PROFILE||body.spec?.framesPerBox!==6||
+     body.spec?.frame?.heightMm!==180||
+     !Array.isArray(body.frames)||body.frames.length!==6||
+     body.frames.some(frame=>!obj(frame)||(frame.history!=null&&!Array.isArray(frame.history)))||
+     !id(body.storageLocation)||installed.has(bodyId))
+   return reject('op13_early_honey_spare_brood_body_not_verified',{bodyId});
+ }
+ if(!obj(request.emptyBodyObserved)||ids.some(fid=>request.emptyBodyObserved[fid]!==true))
+  return reject('op13_early_honey_empty_body_observation_required');
+ // A planned connection is not a validated physical connection. Exact
+ // opening/diaphragm movements and queen isolation still need local guards.
+ return {
+  ok:true,readOnly:true,readyForPersistence:false,completionRecorded:false,
+  operationId:'OP-14',scenario:'EARLY_HONEY',sourceOperationId:'OP-13',
+  hiveId:separated.hiveId,sourceRevisionId:separated.sourceRevisionId,
+  techProcessId:separated.techProcessId,
+  oneBodyMoves:separated.moves.map(row=>structuredClone(row)),
+  proposedSecondBroodBodies:separated.moves.map(row=>({
+   familyId:row.familyId,retainedBodyId:row.retainedBodyId,
+   separateBottomItemId:row.toBottomItemId,
+   spareBodyId:request.expansionBodyIds[row.familyId],bodyCountIfConfirmed:2
+  })),
+  connectedTechnicalOpeningsVerified:false,
+  honeyQueenExcludersInstalled:false,honeyBodyCountInstalled:0,
+  physicalExpansionConfirmed:false,
+  remainingGates:[
+   'beekeepers_confirmation_of_two_empty_compatible_brood_bodies',
+   'separate_bottoms_and_family_moves',
+   'remove_two_winter_mesh_diaphragms',
+   'validate_and_confirm_four_technical_openings_and_queen_barriers',
+   'paired_covers_and_top_risers',
+   'independent_atomic_OP14_transitions_and_backup_restore'
+  ]
+ };
+}
+// P79–82: proposed honey super capacity for the EARLY flow, after the
+// separate-bottom and empty-brood preparation; no extraction / installation.
+function previewEarlyHoneySupers(state,request){
+ const prepared=previewEarlyHoneySetup(state,request);
+ if(!prepared.ok)return prepared;
+ const honeyIds=request?.honeyBodyIds;
+ const grids=request?.largeExcluderIds;
+ if(!Array.isArray(honeyIds)||![2,4].includes(honeyIds.length)||
+    honeyIds.some(x=>!id(x))||new Set(honeyIds).size!==honeyIds.length)
+  return reject('op14_early_honey_two_or_four_unique_supers_required');
+ if(!Array.isArray(grids)||grids.length!==2||grids.some(x=>!id(x))||grids[0]===grids[1])
+  return reject('op14_two_distinct_large_excluders_required');
+ const inventory=state.equipmentInventory;
+ const installed=new Set(rows(state.sectionalLayouts).flatMap(layout=>
+  rows(layout?.sections).flatMap(section=>rows(section?.broodBodyIds))
+   .concat(rows(layout?.honeyStack?.bodyIds))));
+ let foundationCount=0;
+ for(const bodyId of honeyIds){
+  const body=inventory?.bodies?.[bodyId];
+  if(!obj(body)||body.id!==bodyId||body.kind!=='honey'||body.condition!=='good'||
+     body.spec?.profileId!==PROFILE||body.spec?.kind!=='honey'||
+     body.spec?.framesPerBox!==10||body.spec?.frame?.heightMm!==180||
+     !id(body.storageLocation)||installed.has(bodyId)||
+     !Array.isArray(body.frames)||body.frames.length!==10||
+     body.frames.some(frame=>!obj(frame)||!id(frame.frameId)||
+       (frame.history!=null&&!Array.isArray(frame.history))))
+   return reject('op14_early_honey_super_geometry_or_stock_invalid',{bodyId});
+  for(const frame of body.frames){
+   if(frame.combType==='wax_foundation')foundationCount++;
+   else if(frame.combType!=='drawn_comb')
+    return reject('op14_early_honey_comb_type_unconfirmed',{bodyId,frameId:frame.frameId});
+  }
+ }
+ // The DOCX recommends drawn comb, and mentions "up to two" wax frames
+ // without defining the precise scope for 2 vs 4 supers. Never invent one.
+ if(foundationCount)
+  return reject('op14_early_honey_foundation_scope_requires_confirmation',{foundationCount});
+ const itemIds=new Set([...honeyIds,...grids]);
+ if(itemIds.size!==honeyIds.length+2)return reject('op14_early_honey_stock_alias');
+ for(const itemId of grids){
+  const item=inventory?.items?.[itemId];
+  if(!obj(item)||item.id!==itemId||item.kind!=='honeyQueenExcluder'||
+     item.condition!=='good'||item.location?.type!=='storage')
+   return reject('op14_early_honey_large_excluder_unavailable',{itemId});
+ }
+ return {ok:true,readOnly:true,readyForPersistence:false,completionRecorded:false,
+  operationId:'OP-14',scenario:'EARLY_HONEY',hiveId:prepared.hiveId,
+  sourceRevisionId:prepared.sourceRevisionId,
+  proposedHoneyBodyIds:[...honeyIds],proposedLargeExcluderIds:[...grids],
+  superCountIfConfirmed:honeyIds.length,combTypeConfirmed:'drawn_comb_only',
+  foundationScopeNotGuessed:true,
+  physicalHoneyBoxesInstalled:false,largeExcludersInstalled:false,
+  beekeeperWorkConfirmed:false,
+  unresolved:['separate_bottoms_and_family_moves','two_added_brood_bodies',
+   'validated_side_opening_connections','two_large_grid_physical_footprints',
+   'honey_super_installation_and_lid_pair','beekeeper_confirmation',
+   'atomic_OP14_inventory_and_frame_events','independent_restore']};
+}
+window.PasekaSectionalOP13Readiness=Object.freeze({
+ inspect,preview,previewEarlyHoneySetup,previewEarlyHoneySupers
+});
+})();
