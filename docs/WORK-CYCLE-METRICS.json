@@ -2560,18 +2560,14 @@
     "releaseAuthorized": false,
     "activationAuthorized": false
   },
-  "journalPeriodCsv20261128": {
-    "pr": 668,
-    "baseSha": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
-    "testedCodeSha": "381acd9b58005d00b35e0cd8d5689304ec33853a",
-    "stage": "IMPLEMENTED_DRAFT",
-    "node": "PASS",
-    "android": "PASS",
-    "chromium": "PASS",
-    "governance": "PASS",
-    "workers": "PASS",
+  "inventoryReconciled20261128": {
+    "pr": 661,
+    "sourceHead": "754051fbd65b3580d5b9be7b15deafbcccf6ba69",
+    "mainBase": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+    "stage": "RECONCILED_REVIEW",
+    "node": "PENDING",
+    "android": "PENDING",
     "physicalDevice": "NOT_TESTED",
-    "userDataChanged": false,
-    "releaseAuthorized": false
+    "release": false
   }
 }

@@ -587,7 +587,7 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
   <div class="muted">Диктовка использует распознавание речи браузера или Android. Перед запуском будет предупреждение: в зависимости от устройства аудио может обрабатываться внешним сервисом. Запись звука не сохраняется — в поле попадёт распознанный текст.</div>
   <div class="row forage-submit"><button class="primary" id="plantSaveButton" type="submit">Сохранить наблюдение</button><button type="button" onclick="resetPlantObservationForm()">Очистить форму</button></div>
  </form></div>
- <div class="card"><div class="row"><h3 style="margin:0">Наблюдения</h3><span class="muted" id="plantObservationCount">0</span></div><div id="plantObservationsList" class="plant-observation-list"></div></div>
+ <div class="card"><div class="row"><h3 style="margin:0">Наблюдения</h3><span class="muted" id="plantObservationCount">0</span></div><label for="plantHistorySearch">Поиск наблюдений</label><input id="plantHistorySearch" type="search" placeholder="Растение, место, заметка" oninput="resetPlantHistoryPage()"><label for="plantHistoryPhase">Стадия цветения</label><select id="plantHistoryPhase" onchange="resetPlantHistoryPage()"><option value="all">Все стадии</option><option value="beginning">Начало</option><option value="mass">Массовое цветение</option><option value="ending">Заканчивает цвести</option><option value="finished">Отцвело</option><option value="unknown">Не уточнено</option></select><label for="plantHistoryYear">Год наблюдения</label><select id="plantHistoryYear" onchange="resetPlantHistoryPage()"><option value="">Все годы</option></select><div id="plantObservationsList" class="plant-observation-list" tabindex="-1" role="region" aria-label="История наблюдений цветения"></div><div id="plantHistoryPages" hidden><button type="button" id="plantHistoryPrev" onclick="changePlantHistoryPage(-1)">Более новые</button> <span id="plantHistoryPageStatus" aria-live="polite"></span> <button type="button" id="plantHistoryNext" onclick="changePlantHistoryPage(1)">Более ранние</button></div></div>
 </section>
 <section id="varroa" class="panel">
  <div class="card"><h2 style="margin-top:0">Контроль Varroa</h2><p class="muted">Ручной учёт результатов измерений. Приложение рассчитывает показатели, но не ставит диагноз и не назначает обработку. Дополнительные электронные устройства не требуются.</p></div>
@@ -595,13 +595,13 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
   <label for="varroaHive">Улей</label><select id="varroaHive" onchange="renderVarroaModule()" required><option value="">— Выбери улей —</option></select>
   <label for="varroaDate">Дата</label><input id="varroaDate" type="date" required>
   <label for="varroaType">Тип наблюдения</label><select id="varroaType" onchange="toggleVarroaFields()"><option value="adult_bee_sample">Проба взрослых пчёл</option><option value="sticky_board">Контрольный поддон</option></select>
-  <div id="varroaAdultFields"><label for="varroaMethod">Метод отбора</label><select id="varroaMethod"><option value="alcohol_wash">Смыв</option><option value="sugar_roll">Сахарная пудра</option><option value="other">Другой метод</option></select><label for="varroaBeesCount">Количество исследованных пчёл</label><input id="varroaBeesCount" type="number" min="10" max="1000" step="1" inputmode="numeric" value="300"><label for="varroaMitesCount">Количество обнаруженных клещей</label><input id="varroaMitesCount" type="number" min="0" max="100000" step="1" inputmode="numeric" value="0"></div>
+  <div id="varroaAdultFields"><label for="varroaFamily">Семья пробы (если установлена)</label><select id="varroaFamily"><option value="">Семья не установлена</option></select><label for="varroaMethod">Метод отбора</label><select id="varroaMethod"><option value="alcohol_wash">Смыв</option><option value="sugar_roll">Сахарная пудра</option><option value="other">Другой метод</option></select><label for="varroaBeesCount">Количество исследованных пчёл</label><input id="varroaBeesCount" type="number" min="10" max="1000" step="1" inputmode="numeric" value="300"><label for="varroaMitesCount">Количество обнаруженных клещей</label><input id="varroaMitesCount" type="number" min="0" max="100000" step="1" inputmode="numeric" value="0"></div>
   <div id="varroaBoardFields" hidden><label for="varroaBoardMites">Количество клещей на поддоне</label><input id="varroaBoardMites" type="number" min="0" max="100000" step="1" inputmode="numeric" value="0"><label for="varroaExposureHours">Время наблюдения, часов</label><input id="varroaExposureHours" type="number" min="1" max="720" step="1" inputmode="numeric" value="24"></div>
   <label for="varroaNotes">Примечание</label><textarea id="varroaNotes" maxlength="2000" rows="2" placeholder="Состояние расплода, дата обработки, условия отбора и другие факты"></textarea>
   <button class="primary" type="submit">Сохранить измерение</button>
  </form></div>
  <div class="card"><h3 style="margin-top:0">Фактически выполненная обработка Varroa</h3><p class="muted">Отдельная запись в журнале улья. Подтверди факт выполнения перед сохранением; дозу, препарат, сроки и условия указывай только по факту и инструкции. Наблюдение за клещом не считается обработкой.</p><button type="button" onclick="openVarroaTreatmentJournal()">Записать выполненную обработку</button></div>
- <div class="card"><div class="row"><b>История измерений</b><span class="muted" id="varroaCount">0</span></div><div class="muted">Проба взрослых пчёл и осыпь на поддоне показываются раздельно: эти показатели нельзя напрямую приравнивать друг к другу.</div><div id="varroaObservationsList"></div></div>
+ <div class="card"><div class="row"><b>История измерений</b><span class="muted" id="varroaCount">0</span></div><div class="muted">Проба взрослых пчёл и осыпь на поддоне показываются раздельно: эти показатели нельзя напрямую приравнивать друг к другу.</div><label for="varroaHistoryScope">Показать измерения</label><select id="varroaHistoryScope" onchange="renderVarroaModule()"><option value="selected">Выбранный улей</option><option value="all">Все ульи, включая архивные</option></select><div id="varroaObservationsList"></div></div>
  <div class="card"><div class="row"><b>История обработок выбранного улья</b><span class="muted" id="varroaTreatmentsCount">0</span></div><p class="muted">Все записи типа «Обработка» выбранного улья, не только против Varroa. Измерения клеща не являются лечением. Архивные записи доступны в общем журнале.</p><div id="varroaTreatmentsList"></div></div>
 </section>
 <section id="incidents" class="panel">
@@ -609,17 +609,17 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
  <div class="card"><h3 style="margin-top:0">Новый инцидент</h3><form id="incidentForm" onsubmit="savePesticideIncident(event)">
   <label for="incidentObservedAt">Дата и время обнаружения</label><input id="incidentObservedAt" type="datetime-local" required>
   <label for="incidentScope">Какие ульи затронуты?</label><select id="incidentScope" onchange="renderIncidentHiveChoices()"><option value="selected_hives">Выбранные ульи</option><option value="whole_apiary">Вся пасека</option><option value="unknown">Пока неизвестно</option></select>
-  <div id="incidentHiveChoices"></div>
+  <div id="incidentHiveChoices"></div><div id="incidentFamilyChoices"></div>
   <label for="incidentDeadBees">Оценка количества погибших пчёл (если считали)</label><input id="incidentDeadBees" type="number" min="0" max="10000000" step="1" inputmode="numeric" placeholder="Необязательно">
   <label for="incidentSymptoms">Что именно наблюдалось?</label><textarea id="incidentSymptoms" rows="3" maxlength="2000" placeholder="Например: скопление погибших пчёл перед летком, необычное поведение"></textarea>
   <label for="incidentLocationLabel">Место / ориентир</label><input id="incidentLocationLabel" maxlength="200" placeholder="Поле, дорога, участок, ориентир">
-  <div class="row" style="justify-content:flex-start"><button type="button" onclick="captureIncidentLocation()">Получить GPS с телефона</button><span class="muted" id="incidentGpsStatus">GPS не запрашивался</span></div>
+  <div class="row" style="justify-content:flex-start"><button type="button" onclick="captureIncidentLocation()">Получить GPS с телефона</button><button type="button" onclick="clearIncidentGps()">Убрать GPS</button><span class="muted" id="incidentGpsStatus">GPS не запрашивался</span></div>
   <input id="incidentLatitude" type="hidden"><input id="incidentLongitude" type="hidden"><input id="incidentGpsAccuracy" type="hidden"><input id="incidentGpsCapturedAt" type="hidden">
   <label for="incidentCrop">Предполагаемая культура рядом (не подтверждено)</label><input id="incidentCrop" maxlength="160" placeholder="Например: рапс, сад, поле">
   <label for="incidentSubstance">Предполагаемое вещество (если известно, не подтверждено)</label><input id="incidentSubstance" maxlength="200" placeholder="Не указывай догадку как установленный факт">
   <label for="incidentArea">Описание участка / предполагаемого источника</label><input id="incidentArea" maxlength="300">
   <label for="incidentWeather">Погодные обстоятельства</label><textarea id="incidentWeather" rows="2" maxlength="1000" placeholder="Только известные наблюдения"></textarea>
-  <label for="incidentPhotoInput">Фотографии с камеры смартфона (до 3)</label><input id="incidentPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="loadIncidentPhotos(this)"><div class="media-note">До 2 МБ на фотографию. Фото хранятся локально и не отправляются автоматически.</div><div id="incidentPhotoPreview" class="media-grid"></div>
+  <label for="incidentPhotoInput">Фотографии с камеры смартфона (до 3)</label><input id="incidentPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="loadIncidentPhotos(this)"><div class="media-note">До 2 МБ на фотографию. Фото хранятся локально и не отправляются автоматически.</div><div id="incidentPhotoPreview" class="media-grid"></div><button type="button" onclick="clearIncidentPhotos()">Убрать фотографии</button>
   <h4>Обращения и образцы</h4>
   <label for="incidentReportedTo">Куда передана информация</label><input id="incidentReportedTo" maxlength="200" placeholder="Организация / специалист">
   <label for="incidentReportReference">Номер обращения / регистрации</label><input id="incidentReportReference" maxlength="160">
@@ -2242,17 +2242,24 @@ function renderVarroaModule(){
  const hiveSelect=$('varroaHive'),list=$('varroaObservationsList');if(!hiveSelect||!list)return;
  if(!$('varroaDate').value)$('varroaDate').value=today();const previous=hiveSelect.value;hiveSelect.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
  hiveSelect.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:(S.hives[0]?.id||''));
+ const familySelect=$('varroaFamily');
+ if(familySelect){
+  const old=familySelect.value,families=(S.families||[]).filter(f=>f.hive===hiveSelect.value);
+  familySelect.innerHTML='<option value="">Семья не установлена</option>'+families.map(f=>'<option value="'+safe(f.id)+'">'+safe(f.name||f.code||'Семья')+'</option>').join('');
+  familySelect.value=families.some(f=>f.id===old)?old:'';
+ }
  const treatmentsHost=$('varroaTreatmentsList');
  if(treatmentsHost){
   const treatments=(Array.isArray(S.records)?S.records:[]).filter(row=>row&&row.type==='Обработка'&&!row.archivedAt&&row.hive===hiveSelect.value).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   $('varroaTreatmentsCount').textContent=treatments.length+' '+ruPlural(treatments.length,'обработка','обработки','обработок');
-  treatmentsHost.innerHTML=treatments.length?treatments.map(row=>'<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(row.treatmentProduct||row.treatmentActive||'Обработка')+'</b><span class="muted">'+safe(row.date)+'</span></div><div class="muted">'+safe([row.treatmentActive,row.treatmentMethod].filter(Boolean).join(' · ')||'Параметры не указаны')+'</div>'+(row.text?'<div>'+safe(row.text)+'</div>':'')+'</div>').join(''):'<p class="muted">Записанных обработок для выбранного улья нет.</p>';
+  treatmentsHost.innerHTML=treatments.length?treatments.map(row=>'<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(row.treatmentProduct||row.treatmentActive||'Обработка')+'</b><span class="muted">'+safe(row.date)+'</span></div><div class="muted">'+safe([row.treatmentActive,row.treatmentMethod].filter(Boolean).join(' · ')||'Параметры не указаны')+'</div>'+recordFamilyHtml(row)+recordExtraHtml(row)+(row.text?'<div>'+safe(row.text)+'</div>':'')+'<button type="button" data-record-id="'+safe(row.id)+'" data-hive-id="'+safe(row.hive)+'" onclick="openVarroaTreatmentRecord(this)">Открыть запись журнала</button></div>').join(''):'<p class="muted">Записанных обработок для выбранного улья нет.</p>';
  }
- const rows=(Array.isArray(S.varroaObservations)?S.varroaObservations:[]).filter(row=>row&&row.hiveId===hiveSelect.value).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+ const allHistory=$('varroaHistoryScope')?.value==='all';
+ const rows=(Array.isArray(S.varroaObservations)?S.varroaObservations:[]).filter(row=>row&&(allHistory||row.hiveId===hiveSelect.value)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
  $('varroaCount').textContent=rows.length+' '+ruPlural(rows.length,'измерение','измерения','измерений');
  if(!rows.length){list.innerHTML='<p class="muted">Измерений пока нет. Добавь результат ручного контроля клеща.</p>';return}
  const methodLabels={alcohol_wash:'Смыв',sugar_roll:'Сахарная пудра',other:'Другой метод'};
- list.innerHTML=rows.map(row=>{const hive=S.hives.find(h=>h.id===row.hiveId),title=row.type==='adult_bee_sample'?'Проба взрослых пчёл':'Контрольный поддон',value=row.type==='adult_bee_sample'?row.mitesPer100Bees+' клеща на 100 пчёл':row.mitesPer24h+' клеща за 24 часа',detail=row.type==='adult_bee_sample'?methodLabels[row.method]+' · '+row.beesCount+' пчёл · '+row.mitesCount+' клещей':row.mitesCount+' клещей · '+row.exposureHours+' ч';return '<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(title)+' · '+safe(hive?hname(hive.id):(row.hiveLabelAtTime||'Архивный улей'))+'</b><span class="muted">'+safe(row.date)+'</span></div><div><b>'+safe(value)+'</b></div><div class="muted">'+safe(detail)+'</div>'+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>'}).join('');
+ list.innerHTML=rows.map(row=>{const hive=S.hives.find(h=>h.id===row.hiveId),title=row.type==='adult_bee_sample'?'Проба взрослых пчёл':'Контрольный поддон',value=row.type==='adult_bee_sample'?row.mitesPer100Bees+' клеща на 100 пчёл':row.mitesPer24h+' клеща за 24 часа',detail=row.type==='adult_bee_sample'?methodLabels[row.method]+' · '+row.beesCount+' пчёл · '+row.mitesCount+' клещей':row.mitesCount+' клещей · '+row.exposureHours+' ч';return '<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(title)+' · '+safe((row.hiveLabelAtTime||(hive?hname(hive.id):'Улей не указан'))+(hive?'':' · Архивный улей'))+'</b><span class="muted">'+safe(row.date)+'</span></div><div><b>'+safe(value)+'</b></div><div class="muted">'+safe(detail)+'</div>'+(row.familySnapshotAtTime?'<div class="muted">Семья на момент пробы: '+safe(row.familySnapshotAtTime.name||'Название не указано')+'</div>':'')+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>'}).join('');
 }
 async function saveVarroaObservation(event){
  event?.preventDefault?.();
@@ -2261,11 +2268,11 @@ async function saveVarroaObservation(event){
  form.dataset.saveInProgress='1';
  try{
   const type=$('varroaType').value,input={type,hiveId:$('varroaHive').value,date:$('varroaDate').value,notes:$('varroaNotes').value};
-  if(type==='adult_bee_sample'){input.method=$('varroaMethod').value;input.beesCount=$('varroaBeesCount').value;input.mitesCount=$('varroaMitesCount').value}
+  if(type==='adult_bee_sample'){input.familyId=$('varroaFamily')?.value||'';input.method=$('varroaMethod').value;input.beesCount=$('varroaBeesCount').value;input.mitesCount=$('varroaMitesCount').value}
   else{input.mitesCount=$('varroaBoardMites').value;input.exposureHours=$('varroaExposureHours').value}
   if(input.date>today()){alert('Фактически выполненное измерение Varroa не может иметь дату из будущего.');return}
   let observation;
-  try{observation=PasekaVarroa.buildVarroaObservation(input,S.hives,uid,new Date().toISOString())}
+  try{observation=PasekaVarroa.buildVarroaObservation(input,S.hives,uid,new Date().toISOString(),S.families)}
   catch(error){alert(error.message||'Проверь данные измерения');return}
   let previous;
   try{previous=cloneApiaryState()}
@@ -2293,6 +2300,14 @@ async function saveVarroaObservation(event){
   form.dataset.saveInProgress='';
  }
 }
+function openVarroaTreatmentRecord(button){
+ const {recordId,hiveId}=button.dataset;
+ const matches=S.records.filter(row=>row?.id===recordId);
+ if(!recordId||matches.length!==1||matches[0].archivedAt||matches[0].type!=='Обработка'||matches[0].hive!==hiveId||!S.hives.some(h=>h.id===hiveId)){
+  renderVarroaModule();alert('Связанная запись обработки недоступна.');return;
+ }
+ editRecord(recordId);
+}
 function openVarroaTreatmentJournal(){
  const hiveId=$('varroaHive')?.value;
  if(!S.hives.some(h=>h.id===hiveId)){alert('Выбери существующий улей для записи выполненной обработки.');return}
@@ -2316,29 +2331,60 @@ function renderIncidentHiveChoices(){
  const host=$('incidentHiveChoices');if(!host)return;
  const selected=new Set([...host.querySelectorAll('input[name="incidentHiveId"]:checked')].map(x=>x.value));
  const scope=$('incidentScope')?.value||'selected_hives';host.hidden=scope!=='selected_hives';
- host.innerHTML=S.hives.map(h=>'<label style="display:flex;align-items:center;gap:8px;padding:6px 0"><input type="checkbox" name="incidentHiveId" value="'+safe(h.id)+'" '+(selected.has(h.id)?'checked':'')+' style="width:auto;margin:0">'+safe(hname(h.id))+'</label>').join('')||'<p class="muted">Сначала добавь улей.</p>';
+ host.innerHTML=S.hives.map(h=>'<label style="display:flex;align-items:center;gap:8px;padding:6px 0"><input type="checkbox" name="incidentHiveId" onchange="renderIncidentFamilyChoices()" value="'+safe(h.id)+'" '+(selected.has(h.id)?'checked':'')+' style="width:auto;margin:0">'+safe(hname(h.id))+'</label>').join('')||'<p class="muted">Сначала добавь улей.</p>';
+ renderIncidentFamilyChoices();
+}
+function renderIncidentFamilyChoices(){
+ const host=$('incidentFamilyChoices');if(!host)return;
+ const selected=new Set([...host.querySelectorAll('input:checked')].map(x=>x.value));
+ const scope=$('incidentScope').value;
+ const hiveIds=scope==='whole_apiary'?new Set(S.hives.map(h=>h.id)):scope==='selected_hives'?new Set([...$('incidentHiveChoices').querySelectorAll('input:checked')].map(x=>x.value)):new Set();
+ const families=S.families.filter(f=>hiveIds.has(f.hive));
+ host.innerHTML=families.length?'<p class="muted">Пострадавшие семьи (если установлены)</p>'+families.map(f=>'<label style="display:flex;align-items:center;gap:8px"><input style="width:auto;margin:0" type="checkbox" name="incidentFamilyId" value="'+safe(f.id)+'" '+(selected.has(f.id)?'checked':'')+'>'+safe(hname(f.hive)+' · '+(f.name||f.code||'Семья'))+'</label>').join(''):'';
+
+}
+let incidentPhotoReading=false,incidentSaving=false,incidentGpsPending=false,incidentGpsRequest=0;
+function clearIncidentPhotos(){
+ if(incidentPhotoReading||incidentSaving)return;
+ pendingIncidentMedia=[];$('incidentPhotoInput').value='';renderIncidentPhotoPreview();
+}
+function clearIncidentGps(){
+ incidentGpsRequest++;incidentGpsPending=false;
+ for(const id of ['incidentLatitude','incidentLongitude','incidentGpsAccuracy','incidentGpsCapturedAt'])$(id).value='';
+ $('incidentGpsStatus').textContent='GPS не запрашивался';
 }
 function renderIncidentPhotoPreview(){
  const host=$('incidentPhotoPreview');if(!host)return;
- host.innerHTML=pendingIncidentMedia.map(x=>'<div><img src="'+x.data+'" alt="'+safe(x.name)+'"><div class="muted">'+safe(x.name)+'</div></div>').join('');
+ host.innerHTML=pendingIncidentMedia.map(x=>'<div><img src="'+safe(x.data)+'" alt="'+safe(x.name)+'"><div class="muted">'+safe(x.name)+'</div></div>').join('');
 }
 async function loadIncidentPhotos(input){
- const files=[...(input?.files||[])];if(files.length>3){alert('Можно выбрать не более трёх фотографий.');input.value='';return}
+ if(incidentPhotoReading||incidentSaving)return;
+ const files=[...(input?.files||[])];if(!files.length)return;
+ if(files.length>3){alert('Можно выбрать не более трёх фотографий. Прежние вложения сохранены.');input.value='';return}
+ incidentPhotoReading=true;input.disabled=true;
  try{
   const next=await Promise.all(files.map(file=>new Promise((resolve,reject)=>{
    if(!['image/jpeg','image/png','image/webp','image/heic'].includes(file.type)||file.size>2*1024*1024)return reject(new Error('Поддерживаются JPG, PNG, WebP или HEIC до 2 МБ каждый.'));
    const reader=new FileReader();reader.onload=()=>resolve({kind:'image',name:file.name,type:file.type,data:String(reader.result),sizeBytes:file.size,capturedAt:file.lastModified?new Date(file.lastModified).toISOString():new Date().toISOString()});reader.onerror=()=>reject(new Error('Не удалось прочитать фотографию.'));reader.readAsDataURL(file);
   })));
   pendingIncidentMedia=next;renderIncidentPhotoPreview();
- }catch(error){pendingIncidentMedia=[];renderIncidentPhotoPreview();alert(error.message||'Не удалось добавить фотографии');input.value=''}
+ }catch(error){alert((error.message||'Не удалось добавить фотографии')+'. Прежние вложения сохранены.');input.value=''}
+ finally{incidentPhotoReading=false;input.disabled=false;}
 }
 function captureIncidentLocation(){
+ if(incidentSaving||incidentGpsPending)return;
  const status=$('incidentGpsStatus');if(!navigator.geolocation){if(status)status.textContent='GPS недоступен в этом браузере';return}
  if(status)status.textContent='Запрашиваем разрешение телефона…';
+ incidentGpsPending=true;const request=++incidentGpsRequest;
  navigator.geolocation.getCurrentPosition(position=>{
-  $('incidentLatitude').value=String(position.coords.latitude);$('incidentLongitude').value=String(position.coords.longitude);$('incidentGpsAccuracy').value=String(Math.round(position.coords.accuracy));$('incidentGpsCapturedAt').value=new Date().toISOString();
+  if(request!==incidentGpsRequest)return;incidentGpsPending=false;
+  $('incidentLatitude').value=String(position.coords.latitude);$('incidentLongitude').value=String(position.coords.longitude);$('incidentGpsAccuracy').value=String(Math.round(position.coords.accuracy));$('incidentGpsCapturedAt').value=Number.isFinite(position.timestamp)?new Date(position.timestamp).toISOString():'';
   if(status)status.textContent='GPS получен · точность около '+Math.round(position.coords.accuracy)+' м';
- },error=>{if(status)status.textContent=error.code===1?'Доступ к GPS запрещён':error.code===2?'GPS-координаты недоступны':'Истекло время ожидания GPS'}, {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+ },error=>{
+  if(request!==incidentGpsRequest)return;incidentGpsPending=false;
+  const reason=error.code===1?'Доступ к GPS запрещён':error.code===2?'GPS-координаты недоступны':'Истекло время ожидания GPS';
+  if(status)status.textContent=reason+($('incidentLatitude').value?' · прежние координаты сохранены':'');
+ }, {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 }
 function renderPesticideIncidentModule(){
  const list=$('incidentList');if(!list)return;
@@ -2349,21 +2395,26 @@ function renderPesticideIncidentModule(){
  if(!summary.total){list.innerHTML='<p class="muted">Инцидентов пока нет.</p>';return}
  const scopes={selected_hives:'Выбранные ульи',whole_apiary:'Вся пасека',unknown:'Охват неизвестен'};
  list.innerHTML=summary.items.map(row=>{
-  const hiveLabels=(row.affectedHiveSnapshots||[]).map(x=>x.label||'Улей').join(', '),scopeLabel=scopes[row.scope]||'Охват не указан';
+  const hiveLabels=(Array.isArray(row.affectedHiveSnapshots)?row.affectedHiveSnapshots:[]).map(x=>x?.label||'Улей').join(', '),familyLabels=(Array.isArray(row.affectedFamilySnapshots)?row.affectedFamilySnapshots:[]).map(x=>{const snapshot=(Array.isArray(row.affectedHiveSnapshots)?row.affectedHiveSnapshots:[]).find(h=>h?.id===x?.hiveId);return (x?.name||'Семья')+' · '+(snapshot?.label||'Улей не указан')}).join(', '),scopeLabel=scopes[row.scope]||'Охват не указан';
   const gps=row.latitude!=null?'GPS '+row.latitude+', '+row.longitude+(row.locationAccuracyM!=null?' ±'+row.locationAccuracyM+' м':''):'GPS не фиксировался';
   const evidence=[row.media?.length?row.media.length+' фото':'',row.sampleId?'Проба '+row.sampleId:'',row.reportReference?'Обращение '+row.reportReference:'',row.sampleCollectedAt?'Отбор: '+new Date(row.sampleCollectedAt).toLocaleString('ru-RU'):''].filter(Boolean).join(' · ');
-  const context=[row.suspectedCrop?'Культура (версия): '+row.suspectedCrop:'',row.suspectedSubstance?'Вещество (версия): '+row.suspectedSubstance:'',row.reportedTo?'Передано: '+row.reportedTo:'',row.sampleTransferredTo?'Образец передан: '+row.sampleTransferredTo:''].filter(Boolean).join(' · ');
-  const photos=(row.media||[]).filter(photo=>photo&&typeof photo.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(photo.data)).map(photo=>'<img src="'+safe(photo.data)+'" alt="'+safe(photo.name||'Фото инцидента')+'" style="width:76px;height:76px;object-fit:cover;border-radius:8px">').join('');
-  return '<div style="padding:12px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(new Date(row.observedAt).toLocaleString('ru-RU'))+'</b><span class="pill">Причина не установлена</span></div><div class="muted">'+safe(scopeLabel)+(hiveLabels?' · '+safe(hiveLabels):'')+'</div>'+(row.deadBeesCount!=null?'<div>Оценка погибших пчёл: '+safe(row.deadBeesCount)+'</div>':'')+(row.symptoms?'<div>'+safe(row.symptoms)+'</div>':'')+'<div class="muted">'+safe(row.locationLabel||'Место не подписано')+' · '+safe(gps)+'</div>'+(context?'<div class="muted">'+safe(context)+'</div>':'')+(evidence?'<div class="muted">'+safe(evidence)+'</div>':'')+(photos?'<div class="row" style="gap:6px;margin-top:8px">'+photos+'</div>':'')+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>';
+  const context=[row.suspectedCrop?'Культура (версия): '+row.suspectedCrop:'',row.suspectedSubstance?'Вещество (версия): '+row.suspectedSubstance:'',row.reportedTo?'Передано: '+row.reportedTo:'',row.sampleTransferredTo?'Образец передан: '+row.sampleTransferredTo:'',row.suspectedArea?'Участок (версия): '+row.suspectedArea:'',row.weatherNotes?'Погода: '+row.weatherNotes:'',row.sampleSeal?'Пломба: '+row.sampleSeal:'',row.gpsCapturedAt?'GPS зафиксирован: '+row.gpsCapturedAt:''].filter(Boolean).join(' · ');
+  const photos=(Array.isArray(row.media)?row.media:[]).filter(photo=>photo&&typeof photo.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(photo.data)).map(photo=>'<img src="'+safe(photo.data)+'" alt="'+safe(photo.name||'Фото инцидента')+'" style="width:76px;height:76px;object-fit:cover;border-radius:8px">').join('');
+  return '<div style="padding:12px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(new Date(row.observedAt).toLocaleString('ru-RU'))+'</b><span class="pill">Причина не установлена</span></div><div class="muted">'+safe(scopeLabel)+(hiveLabels?' · '+safe(hiveLabels):'')+'</div>'+(familyLabels?'<div>Семьи на момент наблюдения: '+safe(familyLabels)+'</div>':'')+(row.deadBeesCount!=null?'<div>Оценка погибших пчёл: '+safe(row.deadBeesCount)+'</div>':'')+(row.symptoms?'<div>'+safe(row.symptoms)+'</div>':'')+'<div class="muted">'+safe(row.locationLabel||'Место не подписано')+' · '+safe(gps)+'</div>'+(context?'<div class="muted">'+safe(context)+'</div>':'')+(evidence?'<div class="muted">'+safe(evidence)+'</div>':'')+(photos?'<div class="row" style="gap:6px;margin-top:8px">'+photos+'</div>':'')+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>';
  }).join('');
 }
 async function savePesticideIncident(event){
  event?.preventDefault?.();
- const input={observedAt:$('incidentObservedAt').value,scope:$('incidentScope').value,hiveIds:[...document.querySelectorAll('input[name="incidentHiveId"]:checked')].map(x=>x.value),deadBeesCount:$('incidentDeadBees').value,symptoms:$('incidentSymptoms').value,locationLabel:$('incidentLocationLabel').value,latitude:$('incidentLatitude').value,longitude:$('incidentLongitude').value,locationAccuracyM:$('incidentGpsAccuracy').value,gpsCapturedAt:$('incidentGpsCapturedAt').value,suspectedCrop:$('incidentCrop').value,suspectedSubstance:$('incidentSubstance').value,suspectedArea:$('incidentArea').value,weatherNotes:$('incidentWeather').value,reportedTo:$('incidentReportedTo').value,reportReference:$('incidentReportReference').value,sampleId:$('incidentSampleId').value,sampleCollectedAt:$('incidentSampleCollectedAt').value,sampleSeal:$('incidentSampleSeal').value,sampleTransferredTo:$('incidentSampleTransferredTo').value,notes:$('incidentNotes').value};
- let incident;try{incident=PasekaIncident.buildPesticideIncidentDraft(input,S.hives,pendingIncidentMedia,uid,new Date().toISOString())}catch(error){alert(error.message||'Проверь сведения об инциденте');return}
+ if(incidentSaving)return;
+ if(incidentPhotoReading||incidentGpsPending){alert('Дождись завершения чтения фото или получения GPS.');return;}
+ const input={observedAt:$('incidentObservedAt').value,scope:$('incidentScope').value,hiveIds:[...document.querySelectorAll('input[name="incidentHiveId"]:checked')].map(x=>x.value),familyIds:[...document.querySelectorAll('input[name="incidentFamilyId"]:checked')].map(x=>x.value),deadBeesCount:$('incidentDeadBees').value,symptoms:$('incidentSymptoms').value,locationLabel:$('incidentLocationLabel').value,latitude:$('incidentLatitude').value,longitude:$('incidentLongitude').value,locationAccuracyM:$('incidentGpsAccuracy').value,gpsCapturedAt:$('incidentGpsCapturedAt').value,suspectedCrop:$('incidentCrop').value,suspectedSubstance:$('incidentSubstance').value,suspectedArea:$('incidentArea').value,weatherNotes:$('incidentWeather').value,reportedTo:$('incidentReportedTo').value,reportReference:$('incidentReportReference').value,sampleId:$('incidentSampleId').value,sampleCollectedAt:$('incidentSampleCollectedAt').value,sampleSeal:$('incidentSampleSeal').value,sampleTransferredTo:$('incidentSampleTransferredTo').value,notes:$('incidentNotes').value};
+ let incident;try{incident=PasekaIncident.buildPesticideIncidentDraft(input,S.hives,pendingIncidentMedia,uid,new Date().toISOString(),S.families)}catch(error){alert(error.message||'Проверь сведения об инциденте');return}
+ incidentSaving=true;const form=$('incidentForm');form.inert=true;
+ try{
  const previous=cloneApiaryState();S.pesticideIncidents=S.pesticideIncidents||[];S.pesticideIncidents.push(incident);logAudit('pesticide_incident_created',{incidentId:incident.id,scope:incident.scope,affectedHiveIds:incident.affectedHiveIds});
  if(!await save()){S=previous;render();return}
- $('incidentForm').reset();pendingIncidentMedia=[];$('incidentObservedAt').value=localIncidentDateTime();$('incidentGpsStatus').textContent='GPS не запрашивался';renderPesticideIncidentModule();
+ form.reset();pendingIncidentMedia=[];clearIncidentGps();$('incidentObservedAt').value=localIncidentDateTime();renderPesticideIncidentModule();
+ }finally{incidentSaving=false;form.inert=false;}
 }
 function renderDeadoutPhotoPreview(){
  const host=$('deadoutPhotoPreview');if(!host)return;
@@ -5318,11 +5369,29 @@ function buildPlantObservationDraft(input,catalog,makeId,now){
  const plant=existing|| (rawName?{id:makeId(),commonName:rawName,scientificName:null,identificationStatus:'unverified',createdAt:now,updatedAt:now}:null);
  return {plant,observation:{id:makeId(),plantId:plant?.id||null,plantName:displayName,observedAt,phase,abundance,beeVisits,locationLabel,note,source:effectiveSource,status:'confirmed',confidence:rawName?'user_reported':'photo_unidentified',media:media.map(item=>({...item})),latitude,longitude,locationAccuracyM:accuracy,shareConsent:input.shareConsent===true,shareStatus:input.shareConsent===true?'awaiting_cloud_sync':'private',createdAt:now,updatedAt:now}};
 }
+function filterPlantObservationHistory(rows,query,phase,year){
+ const value=String(query||'').trim().toLocaleLowerCase('ru-RU');
+ return rows.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)&&(!value||[item.plantName,item.locationLabel,item.note].filter(Boolean).join(' ').toLocaleLowerCase('ru-RU').includes(value))&&
+  (phase==='all'||(item.phase||'unknown')===phase)&&(!year||String(item.observedAt||'').startsWith(year+'-')))
+  .sort((a,b)=>String(b.observedAt||'').localeCompare(String(a.observedAt||'')));
+}
+function resetPlantHistoryPage(){renderPlantModule.page=0;renderPlantModule()}
+function changePlantHistoryPage(direction){renderPlantModule.page=(renderPlantModule.page||0)+direction;renderPlantModule();$('plantObservationsList').focus()}
 function renderPlantModule(){
- const host=$('plantObservationsList');if(!host)return;const dateField=$('plantObservedAt');if(dateField&&!dateField.value)dateField.value=today();const rows=(S.plantObservations||[]).slice().sort((a,b)=>String(b.observedAt||'').localeCompare(String(a.observedAt||'')));
+ const plantHistoryPageSize=20;
+ const host=$('plantObservationsList');if(!host)return;const dateField=$('plantObservedAt');if(dateField&&!dateField.value)dateField.value=today();const all=Array.isArray(S.plantObservations)?S.plantObservations:[];
+ const year=$('plantHistoryYear'),previous=year.value,years=[...new Set(all.map(item=>String(item?.observedAt||'').slice(0,4)).filter(value=>/^\d{4}$/.test(value)))].sort().reverse();
+ year.replaceChildren(new Option('Все годы',''),...years.map(value=>new Option(value,value)));
+ if(years.includes(previous))year.value=previous;
+ const rows=filterPlantObservationHistory(all,$('plantHistorySearch').value,$('plantHistoryPhase').value,year.value);
+ const pages=Math.ceil(rows.length/plantHistoryPageSize);const plantHistoryPage=Math.max(0,Math.min(renderPlantModule.page||0,pages-1));renderPlantModule.page=plantHistoryPage;
+ const start=plantHistoryPage*plantHistoryPageSize;
+ $('plantHistoryPages').hidden=pages<2;$('plantHistoryPrev').disabled=plantHistoryPage===0;$('plantHistoryNext').disabled=plantHistoryPage+1>=pages;
+ $('plantHistoryPageStatus').textContent=pages?'Страница '+(plantHistoryPage+1)+' из '+pages:'';
+
  const labels={beginning:'Начало цветения',mass:'Массовое цветение',ending:'Заканчивает цвести',finished:'Отцвело',unknown:'Стадия не уточнена'},amount={rare:'Единично',scattered:'Местами',common:'Много',mass:'Очень много',unknown:'Обилие не оценено'},visits={observed:'Пчёлы наблюдались',not_observed:'Пчёлы не наблюдались',not_checked:'Посещение не проверялось'};
- $('plantObservationCount').textContent=String(rows.length);host.innerHTML=rows.length?rows.slice(0,80).map(item=>'<article class="plant-observation"><div class="row"><b>'+safe(item.plantName)+'</b><time>'+safe(item.observedAt)+'</time></div>'+(item.media?.length?'<img class="plant-observation-thumb" loading="lazy" src="'+safe(item.media[0].data)+'" alt="Фотография растения">':'')+'<div class="muted">'+safe(labels[item.phase]||'Стадия не уточнена')+' · '+safe(amount[item.abundance]||'Обилие не оценено')+' · '+safe(visits[item.beeVisits]||'Посещение не проверялось')+'</div>'+(item.locationLabel?'<div class="muted">Место: '+safe(item.locationLabel)+'</div>':'')+(Number.isFinite(item.latitude)&&Number.isFinite(item.longitude)?'<div class="muted">GPS сохранён · точность '+safe(String(item.locationAccuracyM??'неизвестна'))+' м</div>':'')+(item.note?'<p>'+safe(item.note)+'</p>':'')+'<div class="row"><span class="muted">'+(item.source==='voice'?'Диктовка':item.source==='photo'?'Фото':item.source==='mixed'?'Фото + текст/речь':'Текст')+' · '+(item.shareConsent?'предложено для общей базы после синхронизации':'личная запись')+'</span><button type="button" data-edit-plant="'+safe(item.id)+'">Исправить</button></div></article>').join(''):'<p class="muted">Наблюдений пока нет. Добавь первое известное тебе растение, текст или фотографию.</p>';
- host.onclick=event=>{const button=event.target.closest('[data-edit-plant]');if(button)editPlantObservation(button.dataset.editPlant)};
+ $('plantObservationCount').textContent=rows.length+' из '+all.length;host.innerHTML=rows.length?rows.slice(start,start+plantHistoryPageSize).map(item=>'<article class="plant-observation"><div class="row"><b>'+safe(item.plantName)+'</b><time>'+safe(item.observedAt)+'</time></div>'+(Array.isArray(item.media)&&item.media[0]?.data?'<img class="plant-observation-thumb" loading="lazy" src="'+safe(item.media[0].data)+'" alt="Фотография растения">':'')+'<div class="muted">'+safe(labels[item.phase]||'Стадия не уточнена')+' · '+safe(amount[item.abundance]||'Обилие не оценено')+' · '+safe(visits[item.beeVisits]||'Посещение не проверялось')+'</div>'+(item.locationLabel?'<div class="muted">Место: '+safe(item.locationLabel)+'</div>':'')+(Number.isFinite(item.latitude)&&Number.isFinite(item.longitude)?'<div class="muted">GPS сохранён · точность '+safe(String(item.locationAccuracyM??'неизвестна'))+' м</div>':'')+(item.note?'<p>'+safe(item.note)+'</p>':'')+'<div class="row"><span class="muted">'+(item.source==='voice'?'Диктовка':item.source==='photo'?'Фото':item.source==='mixed'?'Фото + текст/речь':'Текст')+' · '+(item.shareConsent?'предложено для общей базы после синхронизации':'личная запись')+'</span><button type="button" data-edit-plant="'+safe(item.id)+'">Исправить</button></div></article>').join(''):'<p class="muted">'+(all.length?'По выбранным условиям наблюдений нет.':'Наблюдений пока нет. Добавь первое известное тебе растение, текст или фотографию.')+'</p>';
+ host.onclick=event=>{const button=event.target.closest('[data-edit-plant]');if(button){const id=button.dataset.editPlant;if((Array.isArray(S.plantObservations)?S.plantObservations:[]).filter(item=>item?.id===id).length!==1){alert('Не удалось однозначно определить наблюдение.');renderPlantModule();return;}editPlantObservation(id)}};
 }
 function renderPlantPhotoPreview(){
  const host=$('plantPhotoPreview');if(!host)return;host.innerHTML=pendingPlantMedia.map((item,index)=>'<div class="plant-photo-item"><img src="'+safe(item.data)+'" alt="Фото растения"><button type="button" data-remove-plant-photo="'+index+'">Убрать</button></div>').join('');
