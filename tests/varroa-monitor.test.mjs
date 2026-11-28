@@ -63,3 +63,26 @@ test('historical measurements remain valid after their hive is archived',()=>{
  const errors=api.inspectVarroaIntegrity({meta:{schemaVersion:10},hives:[{id:'h2'}],varroaObservations:[row]});
  assert.deepEqual(errors,[]);
 });
+
+test('a family sample retains its historical association without attributing a hive-wide board',()=>{
+ const families=[{id:'f1',hive:'h1',name:'Семья 1'},{id:'f2',hive:'h2',name:'Семья 2'}];
+ const base={type:'adult_bee_sample',hiveId:'h1',date:'2026-08-12',method:'other',beesCount:100,mitesCount:2};
+ const create=input=>api.buildVarroaObservation(input,hives,()=> 'family-sample','now',families);
+ const row=create({...base,familyId:'f1'});
+ assert.deepEqual(row.familySnapshotAtTime,{id:'f1',hiveId:'h1',name:'Семья 1'});
+ assert.throws(()=>create({...base,familyId:'f2'}),/Семья пробы/);
+ assert.throws(()=>create({...base,type:'sticky_board',familyId:'f1',exposureHours:24}),/Семья пробы/);
+ families[0].hive='h2';families[0].name='Изменена';
+ assert.deepEqual(api.inspectVarroaIntegrity({hives:[],families,varroaObservations:[row]}),[]);
+ assert.ok(api.inspectVarroaIntegrity({hives,varroaObservations:[{...row,familySnapshotAtTime:{...row.familySnapshotAtTime,hiveId:'h2'}}]}).some(x=>x.code==='varroa_invalid_family_snapshot'));
+});
+
+test('sample counts reject arrays, objects and booleans rather than coercing them to numbers',()=>{
+ const base={type:'adult_bee_sample',hiveId:'h1',date:'2026-08-10',method:'other',beesCount:100,mitesCount:2};
+ for(const value of [[100],{valueOf:()=>100},true,false]){
+  assert.throws(()=>make({...base,beesCount:value}),/Количество пчёл/);
+  assert.throws(()=>make({...base,mitesCount:value}),/Количество клещей/);
+  assert.throws(()=>make({type:'sticky_board',hiveId:'h1',date:'2026-08-10',mitesCount:2,exposureHours:value}),/Период наблюдения/);
+ }
+ assert.equal(make({...base,beesCount:'100',mitesCount:'2'}).mitesPer100Bees,2);
+});

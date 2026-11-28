@@ -2585,7 +2585,68 @@
     ],
     "chromiumSectional": "PASS_SYNTHETIC_4_0_2",
     "mergeAuthorized": true,
-    "mainCI": "PENDING"
+    "mainCI": "PASS"
+  },
+  "inventoryReconciled20261128": {
+    "pr": 661,
+    "sourceHead": "754051fbd65b3580d5b9be7b15deafbcccf6ba69",
+    "mainBase": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+    "stage": "RECONCILED_REVIEW",
+    "node": "PENDING",
+    "android": "PENDING",
+    "physicalDevice": "NOT_TESTED",
+    "release": false
+  },
+  "sevenAuthorizedMerges20261128": {
+    "stage": "IN_MAIN",
+    "ownerAuthorizedMerge": true,
+    "mergeMethod": "squash",
+    "finalMainSha": "6a8c419a1b3ad64d38bb63104760061ea3a6bbca",
+    "prToMainSha": {
+      "634": "1c6c50d0ad152b76e43fefb62b4c1c6e5051c51c",
+      "658": "876286a81e57c2e1a702d057e87bedb2e4fc3e9f",
+      "659": "f5bdd8bd78dd9c52db38f0e88cc4065ba4215190",
+      "661": "1370d443d01a9c188971aed6ff238f656667eb80",
+      "666": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+      "668": "b56c1944dc93545d11095a24915e1b9ec0c9e61b",
+      "669": "6a8c419a1b3ad64d38bb63104760061ea3a6bbca"
+    },
+    "exactPrCi": "PASS",
+    "postMergeMainCi": "PASS",
+    "physicalOnePlus": "NOT_TESTED",
+    "b07Activation": "BLOCKED",
+    "productionRelease": false,
+    "productionDataMutated": false,
+    "postMergeChecks": [
+      "test",
+      "build",
+      "journal-browser",
+      "governance",
+      "Workers Builds: pasekaapp",
+      "Verify Pages source is GitHub Actions (read-only)"
+    ]
+  },
+  "plantCsv20261128": {
+    "pr": 671,
+    "status": "IN_MAIN",
+    "mainSha": "0f80d7d787de763a67c9a56eae65e5e39203e76d",
+    "exactPrCi": "PASS",
+    "device": "NOT_TESTED",
+    "release": false
+  },
+  "pwaShellV33020261128": {
+    "pr": 672,
+    "status": "IN_MAIN",
+    "codeSha": "08ad0998a650f9dfbbd31742a99dcebe92c603ca",
+    "oldShellVersion": 329,
+    "newShellVersion": 330,
+    "node": "PASS",
+    "android": "PASS",
+    "governance": "PASS",
+    "device": "NOT_TESTED",
+    "productionRelease": false,
+    "mainSha": "35eb9603befc64289cc95964f5b5046b61ed10c7",
+    "postMergeCi": "PASS"
   },
   "integrationQueue20261128": {
     "stage": "PARTIAL_IN_MAIN",
@@ -2613,5 +2674,31 @@
     "physicalDeviceVerified": false,
     "releaseAuthorized": false,
     "activationAuthorized": false
+  },
+  "uxRouteAndDevice20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "runtimeBase": "00b82f0457c3c5a5da5e4edeba27f886e3dd13a8",
+    "routePr": 674,
+    "routeHead": "6cc4ff97082c6ff0fd5cffaa145bc624ea6ee2bb",
+    "nodeTests": {
+      "passed": 1210,
+      "total": 1210,
+      "failed": 0,
+      "run": 46142035806
+    },
+    "governance": "PASS",
+    "fullCI": "PENDING",
+    "qaPr": 650,
+    "qaHead": "5a5053176b324b3d6a3ff940cf15bd1ab718d230",
+    "qaInitialBuild": {
+      "run": 46141755217,
+      "conclusion": "failure",
+      "cause": "Maven HTTP 429",
+      "retry": "PENDING"
+    },
+    "qaPackage": "ru.paseka.journal.qa.ux20261128",
+    "physicalDevice": "NOT_TESTED",
+    "productionRelease": false,
+    "measuredSavings": null
   }
 }
