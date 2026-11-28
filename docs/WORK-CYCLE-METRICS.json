@@ -2609,7 +2609,7 @@
   },
   "pwaShellV33020261128": {
     "pr": 672,
-    "status": "IMPLEMENTED_DRAFT",
+    "status": "IN_MAIN",
     "codeSha": "08ad0998a650f9dfbbd31742a99dcebe92c603ca",
     "oldShellVersion": 329,
     "newShellVersion": 330,
@@ -2617,6 +2617,8 @@
     "android": "PASS",
     "governance": "PASS",
     "device": "NOT_TESTED",
-    "productionRelease": false
+    "productionRelease": false,
+    "mainSha": "35eb9603befc64289cc95964f5b5046b61ed10c7",
+    "postMergeCi": "PASS"
   }
 }
