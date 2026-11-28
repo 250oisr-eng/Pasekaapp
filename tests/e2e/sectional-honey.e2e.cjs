@@ -79,6 +79,45 @@ async function journey(browser,origin){
   assert.equal(harvested.extractions[0].items[0].frameIds.length,40);assert.equal(harvested.extractions[0].items[0].kilograms,22);assert.equal(harvested.legacy,null);
   await page.reload({waitUntil:'domcontentloaded'});await ready();await page.evaluate(()=>openHive('h1'));
   assert.deepEqual(await state(),harvested,'restart preserves actual IndexedDB state');
+  // OP11 UI acceptance is synthetic/read-only. Add only transient in-memory
+  // spare accessories; never write a fixture or the preview to IndexedDB.
+  await page.evaluate(()=>{
+   window.__op11BeforeQA=structuredClone(S);
+   const stock={type:'storage',label:'Склад'};
+   for(let i=1;i<=4;i++)S.equipmentInventory.items['qa-op11-plug-'+i]={
+    id:'qa-op11-plug-'+i,kind:'plasticPlug',condition:'good',location:stock,events:[]
+   };
+   S.equipmentInventory.items['qa-op11-feeder']={
+    id:'qa-op11-feeder',kind:'feeder',condition:'good',location:stock,events:[]
+   };
+   window.__op11SeedFingerprint=JSON.stringify(S);
+   renderSectionalOp11Preview();
+  });
+  const op11=page.locator('#sectionalOp11PreviewHost');
+  assert.equal(await op11.isVisible(),true,'OP11 read-only panel must be accessible in sectional hive card');
+  await op11.locator('summary').click();
+  const op11Form=op11.locator('[data-op11-form]');
+  const op11Select=async(key,value)=>op11Form.locator('[data-op11-field="'+key+'"]').selectOption(value);
+  await op11Select('lowerBodyId','b2');await op11Select('middleBodyId','b4');
+  await op11Select('upperBodyId','b6');await op11Select('bottomItemId','bottom1');
+  await op11Select('coverItemId','cover1');await op11Select('topRiserItemId','riser1');
+  await op11Select('feederItemId','qa-op11-feeder');
+  for(const [index,openingId] of ['o5','o6','o7','o8'].entries())
+   await op11Form.locator('[data-op11-plug="'+openingId+'"]').selectOption('qa-op11-plug-'+(index+1));
+  await op11Select('ventilationOption','upper_only');
+  await op11Form.getByRole('button',{name:'Проверить схему без записи'}).click();
+  assert.match(await op11.locator('[role=status]').textContent(),/НЕ выполнено и НЕ сохранено/);
+  assert.match(await op11.locator('[data-op11-result]').textContent(),/Неизвестна — не назначена приложением/);
+  assert.equal(await op11.locator('[data-op11-result]').getByRole('button',{name:/Сохранить|Выполнить/}).count(),0);
+  assert.equal(await page.evaluate(()=>JSON.stringify(S)===window.__op11SeedFingerprint),true,
+   'OP11 UI must not mutate even the synthetic in-memory state');
+  assert.deepEqual(await state(),harvested,'OP11 preview must leave IndexedDB main and auto-backup unchanged');
+  // Stop the read-only QA fixture from leaking into the tested honey workflow.
+  await page.evaluate(()=>{
+   S=window.__op11BeforeQA;delete window.__op11BeforeQA;delete window.__op11SeedFingerprint;
+   renderSectionalOp11Preview();
+  });
+  assert.deepEqual(await state(),harvested);
   await page.clock.setFixedTime(new Date('2026-11-28T12:00:00Z'));
   const install=panel.locator('form');
   await install.locator('input[type=text]').fill('QA-СКЛАД');

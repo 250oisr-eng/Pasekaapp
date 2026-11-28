@@ -659,8 +659,8 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
 <section id="deadout" class="panel">
  <div class="card"><h2 style="margin-top:0">Разбор погибшей семьи</h2><p class="muted">Пошаговая фиксация наблюдений после обнаружения погибшей семьи. Сначала сохраняй факты и фото. Приложение показывает возможные направления проверки, но не устанавливает диагноз или причину гибели.</p></div>
  <div class="card"><h3 style="margin-top:0">Новый разбор</h3><form id="deadoutForm" onsubmit="saveDeadoutReview(event)">
-  <label for="deadoutHive">Улей</label><select id="deadoutHive" required><option value="">— Выбери улей —</option></select>
-  <label for="deadoutObservedAt">Дата обнаружения</label><input id="deadoutObservedAt" type="date" required>
+  <label for="deadoutHive">Улей</label><select id="deadoutHive" required onchange="renderDeadoutFamilyChoices()"><option value="">— Выбери улей —</option></select>
+  <label for="deadoutFamily">Семья (если установлена)</label><select id="deadoutFamily"><option value="">Семья не установлена</option></select><p class="muted">Разбор сохраняет наблюдение. Состояние семьи и оборудования изменяется только отдельными действиями.</p><label for="deadoutObservedAt">Дата обнаружения</label><input id="deadoutObservedAt" type="date" required>
   <label for="deadoutLastAlive">Последний подтверждённый осмотр живой семьи</label><input id="deadoutLastAlive" type="date">
   <h4>Корма и положение клуба</h4><label for="deadoutFood">Остатки кормов</label><select id="deadoutFood"><option value="unknown">Неизвестно / не оценено</option><option value="absent">Корма нет</option><option value="very_low">Очень мало</option><option value="some">Корм есть, количество неясно</option><option value="adequate">Корма визуально достаточно</option></select>
   <label for="deadoutCluster">Положение клуба относительно кормов</label><select id="deadoutCluster"><option value="unknown">Неизвестно</option><option value="near_food">Рядом с кормом</option><option value="far_from_food">В стороне от доступных кормов</option><option value="bottom">В нижней части улья</option></select>
@@ -671,7 +671,7 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
   <label for="deadoutQueen">Состояние матки</label><select id="deadoutQueen"><option value="unknown">Неизвестно</option><option value="queen_seen">Матка найдена живой при последнем осмотре</option><option value="queen_dead">Найдена погибшая матка</option><option value="not_found">Матка не найдена</option></select>
   <label for="deadoutRodents">Следы грызунов</label><select id="deadoutRodents"><option value="unknown">Не оценено</option><option value="nest_or_droppings">Гнездо / помёт</option><option value="gnawing">Погрызенные соты / элементы улья</option><option value="none">Следов не замечено</option></select>
   <label for="deadoutSeasonContext">Погодные и сезонные обстоятельства</label><textarea id="deadoutSeasonContext" rows="2" maxlength="1000" placeholder="Известные факты: длительные морозы, оттепели, сырость, поздняя осень…"></textarea>
-  <label for="deadoutPhotos">Фотографии с обычной камеры смартфона (до 3)</label><input id="deadoutPhotos" type="file" accept="image/*" capture="environment" multiple onchange="loadDeadoutPhotos(this)"><div class="media-note">До 2 МБ на фотографию. Фото хранятся локально и не отправляются автоматически.</div><div id="deadoutPhotoPreview" class="media-grid"></div>
+  <label for="deadoutPhotos">Фотографии с обычной камеры смартфона (до 3)</label><input id="deadoutPhotos" type="file" accept="image/*" capture="environment" multiple onchange="loadDeadoutPhotos(this)"><div class="media-note">До 2 МБ на фотографию. Фото хранятся локально и не отправляются автоматически.</div><div id="deadoutPhotoPreview" class="media-grid"></div><button type="button" onclick="clearDeadoutPhotos()">Убрать фотографии</button>
   <label for="deadoutNotes">Дополнительные наблюдения</label><textarea id="deadoutNotes" rows="3" maxlength="4000"></textarea>
   <button class="primary" type="submit">Сохранить разбор</button>
  </form></div>
@@ -732,6 +732,7 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
   <div class="card hive-family-card"><div class="row"><h3>Состояние семей</h3><span class="muted">По записям осмотров</span></div><div id="selectedFamilies" class="family-observation-grid"></div><div id="familyHealthSummary"></div>
    <div class="row" style="margin-top:10px"><button onclick="addFamily(selectedHiveId)">＋ Семья</button><button onclick="openHiveJournal(selectedHiveId)">Журнал</button><button id="legacyExtractionButton" class="primary" onclick="openExtractionDialog()">Откачка мёда</button></div><div id="hiveExtractionActions"></div>
   </div>
+  <div id="sectionalOp11PreviewHost" hidden></div>
   <details id="hiveTechnicalView" class="card hive-technical-view"><summary><span>Конструкция и рамки</span><span class="muted">Техническое представление</span></summary><p class="muted">Карта учтённой комплектации. Состояния рамок в модели не заменяют фактический осмотр.</p><div id="hiveTechnicalMap"></div><details id="hiveAssemblyEditor" class="card"><summary>Настройка комплектации и операции</summary>
   <div class="row"><h3>Конструкция и рамки</h3></div>
   <div class="assembly-mode-control" id="assemblyModeControl"><label for="assemblyMode">Комплектация улья</label><select id="assemblyMode" onchange="beginModeChange(this.value)"><option value="summer">Летняя сборка</option><option value="winter">Зимняя сборка</option></select><p id="assemblyModeHint" class="muted">После настройки состав будет зафиксирован.</p><button type="button" id="assemblyEditBtn" onclick="editCurrentAssembly()">Изменить</button><button type="button" class="primary" id="assemblyDoneBtn" style="display:none" onclick="finishAssemblySetup()">Готово</button></div><div id="modeTransition" class="card" style="display:none"></div>
@@ -801,7 +802,7 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
 <script src="./js/hive-model.js"></script>
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
 <script src="./js/equipment-items.js"></script>
-<script src="./js/sectional-physical-layout.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script><script src="./js/sectional-stock-pairs.js"></script><script src="./js/sectional-honey-review.js"></script><script src="./js/sectional-honey-persistence.js"></script><script src="./js/sectional-honey-review-ui.js"></script>
+<script src="./js/sectional-physical-layout.js"></script><script src="./js/sectional-op11-preview.js"></script><script src="./js/sectional-op11-preview-ui.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script><script src="./js/sectional-stock-pairs.js"></script><script src="./js/sectional-honey-review.js"></script><script src="./js/sectional-honey-persistence.js"></script><script src="./js/sectional-honey-review-ui.js"></script>
 <script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
@@ -2436,44 +2437,68 @@ async function savePesticideIncident(event){
  form.reset();pendingIncidentMedia=[];clearIncidentGps();$('incidentObservedAt').value=localIncidentDateTime();renderPesticideIncidentModule();
  }finally{incidentSaving=false;form.inert=false;}
 }
+let deadoutPhotoReading=false,deadoutSaving=false;
+function renderDeadoutFamilyChoices(){
+ const select=$('deadoutFamily');if(!select)return;
+ const current=select.value,rows=S.families.filter(f=>f.hive===$('deadoutHive').value);
+ select.replaceChildren(new Option('Семья не установлена',''),...rows.map(f=>new Option(f.name||f.code||'Семья',f.id)));
+ if(rows.some(f=>f.id===current))select.value=current;
+}
+function clearDeadoutPhotos(){
+ if(deadoutPhotoReading||deadoutSaving)return;
+ pendingDeadoutMedia=[];$('deadoutPhotos').value='';renderDeadoutPhotoPreview();
+}
 function renderDeadoutPhotoPreview(){
  const host=$('deadoutPhotoPreview');if(!host)return;
- host.innerHTML=pendingDeadoutMedia.map(photo=>'<div><img src="'+photo.data+'" alt="'+safe(photo.name)+'"><div class="muted">'+safe(photo.name)+'</div></div>').join('');
+ host.innerHTML=pendingDeadoutMedia.map(photo=>'<div><img src="'+safe(photo.data)+'" alt="'+safe(photo.name)+'"><div class="muted">'+safe(photo.name)+'</div></div>').join('');
 }
 async function loadDeadoutPhotos(input){
- const files=[...(input?.files||[])];if(files.length>3){alert('Можно выбрать не более трёх фотографий.');input.value='';return}
+ if(deadoutPhotoReading||deadoutSaving)return;
+ const files=[...(input?.files||[])];if(!files.length)return;
+ if(files.length>3){alert('Можно выбрать не более трёх фотографий. Прежние вложения сохранены.');input.value='';return}
+ deadoutPhotoReading=true;input.disabled=true;
  try{
   const next=await Promise.all(files.map(file=>new Promise((resolve,reject)=>{
    if(!['image/jpeg','image/png','image/webp','image/heic'].includes(file.type)||file.size>2*1024*1024)return reject(new Error('Поддерживаются JPG, PNG, WebP или HEIC до 2 МБ каждый.'));
    const reader=new FileReader();reader.onload=()=>resolve({kind:'image',name:file.name,type:file.type,data:String(reader.result),sizeBytes:file.size,capturedAt:file.lastModified?new Date(file.lastModified).toISOString():new Date().toISOString()});reader.onerror=()=>reject(new Error('Не удалось прочитать фотографию.'));reader.readAsDataURL(file);
   })));
   pendingDeadoutMedia=next;renderDeadoutPhotoPreview();
- }catch(error){pendingDeadoutMedia=[];renderDeadoutPhotoPreview();alert(error.message||'Не удалось добавить фотографии');input.value=''}
+ }catch(error){alert((error.message||'Не удалось добавить фотографии')+'. Прежние вложения сохранены.');input.value=''}
+ finally{deadoutPhotoReading=false;input.disabled=false;}
 }
 function renderDeadoutModule(){
  const select=$('deadoutHive'),list=$('deadoutList');if(!select||!list)return;
  if(!$('deadoutObservedAt').value)$('deadoutObservedAt').value=today();
  const previous=select.value;select.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
  select.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:'');
- renderDeadoutPhotoPreview();
+ renderDeadoutFamilyChoices();renderDeadoutPhotoPreview();
  const summary=PasekaDeadout.summarizeDeadoutReviews(S.deadoutReviews||[]);
  $('deadoutCount').textContent=summary.total+' '+ruPlural(summary.total,'разбор','разбора','разборов');
  if(!summary.total){list.innerHTML='<p class="muted">Разборов пока нет.</p>';return}
+ const fields={foodStatus:'deadoutFood',clusterPosition:'deadoutCluster',moisture:'deadoutMoisture',brood:'deadoutBrood',deadBeesInCells:'deadoutCells',varroaEvidence:'deadoutVarroa',queenStatus:'deadoutQueen',rodentEvidence:'deadoutRodents'};
  const labels={foodStatus:{absent:'Корм отсутствует',very_low:'Корма очень мало',some:'Корм есть, объём неясен',adequate:'Корма визуально достаточно',unknown:'Корм не оценён'},moisture:{condensation:'Конденсат',mold:'Плесень / сырость',dry:'Сухо',unknown:'Не оценено'}};
  list.innerHTML=summary.items.map(item=>{
   const hive=S.hives.find(h=>h.id===item.hiveId),analysis=PasekaDeadout.suggestPossibleFactors(item);
   const candidates=analysis.candidates.map(x=>'<li><b>'+safe(x.label)+':</b> '+safe(x.reason)+'</li>').join('');
-  const photos=(item.media||[]).filter(photo=>photo&&typeof photo.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(photo.data)).map(photo=>'<img src="'+safe(photo.data)+'" alt="'+safe(photo.name||'Фото погибшей семьи')+'" style="width:76px;height:76px;object-fit:cover;border-radius:8px">').join('');
-  return '<div style="padding:12px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>Улей №'+safe(item.hiveNumberAtTime||hive?.number||'—')+'</b><span class="muted">'+safe(item.observedAt)+'</span></div><div class="muted">'+safe(labels.foodStatus[item.foodStatus]||'Корм не оценён')+' · '+safe(labels.moisture[item.moisture]||'Влага не оценена')+'</div><b>Возможные направления проверки</b>'+(candidates?'<ul>'+candidates+'</ul>':'<p class="muted">Недостаточно наблюдений для выделения направления проверки.</p>')+(analysis.checks.length?'<div class="muted">Что ещё проверить: '+safe(analysis.checks.join(' '))+'</div>':'')+(photos?'<div class="row" style="gap:6px;margin-top:8px">'+photos+'</div>':'')+(item.notes?'<p>'+safe(item.notes)+'</p>':'')+'<p class="muted">'+safe(analysis.disclaimer)+'</p></div>';
+  const photos=(Array.isArray(item.media)?item.media:[]).filter(photo=>photo&&typeof photo.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(photo.data)).map(photo=>'<img src="'+safe(photo.data)+'" alt="'+safe(photo.name||'Фото погибшей семьи')+'" style="width:76px;height:76px;object-fit:cover;border-radius:8px">').join('');
+  const facts=Object.entries(fields).map(([key,id])=>{const el=$(id),option=[...el.options].find(o=>o.value===item[key]);return '<li>'+safe(el.labels[0]?.textContent||key)+' — '+safe(option?.textContent||'Не указано')+'</li>'}).join('');
+  const number=item.hiveNumberAtTime;
+  const hiveLabel=Number.isSafeInteger(number)&&number>0?'Улей №'+number:'Улей · номер не установлен';
+  return '<div style="padding:12px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(hiveLabel)+'</b><span class="muted">'+safe(item.observedAt)+'</span></div><div class="muted">'+safe(item.familySnapshotAtTime?.name||'Семья не установлена')+(hive?'':' · Исторический улей')+'</div><details><summary>Сохранённые наблюдения</summary><ul>'+facts+'</ul>'+(item.lastAliveDate?'<p>Последний осмотр живой семьи: '+safe(item.lastAliveDate)+'</p>':'')+(item.seasonContext?'<p>'+safe(item.seasonContext)+'</p>':'')+'</details><div class="muted">'+safe(labels.foodStatus[item.foodStatus]||'Корм не оценён')+' · '+safe(labels.moisture[item.moisture]||'Влага не оценена')+'</div><b>Возможные направления проверки</b>'+(candidates?'<ul>'+candidates+'</ul>':'<p class="muted">Недостаточно наблюдений для выделения направления проверки.</p>')+(analysis.checks.length?'<div class="muted">Что ещё проверить: '+safe(analysis.checks.join(' '))+'</div>':'')+(photos?'<div class="row" style="gap:6px;margin-top:8px">'+photos+'</div>':'')+(item.notes?'<p>'+safe(item.notes)+'</p>':'')+'<p class="muted">'+safe(analysis.disclaimer)+'</p></div>';
  }).join('');
 }
 async function saveDeadoutReview(event){
  event?.preventDefault?.();
- const input={hiveId:$('deadoutHive').value,observedAt:$('deadoutObservedAt').value,lastAliveDate:$('deadoutLastAlive').value,foodStatus:$('deadoutFood').value,clusterPosition:$('deadoutCluster').value,moisture:$('deadoutMoisture').value,brood:$('deadoutBrood').value,deadBeesInCells:$('deadoutCells').value,varroaEvidence:$('deadoutVarroa').value,queenStatus:$('deadoutQueen').value,rodentEvidence:$('deadoutRodents').value,seasonContext:$('deadoutSeasonContext').value,notes:$('deadoutNotes').value};
- let review;try{review=PasekaDeadout.buildDeadoutReviewDraft(input,S.hives,pendingDeadoutMedia,uid,new Date().toISOString())}catch(error){alert(error.message||'Проверь поля разбора');return}
+ if(deadoutSaving)return;
+ if(deadoutPhotoReading){alert('Дождись завершения чтения фото.');return;}
+ const input={hiveId:$('deadoutHive').value,familyId:$('deadoutFamily').value,observedAt:$('deadoutObservedAt').value,lastAliveDate:$('deadoutLastAlive').value,foodStatus:$('deadoutFood').value,clusterPosition:$('deadoutCluster').value,moisture:$('deadoutMoisture').value,brood:$('deadoutBrood').value,deadBeesInCells:$('deadoutCells').value,varroaEvidence:$('deadoutVarroa').value,queenStatus:$('deadoutQueen').value,rodentEvidence:$('deadoutRodents').value,seasonContext:$('deadoutSeasonContext').value,notes:$('deadoutNotes').value};
+ let review;try{review=PasekaDeadout.buildDeadoutReviewDraft(input,S.hives,pendingDeadoutMedia,uid,new Date().toISOString(),S.families)}catch(error){alert(error.message||'Проверь поля разбора');return}
+ deadoutSaving=true;const form=$('deadoutForm');form.inert=true;
+ try{
  const previous=cloneApiaryState();S.deadoutReviews=S.deadoutReviews||[];S.deadoutReviews.push(review);logAudit('deadout_review_created',{reviewId:review.id,hiveId:review.hiveId,observedAt:review.observedAt});
  if(!await save()){S=previous;render();return}
- $('deadoutForm').reset();pendingDeadoutMedia=[];$('deadoutObservedAt').value=today();renderDeadoutModule();
+ form.reset();pendingDeadoutMedia=[];$('deadoutObservedAt').value=today();renderDeadoutModule();
+ }finally{deadoutSaving=false;form.inert=false;}
 }
 function renderSeasonPlanning(){
  const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()]]; // last inspection is a recorded fact, never default to today
@@ -2554,6 +2579,7 @@ function render(){
  S.extractions=S.extractions||[];if(!S.hives.some(h=>h.id===selectedHiveId))selectedHiveId=S.hives[0]?.id||'';
  $('selectedHivePanel').style.display=selectedHiveId?'block':'none';
  if(selectedHiveId){const h=S.hives.find(x=>x.id===selectedHiveId);$('selectedHiveTitle').textContent=hname(h.id);renderHiveHeaderSummary(h);renderFamilyObservationCards();renderHiveOnboarding();}
+ renderSectionalOp11Preview();
  const jh=$('journalHive');if(jh){jh.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');if(S.hives.some(h=>h.id===activeJournalHive))jh.value=activeJournalHive;else if(selectedHiveId){activeJournalHive=selectedHiveId;jh.value=selectedHiveId}else activeJournalHive='';}
  const list=activeJournalHive?S.records.filter(r=>r.hive===activeJournalHive):[];
  renderJournalRecords();
@@ -4981,6 +5007,15 @@ async function commitSectionalHoneyCandidate(candidate,baseState){
   alert('Операция записана в базу, но состояние страницы изменилось. Запись заблокирована. Не повторяйте операцию; сохраните несохранённые данные и перезапустите приложение.');
  }
  return result;
+}
+function renderSectionalOp11Preview(){
+ const host=$('sectionalOp11PreviewHost');if(!host)return;
+ const visible=!!selectedHiveId&&isSectionalHive(selectedHiveId);
+ host.hidden=!visible;host.replaceChildren();
+ if(!visible)return;
+ if(!startupWriteGate.ready){host.textContent='OP11: предварительный просмотр недоступен до безопасного открытия базы.';return;}
+ if(S.meta?.saveError){host.textContent='OP11: в состоянии пасеки обнаружена ошибка. Проверка недоступна.';return;}
+ PasekaSectionalOP11PreviewUI.mount(host,{getState:()=>S,hiveId:selectedHiveId});
 }
 function renderSectionalHoneyScreen(host){
  const context=sectionalHoneyContext();host.replaceChildren();

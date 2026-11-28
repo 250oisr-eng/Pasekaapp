@@ -291,10 +291,17 @@ test('technical connections require every brood-row opening and the buffer corri
  assert.ok(Layout.inspect(opening.state).some(error=>error.code==='technical_connection_opening_reference_invalid'));
 });
 
-test('alternative wintering accepts [2,1,1] with the two-body family in any vertical position',()=>{
- for(const position of ['lower','middle','upper']){
-  const {state}=alternativeWintering(position);
-  assert.deepEqual(validateAll(state),[],position);
+test('OP12 permits 2+1+1 only with the strongest two-body family below both mesh diaphragms',()=>{
+ const valid=alternativeWintering('lower'),original=structuredClone(valid.state);
+ assert.deepEqual(validateAll(valid.state),[],'source-bound lower/middle/upper ordering');
+ assert.deepEqual(valid.state,original,'successful inspection must be read only');
+ for(const position of ['middle','upper']){
+  const {state}=alternativeWintering(position),before=structuredClone(state);
+  const errors=Layout.inspect(state),distribution=errors.find(error=>error.code==='wintering_body_distribution_invalid');
+  assert.ok(distribution,position+' cannot carry two brood bodies under OP12');
+  assert.deepEqual(distribution.details.expected,[2,1,1]);
+  assert.equal(distribution.details.order,'lower-middle-upper');
+  assert.deepEqual(state,before,'rejected layout must not change bodies, queens or records');
  }
 });
 
@@ -432,4 +439,28 @@ test('every actual section opening must be linked to exactly one active technica
  layout.sections[0].openings.push({id:'unlinked',bodyId:'b1',diameterMm:50});
  assert.ok(Layout.inspect(state).some(error=>error.code==='section_opening_body_coverage_invalid'));
  assert.ok(Layout.inspect(state).some(error=>error.code==='technical_opening_unlinked'));
+});
+
+test('combined winter stacks require a real matching cover and top-riser pair',()=>{
+ for(const mode of ['primary_wintering','alternative']){
+  const {state,layout}=mode==='primary_wintering'
+   ?singleFamily('primary_wintering',3):alternativeWintering('lower');
+  const stack=layout.stacks[0],stackId=stack.id;
+  stack.coverItemId='winter-cover';stack.topRiserItemId='winter-riser';
+  state.equipmentInventory.items['winter-cover']=makeItem('winter-cover','cover',
+   {type:'hive',hiveId:'h1',stackId});
+  state.equipmentInventory.items['winter-riser']=makeItem('winter-riser','topRiser',
+   {type:'hive',hiveId:'h1',stackId});
+  assert.deepEqual(Layout.validate(layout,state),{valid:true,errors:[]},
+   mode+' must recognize both accessories as part of the winter stack');
+  const unpaired=structuredClone(state);
+  delete unpaired.sectionalLayouts[0].stacks[0].topRiserItemId;
+  assert.ok(Layout.inspect(unpaired).some(x=>x.code==='section_stack_cover_top_riser_pair_required'),mode);
+  const mismatch=structuredClone(state);
+  mismatch.equipmentInventory.items['winter-riser'].location.stackId='wrong-stack';
+  assert.ok(Layout.inspect(mismatch).some(x=>x.code==='section_accessory_position_mismatch'),mode);
+  const incorrectKind=structuredClone(state);
+  incorrectKind.equipmentInventory.items['winter-riser'].kind='cover';
+  assert.ok(Layout.inspect(incorrectKind).some(x=>x.code==='section_accessory_kind_mismatch'),mode);
+ }
 });

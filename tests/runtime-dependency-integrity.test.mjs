@@ -41,7 +41,8 @@ test('OP02 pending model stays offline-shell and runtime isolated until B07 acti
 test('all local JavaScript modules are accounted for as active or deliberately isolated',async()=>{
  const files=(await readdir(new URL('./js/',root))).filter(x=>x.endsWith('.js')).sort();
  const active=scriptPaths.map(x=>x.slice('./js/'.length));
- const isolated=['sectional-op02-feeding.js'];
+ const isolated=['sectional-op02-feeding.js','sectional-op11-frame-custody.js','sectional-op11-transition-candidate.js','sectional-op12-cross-check.js','sectional-op13-readiness.js'];
+ for(const name of isolated){assert.ok(!scriptPaths.some(x=>x.endsWith('/'+name)),name+' must stay detached');assert.ok(!swFiles.some(x=>x.endsWith('/'+name)),name+' must not be cached');}
  assert.deepEqual(files,[...new Set([...active,...isolated])].sort(),
   'Unreferenced or duplicate JavaScript module: classify as active or explicitly isolated before integration');
 });

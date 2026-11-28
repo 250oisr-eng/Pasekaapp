@@ -3,7 +3,7 @@ import {mkdir,copyFile,readFile,readdir,rm} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-const isolatedModules=new Set(['sectional-op02-feeding.js']);
+const isolatedModules=new Set(['sectional-op02-feeding.js','sectional-op11-frame-custody.js','sectional-op11-transition-candidate.js','sectional-op12-cross-check.js','sectional-op13-readiness.js']);
 
 export async function prepareWebAssets(workspace='.') {
   const [html,sw]=await Promise.all([

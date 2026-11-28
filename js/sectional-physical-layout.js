@@ -125,8 +125,11 @@ function validate(layout,state){
  if([MODES.SIDE_BY_SIDE,MODES.ALTERNATIVE_WINTERING_COLUMN].includes(layout.mode)&&usedFamilies.size!==3)add('section_family_count_invalid',{expected:3,actual:usedFamilies.size});
  if(layout.mode===MODES.SINGLE_FAMILY&&usedFamilies.size!==1)add('single_family_count_invalid',{expected:1,actual:usedFamilies.size});
  if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
-  const counts=sections.map(section=>Array.isArray(section?.broodBodyIds)?section.broodBodyIds.length:0).sort((a,b)=>a-b);
-  if(JSON.stringify(counts)!==JSON.stringify([1,1,2]))add('wintering_body_distribution_invalid',{bodyCounts:counts,expected:[1,1,2]});
+  // DOCX P66–P70: the strongest two-body family remains BELOW both mesh
+  // diaphragms; each smaller family occupies one upper body. The order is
+  // physical (lower/middle/upper), not a sorted multiset of body counts.
+  const counts=sections.map(section=>Array.isArray(section?.broodBodyIds)?section.broodBodyIds.length:0);
+  if(JSON.stringify(counts)!==JSON.stringify([2,1,1]))add('wintering_body_distribution_invalid',{bodyCounts:counts,expected:[2,1,1],order:'lower-middle-upper'});
  }
  const expectedStackCount=layout.mode===MODES.SIDE_BY_SIDE?3:1;
  if(stacks.length!==expectedStackCount)add('section_stack_count_invalid',{mode:layout.mode,expected:expectedStackCount,actual:Array.isArray(layout.stacks)?stacks.length:null});
@@ -153,7 +156,14 @@ function validate(layout,state){
   }else if(layout.mode===MODES.SIDE_BY_SIDE){
    if(stack.coverItemId)add('honey_stage_cover_must_be_removed',{stackId:stack.id??null,itemId:stack.coverItemId});
    if(stack.topRiserItemId)add('honey_stage_top_riser_must_be_removed',{stackId:stack.id??null,itemId:stack.topRiserItemId});
-  }else if(stack.coverItemId)checkItem(stack.coverItemId,'cover',{stackId:stack.id});
+  }else{
+   // Cover and top riser are a physical pair in consolidated winter stacks
+   // too (owner confirmation, 27.11.2026), not only in SIDE_BY_SIDE.
+   if(Boolean(stack.coverItemId)!==Boolean(stack.topRiserItemId))
+    add('section_stack_cover_top_riser_pair_required',{stackId:stack.id});
+   if(stack.coverItemId)checkItem(stack.coverItemId,'cover',{stackId:stack.id});
+   if(stack.topRiserItemId)checkItem(stack.topRiserItemId,'topRiser',{stackId:stack.id});
+  }
   if(stack.feederItemId)checkItem(stack.feederItemId,'feeder',{stackId:stack.id});
   if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
    const boundaries=rows(stack.boundaries);
