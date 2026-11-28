@@ -132,3 +132,28 @@ test('OP13 never completes physical relocation even when caller sets userConfirm
  assert.equal(out.completionRecorded,false);assert.equal(out.readyForPersistence,false);
  assert.equal(s.familyEvents.length,1);assert.deepEqual(s,before);
 });
+
+test('OP13 ambiguous multi-year winter records require explicit techProcessId and remain read only',()=>{
+ const s=fixture(),prior=structuredClone(s.familyEvents[0]);
+ prior.id='old-season-event';prior.techProcessId='previous-year';
+ s.familyEvents.unshift(prior);
+ const before=structuredClone(s);
+ const ambiguous=OP13.preview(s,request());
+ assert.equal(ambiguous.ok,false);
+ assert.equal(ambiguous.error,'op13_unique_confirmed_op12_evidence_required');
+ const selected=OP13.preview(s,{...request(),techProcessId:'season'});
+ assert.equal(selected.ok,true,JSON.stringify(selected));
+ assert.equal(selected.techProcessId,'season');
+ assert.deepEqual(s,before);
+});
+test('OP13 accepts absent first-flight date but rejects invalid calendar dates without throwing or mutation',()=>{
+ const s=fixture(),before=structuredClone(s);
+ const unspecified=OP13.preview(s,{...request(),firstFlightDate:null});
+ assert.equal(unspecified.ok,true);assert.equal(unspecified.firstFlightDate,null);
+ for(const firstFlightDate of ['2027-02-31','2027-13-01','2027/03/01','not-a-date','']){
+  const out=OP13.preview(s,{...request(),firstFlightDate});
+  assert.equal(out.ok,false,firstFlightDate);
+  assert.equal(out.error,'op13_first_flight_date_invalid',firstFlightDate);
+ }
+ assert.deepEqual(s,before);
+});
