@@ -278,6 +278,7 @@ const measure=()=> {
       console.log(JSON.stringify({scenario:'global-search-reset',width,
         source:'Chromium-disposable-synthetic',realAndroid:'NOT_TESTED'}));
     }
+    await require('../../qa/workspace-preview-check.cjs')(browser,origin);
     assert.deepEqual(errors,[],'unexpected JS errors or dialogs');
     assert.deepEqual(failures,[],'nav geometry regression across supported viewports');
   }finally{if(context)await context.close();if(browser)await browser.close();
