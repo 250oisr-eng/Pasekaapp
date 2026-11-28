@@ -28,9 +28,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin 21933ef67846f84fedeb5853e7fd86e92b5a29d1
-          git diff --exit-code 21933ef67846f84fedeb5853e7fd86e92b5a29d1 HEAD -- index.html js sw.js manifest.webmanifest capacitor.config.json package.json package-lock.json scripts/prepare-web.mjs android-native icons
-          echo 'UX_RUNTIME_CANDIDATE_SHA 21933ef67846f84fedeb5853e7fd86e92b5a29d1'
+          git fetch --no-tags origin 00b82f0457c3c5a5da5e4edeba27f886e3dd13a8
+          git diff --exit-code 00b82f0457c3c5a5da5e4edeba27f886e3dd13a8 HEAD -- . ':(exclude).github/workflows/android-qa-isolated.yml' ':(exclude)scripts/prepare-android-qa-config.mjs' ':(exclude)tests/android-qa-config.test.mjs' ':(exclude)docs/ONEPLUS-UX-FOLLOWUP-PHONE-CHECKLIST-2026-11-27.md'
+          echo 'UX_RUNTIME_CANDIDATE_SHA 00b82f0457c3c5a5da5e4edeba27f886e3dd13a8'
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -62,7 +62,7 @@ jobs:
       - name: Install Android SDK
         run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Run existing full regression suite and QA isolation tests
         run: npm test
       - name: Prepare embedded web files
@@ -90,7 +90,7 @@ jobs:
           }
           if(!/^\s*minSdkVersion\s*=\s*35\s*$/m.test(source))throw Error('QA_BLOCKED: minSdk not 35');
           writeFileSync('android/variables.gradle',source);
-          console.log('QA_PACKAGE_VERIFIED ru.paseka.journal.qa.ux20261127b / Android API >= 35');
+          console.log('QA_PACKAGE_VERIFIED ru.paseka.journal.qa.ux20261128 / Android API >= 35');
           NODE
       - name: Build disposable QA debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
@@ -110,7 +110,7 @@ jobs:
           const call=(cmd,args)=>execFileSync(cmd,args,{encoding:'utf8',timeout:30000,maxBuffer:4*1024*1024});
           const parsed=parseBadging(call(sdk+'aapt',['dump','badging',file]));
           const signers=parseSigning(call(sdk+'apksigner',['verify','--print-certs',file]));
-          if(parsed.packageName!=='ru.paseka.journal.qa.ux20261127b'||signers.length!==1){
+          if(parsed.packageName!=='ru.paseka.journal.qa.ux20261128'||signers.length!==1){
             throw Error('QA_BLOCKED: APK identity/signature is unsafe or unverified');
           }
           const sha=call('git',['rev-parse','HEAD']).trim();
@@ -119,9 +119,9 @@ jobs:
           const report={
             artifactKind:'ISOLATED_DISPOSABLE_QA_ONLY_NOT_RELEASE',
             packageName:parsed.packageName,
-            appLabel:'Пасека UX — исправления',
+            appLabel:'Пасека UX — 28.11',
             sourceCommitSha:sha,
-            runtimeCandidateSha:'21933ef67846f84fedeb5853e7fd86e92b5a29d1',
+            runtimeCandidateSha:'00b82f0457c3c5a5da5e4edeba27f886e3dd13a8',
             apkSha256:createHash('sha256').update(bytes).digest('hex'),
             apkBytes:bytes.length,
             signerCertificateSha256:signers[0],
@@ -139,7 +139,7 @@ jobs:
         run: |
           printf '%s\n' \
             'PASEKA-ONEPLUS-UX-QA-ONLY' \
-            'Separate disposable Android package: ru.paseka.journal.qa.ux20261127b' \
+            'Separate disposable Android package: ru.paseka.journal.qa.ux20261128' \
             'Never use to upgrade production ru.paseka.journal.' \
             'Only synthetic test records. No original-video deletion or live restore.' \
             'Ephemeral debug signer: future in-place upgrades are NOT supported.' \
@@ -151,7 +151,7 @@ jobs:
       - name: Upload QA APK and verifiable public metadata; no user data
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-ONEPLUS-UX-FOLLOWUP-20261127
+          name: PASEKA-ONEPLUS-UX-INTEGRATED-20261128
           path: qa-artifact/
           if-no-files-found: error
           retention-days: 7

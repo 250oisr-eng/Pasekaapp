@@ -3,8 +3,8 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const PRODUCTION_ID = 'ru.paseka.journal';
-export const QA_ID = 'ru.paseka.journal.qa.ux20261127b';
-export const QA_NAME = 'Пасека UX — исправления';
+export const QA_ID = 'ru.paseka.journal.qa.ux20261128';
+export const QA_NAME = 'Пасека UX — 28.11';
 
 export function makeQaConfig(config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {

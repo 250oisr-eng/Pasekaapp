@@ -33,10 +33,10 @@ test('QA config fails closed on unknown appId, unsafe WebView or remote server',
 });
 
 test('exactly one generated Android applicationId must be QA, never production', () => {
-  assert.equal(assertQaGradle('defaultConfig { applicationId "ru.paseka.journal.qa.ux20261127b" }'), true);
+  assert.equal(assertQaGradle('defaultConfig { applicationId "ru.paseka.journal.qa.ux20261128" }'), true);
   assert.throws(() => assertQaGradle('applicationId "ru.paseka.journal"'), /QA_BLOCKED/);
-  assert.throws(() => assertQaGradle('applicationId "ru.paseka.journal.qa.ux20261127b"\napplicationId "ru.paseka.journal.qa.ux20261127b"'), /QA_BLOCKED/);
-  assert.throws(() => assertQaGradle('applicationId "ru.paseka.journal.qa.ux20261127b.debug"'), /QA_BLOCKED/);
+  assert.throws(() => assertQaGradle('applicationId "ru.paseka.journal.qa.ux20261128"\napplicationId "ru.paseka.journal.qa.ux20261128"'), /QA_BLOCKED/);
+  assert.throws(() => assertQaGradle('applicationId "ru.paseka.journal.qa.ux20261128.debug"'), /QA_BLOCKED/);
   assert.throws(() => assertQaGradle(''), /QA_BLOCKED/);
 });
 

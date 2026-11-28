@@ -305,6 +305,16 @@ function familyHasPhysicalPlacement(state,family){
  const layouts=Array.isArray(state.sectionalLayouts)?state.sectionalLayouts:Object.values(state.sectionalLayouts||{});
  return layouts.some(layout=>Array.isArray(layout?.sections)&&layout.sections.some(section=>section?.familyId===family.id));
 }
+function markNewFamily(draft,row){
+ const created=clone(row),previousName=created.name,previousCode=created.code;
+ const labels=window.PasekaLabels;
+ if(typeof labels?.nextIdentityCode!=='function')throw new Error('Маркировка семей недоступна.');
+ const code=labels.nextIdentityCode(draft,'family',true);
+ if(typeof previousName==='string'&&previousName&&previousName!==code)created.registrationName=previousName;
+ if(typeof previousCode==='string'&&previousCode&&previousCode!==code)created.registrationCode=previousCode;
+ created.name=code;created.code=code;
+ return created;
+}
 function applySplit(state, request, makeId, now) {
  return transact(state, draft => {
   const source=draft.families.find(f=>f?.id===request?.sourceFamilyId);
@@ -359,7 +369,7 @@ function applySplit(state, request, makeId, now) {
   source.colonyGroupId=colonyGroupId;
   source.currentQueenId=null;
   source.queenIdentityStatus='unresolved';
-  const created=children.map(row=>({...clone(row),recordStatus:'active',colonyGroupId,currentQueenId:null,queenIdentityStatus:'unresolved'}));
+  const created=children.map(row=>({...markNewFamily(draft,row),recordStatus:'active',colonyGroupId,currentQueenId:null,queenIdentityStatus:'unresolved'}));
   draft.families.push(...created);
   const at=now||new Date().toISOString(),eventId=nextId(makeId,new Set([...used,colonyGroupId,...childIds]));
   if (!eventId) return {ok:false,error:'family_event_id_required'};
@@ -406,7 +416,7 @@ function applyMerge(state, request, makeId, now) {
    source.currentQueenId=null;
    source.queenIdentityStatus='unresolved';
   }
-  const created={...clone(result),recordStatus:'active',colonyGroupId,currentQueenId:null,queenIdentityStatus:'unresolved',queen:null};
+  const created={...markNewFamily(draft,result),recordStatus:'active',colonyGroupId,currentQueenId:null,queenIdentityStatus:'unresolved',queen:null};
   draft.families.push(created);
   const used=new Set([...draft.families.map(f=>f?.id).filter(Boolean),...draft.queens.map(q=>q?.id).filter(Boolean),...draft.familyEvents.map(e=>e?.id).filter(Boolean)]);
   const eventId=nextId(makeId,used);
@@ -447,7 +457,11 @@ function confirmQueenIdentity(state, request, makeId, now) {
    const used=new Set([...draft.families.map(row=>row?.id).filter(Boolean),...draft.queens.map(row=>row?.id).filter(Boolean),...draft.familyEvents.map(row=>row?.id).filter(Boolean),...draft.queenEvents.map(row=>row?.id).filter(Boolean)]);
    const queenId=nextId(makeId,used);
    if (!queenId) return {ok:false,error:'queen_id_required'};
-   queen={id:queenId,familyId:null,originFamilyId,originType,status:'unknown',code:details.code?.trim()||null,year:details.year??null,source:details.source?.trim()||null,notes:details.notes?.trim()||null,createdAt:at,updatedAt:at};
+   const labels=window.PasekaLabels;if(typeof labels?.nextIdentityCode!=='function')throw new Error('Маркировка маток недоступна.');
+   let code=details.code?.trim()||'';
+   if(!code)code=labels.nextIdentityCode(draft,'queen',true);
+   else if(/^М-[1-9][0-9]{0,5}$/u.test(code))code=labels.nextIdentityCode(draft,'queen',true,code);
+   queen={id:queenId,familyId:null,originFamilyId,originType,status:'unknown',code,year:details.year??null,source:details.source?.trim()||null,notes:details.notes?.trim()||null,createdAt:at,updatedAt:at};
    draft.queens.push(queen);
    // A newly reared queen belongs only to this confirmed family.
    // Keep the shared split-event candidate list limited to queens already in the source lineage.
