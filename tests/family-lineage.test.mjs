@@ -27,7 +27,7 @@ function addSpringMoves(state,techProcessId,strongPosition='lower'){
  const bodyIdsByFamily={};
  for(const row of layout){
   const base=row.familyId+'-body',extra=row.familyId+'-extra';
-  bodyIdsByFamily[row.familyId]=row.bodyCount===2?[base,extra]:[base,extra];
+  bodyIdsByFamily[row.familyId]=row.bodyCount===2?[base,extra]:[base];
   state.equipmentInventory.bodies[base]={id:base};
   state.equipmentInventory.bodies[extra]={id:extra};
   if(row.bodyCount===1){
@@ -40,7 +40,7 @@ function addSpringMoves(state,techProcessId,strongPosition='lower'){
  const moves=[];
  for(const row of layout.filter(item=>item.bodyCount===1)){
   const bodyIds=bodyIdsByFamily[row.familyId],bottomId='bottom-'+row.familyId;
-  const result=api.recordPlacementChanged(state,{familyIds,familyId:row.familyId,techProcessId,from:{position:row.position,bodyIds:[bodyIds[0]]},to:{position:'separate_bottom',bottomItemId:bottomId,bodyIds}},makeId,'2026-04-20T10:00:00.000Z');
+  const result=api.recordPlacementChanged(state,{familyIds,familyId:row.familyId,techProcessId,from:{position:row.position,bodyIds:[bodyIds[0]]},to:{position:'separate_bottom',bottomItemId:bottomId,bodyIds:[bodyIds[0]]}},makeId,'2026-04-20T10:00:00.000Z');
   assert.equal(result.ok,true);
   moves.push(result.event);
  }
@@ -216,6 +216,37 @@ test('OP13 moves the upper two one-body families while retaining the two-body lo
  assert.equal(info.moves.length,2);
  assert.ok(state.families.every(f=>f.recordStatus==='active'&&f.currentQueenId));
  assert.deepEqual(api.inspect(state),[]);
+});
+
+test('OP13 legacy two-body placement evidence remains readable without being produced by new writes',()=>{
+ const s=baseState(),info=addSpringMoves(s,'legacy-op13');
+ const e=s.familyEvents.find(e=>e.type==='placement_changed');
+ assert.deepEqual(e.to.bodyIds,[e.from.bodyIds[0]]);
+ const spare=e.from.bodyIds[0].replace('-body','-extra');
+ assert.ok(s.equipmentInventory.bodies[spare]);
+ e.to.bodyIds.push(spare);
+ const sections=info.sectionsAfterMove.map(row=>row.familyId===e.familyId
+  ?{...row,bodyIds:[...e.to.bodyIds]}:row);
+ const record={id:'legacy-op13',hiveId:'h1',state:{
+  operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'}],
+  sections
+ }};
+ assert.deepEqual(api.inspect(s),[],'old 2-body record cannot be silently rewritten or rejected');
+ assert.deepEqual(api.validateOperationEvidence(s,record,'OP-13'),[]);
+});
+test('OP13 rejects two-body relocation on new write; second body belongs to a later event',()=>{
+ const s=baseState(),info=addSpringMoves(s,'no-auto-expansion');
+ const e=s.familyEvents.find(e=>e.type==='placement_changed');
+ s.familyEvents=s.familyEvents.filter(x=>x.type!=='placement_changed');
+ const other=e.from.bodyIds[0].replace('-body','-extra');
+ const before=structuredClone(s);
+ const out=api.recordPlacementChanged(s,{
+  familyIds:['f1','f2','f3'],familyId:e.familyId,techProcessId:'no-auto-expansion',
+  from:e.from,to:{...e.to,bodyIds:[e.from.bodyIds[0],other]}
+ },makeId,'2026-04-20T12:00:00.000Z');
+ assert.equal(out.ok,false);
+ assert.equal(out.error,'placement_body_references_invalid');
+ assert.deepEqual(s,before);
 });
 
 test('OP-13 refuses to move the two-body family from the alternative wintering column',()=>{
@@ -457,7 +488,7 @@ test('split preserves retired merge candidates and exposes only surviving queens
  assert.deepEqual(api.inspect(state),[]);
 });
 
-test('OP-13 placement must retain the existing single brood body and add one separate body',()=>{
+test('OP-13 placement must retain exactly the existing single brood body, no auto-expansion',()=>{
  const state=baseState(),info=addSpringMoves(state,'body-retention');
  state.familyEvents=state.familyEvents.filter(event=>event.type!=='placement_changed');
  const row=info.layout.find(item=>item.bodyCount===1),bodyIds=info.bodyIdsByFamily[row.familyId];
@@ -465,7 +496,7 @@ test('OP-13 placement must retain the existing single brood body and add one sep
  const invalid=api.recordPlacementChanged(state,{
   familyIds:['f1','f2','f3'],familyId:row.familyId,techProcessId:'body-retention',
   from:{position:row.position,bodyIds:[bodyIds[0]]},
-  to:{position:'separate_bottom',bottomItemId:'bottom-'+row.familyId,bodyIds:['replacement',bodyIds[1]]}
+  to:{position:'separate_bottom',bottomItemId:'bottom-'+row.familyId,bodyIds:['replacement']}
  },makeId,'2026-04-20T10:00:00.000Z');
  assert.equal(invalid.ok,false);
  assert.equal(invalid.error,'placement_existing_body_not_preserved');
