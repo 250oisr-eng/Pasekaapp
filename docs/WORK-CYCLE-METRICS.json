@@ -3,19 +3,19 @@
     "stage": "CI_VERIFIED_DETACHED_TRANSITION_CANDIDATE_AND_READONLY_UI_DRAFT",
     "pr": 663,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "8e7616ef629692d9c10d37599f4a721f7b5874a8",
+    "codeSha": "b55829e0854a8a7634ef4d0fcddbc4a882b0f59d",
     "contract": "read-only OP11 UI for selected sectional hive: manual original upper bodies, real accessories, ventilation and unknown queen",
     "nodeTests": {
-      "total": 1121,
-      "passed": 1121,
+      "total": 1126,
+      "passed": 1126,
       "failed": 0,
       "skipped": 0,
-      "run": 46130245948
+      "run": 46131103483
     },
     "earlierFailedTestRun": 46110558095,
     "earlierFailure": "negative fixture lacked modify(state), corrected in current codeSha",
-    "androidRun": 46130245948,
-    "governanceRun": 46130245962,
+    "androidRun": 46131103483,
+    "governanceRun": 46131103500,
     "ci": "NODE_ANDROID_BROWSER_GOVERNANCE_PASS",
     "device": "NOT_TESTED",
     "userFacingUI": true,
@@ -27,7 +27,7 @@
     "completedVerifiedUserScenarios": 0,
     "additionalFailedTestRun": 46117946261,
     "additionalFailedReason": "ventilation select not included in submitted controls, corrected on codeSha",
-    "browserE2eRun": 46130245996,
+    "browserE2eRun": 46131103475,
     "browserOp11PhysicalFixture": "SYNTHETIC_CHROMIUM_READONLY_OP11_FORM_NO_IDB_OR_BACKUP_WRITE_PASS",
     "offlineOnePlus": "NOT_TESTED",
     "userFacingScope": "sectional-hive read-only QA preview, no B07 profile activation",
@@ -60,43 +60,58 @@
       "physicalRoofPair": 1
     },
     "firstCandidateFailedRun": 46130110059,
-    "firstCandidateRootCause": "physical validator ignored topRiser in combined stack, corrected"
+    "firstCandidateRootCause": "physical validator ignored topRiser in combined stack, corrected",
+    "frameCustody": {
+      "sixBroodBodies": 6,
+      "totalFrames": 36,
+      "removedFrames": 18,
+      "retainedFrames": 18,
+      "safety": "READ_ONLY_NOT_RUNTIME"
+    }
   },
   "b07Op12LineageLower20261128": {
     "stage": "CI_VERIFIED_NARROW_LINEAGE_GUARD_DRAFT",
     "pr": 664,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "dd00929a62d2b13682efd86dbf755396ae0e0e43",
+    "codeSha": "4d856e8d0014901c7eac181cc895df1b1bcf11b0",
     "nodeTests": {
-      "total": 1101,
-      "passed": 1101,
+      "total": 1103,
+      "passed": 1103,
       "failed": 0,
       "skipped": 0,
-      "run": 46121414541
+      "run": 46131010455
     },
-    "androidRun": 46121414541,
-    "governanceRun": 46121414565,
+    "androidRun": 46131010455,
+    "governanceRun": 46131010466,
     "source": "DOCX paras 64-70; strongest lower family 2 bodies, upper one each",
     "scope": "lineage history event, direct creation and OP12 operation evidence only",
     "actualSectionalMove": false,
     "productionMutation": false,
     "profileActivated": false,
-    "releaseAuthorized": false
+    "releaseAuthorized": false,
+    "op13Relocation": {
+      "newEventBodyCount": 1,
+      "legacyEventBodyCounts": [
+        1,
+        2
+      ],
+      "physicalMove": false
+    }
   },
   "b07Op13ReadOnlySpring20261128": {
     "stage": "CI_VERIFIED_TWO_SOURCE_BRANCHES_READONLY_DOMAIN_DRAFT",
     "pr": 665,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "04dde07cc67a8cb64b4178b3674bca73a0488658",
+    "codeSha": "da8a7760bf5a0768017b6d30f50700bc4def53ee",
     "nodeTests": {
-      "total": 1113,
-      "passed": 1113,
+      "total": 1115,
+      "passed": 1115,
       "failed": 0,
       "skipped": 0,
-      "run": 46130069823
+      "run": 46131185151
     },
-    "androidRun": 46130069823,
-    "governanceRun": 46130069841,
+    "androidRun": 46131185151,
+    "governanceRun": 46131185141,
     "source": "DOCX paras 73-77; one-body spring transfers to two independent bottoms; 1.5 months guidance only",
     "scope": "read-only OP13 check; no UI; no IndexedDB write or physical completion",
     "blockedWriteEngine": "Existing recordPlacementChanged requires 2 destination bodies in immediate OP13 move; incompatible with source sequencing",
@@ -110,6 +125,14 @@
       "productionExecution": false,
       "confirmsConnections": false,
       "honeyBodyCountInstalled": 0
+    },
+    "earlyHoneyBoxes": {
+      "allowedCounts": [
+        2,
+        4
+      ],
+      "stockGate": "180mm 10 frames drawn comb",
+      "foundationScope": "UNKNOWN"
     }
   },
   "seasonalWorkspaceUI20261127": {
@@ -2233,5 +2256,92 @@
     "governance": "FAIL",
     "android": "FAIL_SAME_GOVERNANCE_TEST",
     "browser": "PENDING"
+  },
+  "b07FiveParallelCycles20261128": {
+    "status": "CI_VERIFIED_SYNTHETIC_ISOLATED_DRAFT_PR_NOT_MAIN",
+    "source": "user DOCX paragraphs OP11 52-61, OP12 64-70, OP13/14 73-86; confirmed 180mm, 2/4 early honey",
+    "main": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "op11FrameCustody": {
+      "pr": 663,
+      "testedSha": "b55829e0854a8a7634ef4d0fcddbc4a882b0f59d",
+      "nodeTests": {
+        "passed": 1126,
+        "total": 1126,
+        "failed": 0,
+        "run": 46131103483
+      },
+      "androidRun": 46131103483,
+      "chromiumRun": 46131103475,
+      "governanceRun": 46131103500,
+      "uiLoaded": false,
+      "frameHistoryCommitted": false
+    },
+    "op13OneBodyLegacy": {
+      "pr": 664,
+      "testedSha": "4d856e8d0014901c7eac181cc895df1b1bcf11b0",
+      "nodeTests": {
+        "passed": 1103,
+        "total": 1103,
+        "failed": 0,
+        "run": 46131010455
+      },
+      "androidRun": 46131010455,
+      "governanceRun": 46131010466,
+      "oneBodyNewWrite": true,
+      "legacyTwoBodyReadable": true,
+      "actualPhysicalMove": false
+    },
+    "op12PhysicalHistoryCrossCheck": {
+      "pr": 662,
+      "testedSha": "e3edb59f9e390b031d7edafff5a9f643d2a41690",
+      "nodeTests": {
+        "passed": 1106,
+        "total": 1106,
+        "failed": 0,
+        "run": 46131345224
+      },
+      "androidRun": 46131345224,
+      "governanceRun": 46131345270,
+      "selectedStrongestByUser": "NOT_VERIFIED"
+    },
+    "op14EarlyHoneySupers": {
+      "pr": 665,
+      "testedSha": "da8a7760bf5a0768017b6d30f50700bc4def53ee",
+      "nodeTests": {
+        "passed": 1115,
+        "total": 1115,
+        "failed": 0,
+        "run": 46131185151
+      },
+      "androidRun": 46131185151,
+      "governanceRun": 46131185141,
+      "proposedHoneyBoxes": [
+        2,
+        4
+      ],
+      "physicalInstalled": false,
+      "waxFoundationScope": "UNKNOWN"
+    },
+    "b07FullIndependentRestore": {
+      "pr": 666,
+      "testedSha": "0da7ec56ffaa5d1af44d57f66a78d187c55e3737",
+      "nodeTests": {
+        "passed": 1105,
+        "total": 1105,
+        "failed": 0,
+        "run": 46131715957
+      },
+      "androidRun": 46131715957,
+      "governanceRun": 46131715951,
+      "previousFailedRun": 46131516935,
+      "failedReason": "2 synthetic test fixtures: createdAt timestamp in envelope and preserveIdenticalLiveBinary option; fixed",
+      "independentRestore": "PASS_FAKE_INDEXEDDB",
+      "realOnePlusRestore": "NOT_TESTED",
+      "realOriginalMedia": "NOT_TESTED"
+    },
+    "allDraft": true,
+    "mergeAuthorized": false,
+    "productionDeployed": false,
+    "sectionalProfileActivated": false
   }
 }
