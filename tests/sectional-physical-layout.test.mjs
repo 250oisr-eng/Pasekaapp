@@ -291,10 +291,17 @@ test('technical connections require every brood-row opening and the buffer corri
  assert.ok(Layout.inspect(opening.state).some(error=>error.code==='technical_connection_opening_reference_invalid'));
 });
 
-test('alternative wintering accepts [2,1,1] with the two-body family in any vertical position',()=>{
- for(const position of ['lower','middle','upper']){
-  const {state}=alternativeWintering(position);
-  assert.deepEqual(validateAll(state),[],position);
+test('OP12 permits 2+1+1 only with the strongest two-body family below both mesh diaphragms',()=>{
+ const valid=alternativeWintering('lower'),original=structuredClone(valid.state);
+ assert.deepEqual(validateAll(valid.state),[],'source-bound lower/middle/upper ordering');
+ assert.deepEqual(valid.state,original,'successful inspection must be read only');
+ for(const position of ['middle','upper']){
+  const {state}=alternativeWintering(position),before=structuredClone(state);
+  const errors=Layout.inspect(state),distribution=errors.find(error=>error.code==='wintering_body_distribution_invalid');
+  assert.ok(distribution,position+' cannot carry two brood bodies under OP12');
+  assert.deepEqual(distribution.details.expected,[2,1,1]);
+  assert.equal(distribution.details.order,'lower-middle-upper');
+  assert.deepEqual(state,before,'rejected layout must not change bodies, queens or records');
  }
 });
 

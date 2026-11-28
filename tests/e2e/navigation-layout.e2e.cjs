@@ -188,15 +188,19 @@ const measure=()=> {
     assert.ok(fieldGeometry.buttons.every(b=>b.width>=55.5&&b.height>=55.5&&b.hit),'field mode 56px targets');
     assert.ok(fieldGeometry.mainPaddingBottom>=fieldGeometry.nav.height);
     await page.setViewportSize({width:390,height:844});
+    assert.deepEqual(await page.getByRole('combobox',{name:'Сезон пасеки'}).locator('option').allTextContents(),['Автоматически по календарю','Весна-лето','Осень','Зимовка']);
+    await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('spring-summer');
+    const springMenu=await page.locator('#workspaceSeasonMenu button').allTextContents();
     await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('winter');
-    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
+    assert.notDeepEqual(await page.locator('#workspaceSeasonMenu button').allTextContents(),springMenu);
+    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зимовка');
     await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('night');
     assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'night');
     // Preferences and theme persist through a reload; verify every primary/secondary route.
     await page.reload({waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>startupWriteGate.ready===true);
     assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'night');
-    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
+    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зимовка');
     for(const tab of ['hives','journal','planning','settings','ai']){
       await primary.locator('button[data-tab="'+tab+'"]').click();
       await assertInterior(tab);
@@ -274,6 +278,25 @@ const measure=()=> {
       console.log(JSON.stringify({scenario:'global-search-reset',width,
         source:'Chromium-disposable-synthetic',realAndroid:'NOT_TESTED'}));
     }
+    // Real document navigation: old startup discarded the hash.
+    await page.goto(origin+'/index.html?deep-link-test=1#journal',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertInterior('journal');
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertInterior('journal');
+    await primary.locator('button[data-tab="planning"]').click();await assertInterior('planning');
+    await page.locator('#planning [data-subtab="forage"]').click();await assertInterior('forage');
+    await back.click();await assertInterior('planning');
+    await back.click();await assertInterior('journal');
+    await back.click();await assertHome();
+    assert.equal(new URL(page.url()).search,'?deep-link-test=1');
+    await page.goto(origin+'/index.html?deep-link-test=2#hiveDetail',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertInterior('hives');assert.equal(new URL(page.url()).hash,'#hives');
+    await page.goto(origin+'/index.html?deep-link-test=3#globalSearch',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertHome();assert.equal(new URL(page.url()).hash,'');
+    await page.goto(origin+'/index.html?deep-link-test=4#ai',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertInterior('ai');
+    assert.equal(await page.evaluate(()=>aiInitPromise===null),true,'URL restore must not initiate external auth');
+    await back.click();await assertHome();
     assert.deepEqual(errors,[],'unexpected JS errors or dialogs');
     assert.deepEqual(failures,[],'nav geometry regression across supported viewports');
   }finally{if(context)await context.close();if(browser)await browser.close();

@@ -1,139 +1,44 @@
 {
-  "b07Op11ReadOnlyPreflight20261128": {
-    "stage": "CI_VERIFIED_DETACHED_TRANSITION_CANDIDATE_AND_READONLY_UI_DRAFT",
-    "pr": 663,
+  "dependencyCleanup20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 647,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "b55829e0854a8a7634ef4d0fcddbc4a882b0f59d",
-    "contract": "read-only OP11 UI for selected sectional hive: manual original upper bodies, real accessories, ventilation and unknown queen",
-    "nodeTests": {
-      "total": 1126,
-      "passed": 1126,
-      "failed": 0,
-      "skipped": 0,
-      "run": 46131103483
-    },
-    "earlierFailedTestRun": 46110558095,
-    "earlierFailure": "negative fixture lacked modify(state), corrected in current codeSha",
-    "androidRun": 46131103483,
-    "governanceRun": 46131103500,
-    "ci": "NODE_ANDROID_BROWSER_GOVERNANCE_PASS",
+    "codeSha": "9f977aaaf1166327acb0417bcfd8c9bda7da6346",
+    "checkedStaleBranches": 2,
+    "staleBranchesZeroUniqueCommits": 2,
+    "branchesDeleted": 0,
+    "openPrBasesForStaleBranches": 0,
+    "activeJsCount": 25,
+    "isolatedJsCount": 1,
+    "lockedTransitivePackages": 100,
+    "npmCiCoreWorkflows": 5,
+    "newSyntheticTests": 13,
+    "exactHeadCi": "CI_VERIFIED_EXACT_SHA",
     "device": "NOT_TESTED",
-    "userFacingUI": true,
-    "physicalOperationCommitted": false,
-    "sectionalProfileActivated": false,
     "storageChanges": false,
-    "serviceWorkerChanges": true,
+    "serviceWorkerChanges": false,
+    "productionChanges": false,
     "releaseAuthorized": false,
     "completedVerifiedUserScenarios": 0,
-    "additionalFailedTestRun": 46117946261,
-    "additionalFailedReason": "ventilation select not included in submitted controls, corrected on codeSha",
-    "browserE2eRun": 46131103475,
-    "browserOp11PhysicalFixture": "SYNTHETIC_CHROMIUM_READONLY_OP11_FORM_NO_IDB_OR_BACKUP_WRITE_PASS",
-    "offlineOnePlus": "NOT_TESTED",
-    "userFacingScope": "sectional-hive read-only QA preview, no B07 profile activation",
-    "offlineCacheVersion": 328,
-    "realOnePlusOp11": "NOT_TESTED",
-    "browserE2eNotes": "OP11 form selects 3 registered upper bodies, 4 plugs, feeder and ventilation; verifies S/readMain/readAutoBackup unchanged",
-    "simulation": {
-      "mode": "DETACHED_ONLY",
-      "script": "js/sectional-op11-transition-candidate.js",
-      "exposedToUI": false,
-      "writesToIndexedDB": false,
-      "validated": "sectional physical SINGLE_FAMILY; lineage merge; equipment item placements and item-event ledger",
-      "physicalBodyFrameJournal": false,
-      "techProcessAudit": false,
-      "casPersistence": false,
-      "backupRestore": false,
-      "deviceOnePlus": false,
-      "completion": false
-    },
-    "roofPair": {
-      "singleFamily": true,
-      "alternativeWintering": true,
-      "validWhenBothPresent": true,
-      "invalidWhenOnlyOne": true,
-      "allMissingRoofDisallowed": false,
-      "requiresMergeReconcilationWithPr662": true
-    },
-    "newTests": {
-      "candidate": 7,
-      "physicalRoofPair": 1
-    },
-    "firstCandidateFailedRun": 46130110059,
-    "firstCandidateRootCause": "physical validator ignored topRiser in combined stack, corrected",
-    "frameCustody": {
-      "sixBroodBodies": 6,
-      "totalFrames": 36,
-      "removedFrames": 18,
-      "retainedFrames": 18,
-      "safety": "READ_ONLY_NOT_RUNTIME"
-    }
-  },
-  "b07Op12LineageLower20261128": {
-    "stage": "CI_VERIFIED_NARROW_LINEAGE_GUARD_DRAFT",
-    "pr": 664,
-    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "4d856e8d0014901c7eac181cc895df1b1bcf11b0",
+    "lockPackagesReachable": 100,
+    "lockPackagesOrphaned": 0,
+    "lockGraphNegativeRegression": true,
+    "verifiedHeadSha": "b61282cc99f32b564bb77688bd7c738d765ea092",
     "nodeTests": {
-      "total": 1103,
-      "passed": 1103,
-      "failed": 0,
-      "skipped": 0,
-      "run": 46131010455
+      "tests": 1153,
+      "pass": 1153,
+      "fail": 0,
+      "cancelled": 0
     },
-    "androidRun": 46131010455,
-    "governanceRun": 46131010466,
-    "source": "DOCX paras 64-70; strongest lower family 2 bodies, upper one each",
-    "scope": "lineage history event, direct creation and OP12 operation evidence only",
-    "actualSectionalMove": false,
-    "productionMutation": false,
-    "profileActivated": false,
-    "releaseAuthorized": false,
-    "op13Relocation": {
-      "newEventBodyCount": 1,
-      "legacyEventBodyCounts": [
-        1,
-        2
-      ],
-      "physicalMove": false
-    }
-  },
-  "b07Op13ReadOnlySpring20261128": {
-    "stage": "CI_VERIFIED_TWO_SOURCE_BRANCHES_READONLY_DOMAIN_DRAFT",
-    "pr": 665,
-    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "da8a7760bf5a0768017b6d30f50700bc4def53ee",
-    "nodeTests": {
-      "total": 1115,
-      "passed": 1115,
-      "failed": 0,
-      "skipped": 0,
-      "run": 46131185151
-    },
-    "androidRun": 46131185151,
-    "governanceRun": 46131185141,
-    "source": "DOCX paras 73-77; one-body spring transfers to two independent bottoms; 1.5 months guidance only",
-    "scope": "read-only OP13 check; no UI; no IndexedDB write or physical completion",
-    "blockedWriteEngine": "Existing recordPlacementChanged requires 2 destination bodies in immediate OP13 move; incompatible with source sequencing",
-    "actualMove": false,
-    "profileActivated": false,
-    "releaseAuthorized": false,
-    "earlyHoney": {
-      "explicitScenario": true,
-      "eachSideHasManuallySelectedCompatibleBroodBody": true,
-      "heightMm": 180,
-      "productionExecution": false,
-      "confirmsConnections": false,
-      "honeyBodyCountInstalled": 0
-    },
-    "earlyHoneyBoxes": {
-      "allowedCounts": [
-        2,
-        4
-      ],
-      "stockGate": "180mm 10 frames drawn comb",
-      "foundationScope": "UNKNOWN"
-    }
+    "ciRunIds": [
+      46072767441,
+      46072767431,
+      46072767501,
+      46072767414,
+      46072767436,
+      46072767842,
+      46072767473
+    ]
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
@@ -2257,91 +2162,463 @@
     "android": "FAIL_SAME_GOVERNANCE_TEST",
     "browser": "PENDING"
   },
-  "b07FiveParallelCycles20261128": {
-    "status": "CI_VERIFIED_SYNTHETIC_ISOLATED_DRAFT_PR_NOT_MAIN",
-    "source": "user DOCX paragraphs OP11 52-61, OP12 64-70, OP13/14 73-86; confirmed 180mm, 2/4 early honey",
-    "main": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "op11FrameCustody": {
-      "pr": 663,
-      "testedSha": "b55829e0854a8a7634ef4d0fcddbc4a882b0f59d",
-      "nodeTests": {
-        "passed": 1126,
-        "total": 1126,
-        "failed": 0,
-        "run": 46131103483
-      },
-      "androidRun": 46131103483,
-      "chromiumRun": 46131103475,
-      "governanceRun": 46131103500,
-      "uiLoaded": false,
-      "frameHistoryCommitted": false
+  "op02StandaloneDailyPlan20261127": {
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "sourcePr": 453,
+    "sourceHeadSha": "7be9bfaad3ccc4197112b2d5d08fc0015cd38ac6",
+    "codeSha": "cfd902534d3db4cd717e0dc3ffb9b5924ad779ee",
+    "nodePass": 1063,
+    "nodeFail": 0,
+    "op02Pass": 9,
+    "targetedPass": 86,
+    "device": "NOT_TESTED",
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Fop02-daily-plan-model",
+    "verifiedAgainstMainSha": "1a609a9ec46cace85a81663648fee749df677932",
+    "syncedLocalValidation": {
+      "nodePass": 1081,
+      "nodeFail": 0,
+      "targetedPass": 86,
+      "governancePass": 5,
+      "chromiumPassed": true,
+      "webPreparePassed": true
     },
-    "op13OneBodyLegacy": {
-      "pr": 664,
-      "testedSha": "4d856e8d0014901c7eac181cc895df1b1bcf11b0",
-      "nodeTests": {
-        "passed": 1103,
-        "total": 1103,
-        "failed": 0,
-        "run": 46131010455
-      },
-      "androidRun": 46131010455,
-      "governanceRun": 46131010466,
-      "oneBodyNewWrite": true,
-      "legacyTwoBodyReadable": true,
-      "actualPhysicalMove": false
+    "missingAccountingStateGuard": {
+      "implementation": "9cef7695b6140377b6436f922327bc3608c5ae26",
+      "regression": "cfa314698d7a0bfba92758ba4739fd2ab117693c",
+      "negativeCases": 4,
+      "positiveCases": 1,
+      "spotCheck": "PASS",
+      "fullCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
     },
-    "op12PhysicalHistoryCrossCheck": {
-      "pr": 662,
-      "testedSha": "e3edb59f9e390b031d7edafff5a9f643d2a41690",
-      "nodeTests": {
-        "passed": 1106,
-        "total": 1106,
-        "failed": 0,
-        "run": 46131345224
-      },
-      "androidRun": 46131345224,
-      "governanceRun": 46131345270,
-      "selectedStrongestByUser": "NOT_VERIFIED"
+    "fullCiOfNewHead": "PENDING"
+  },
+  "journalPeriod20261127": {
+    "drilldownBrowserViewports": 2,
+    "summaryBrowserViewports": 2,
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "invalidRangeCsvGuard": {
+      "negativeCases": 1,
+      "spotCheck": "PASS",
+      "fullExactHeadCi": "PENDING",
+      "dataMutation": false
+    }
+  },
+  "queenRegistryNavigation20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "duplicateHiveIdGuard": {
+      "negativeCases": 2,
+      "positiveCases": 1,
+      "spotCheck": "PASS",
+      "fullCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
     },
-    "op14EarlyHoneySupers": {
-      "pr": 665,
-      "testedSha": "da8a7760bf5a0768017b6d30f50700bc4def53ee",
-      "nodeTests": {
-        "passed": 1115,
-        "total": 1115,
-        "failed": 0,
-        "run": 46131185151
-      },
-      "androidRun": 46131185151,
-      "governanceRun": 46131185141,
-      "proposedHoneyBoxes": [
-        2,
-        4
-      ],
-      "physicalInstalled": false,
-      "waxFoundationScope": "UNKNOWN"
+    "corruptRegistryGuard": {
+      "invalidArrayCases": 12,
+      "readOnlyRenderCase": 1,
+      "inMemorySpotCheck": "PASS",
+      "fullExactHeadCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
+    }
+  },
+  "inventoryFilteredCsv20261127": {
+    "sourceMainSha": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "branch": "feat/inventory-filtered-csv-export-20261127",
+    "scope": "USER_INITIATED_READ_ONLY_OFFLINE_FILTERED_INVENTORY_CSV",
+    "source": "docs/INVENTORY-FILTERED-CSV-2026-11-27.md",
+    "files": [
+      "index.html",
+      "tests/equipment-inventory-csv.test.mjs"
+    ],
+    "migration": false,
+    "serviceWorkerChanged": false,
+    "backupChanged": false,
+    "productionTouched": false,
+    "device": "NOT_TESTED",
+    "ci": "CI_VERIFIED_CODE_SHA_AND_BROWSER_E2E",
+    "verifiedUserScenarios": 0,
+    "pr": 633,
+    "codeSha": "b09642a44b986e6dbde6e580f4f10f03eecd68ad",
+    "nodeTests": {
+      "tests": 1077,
+      "pass": 1077,
+      "fail": 0
     },
-    "b07FullIndependentRestore": {
-      "pr": 666,
-      "testedSha": "0da7ec56ffaa5d1af44d57f66a78d187c55e3737",
-      "nodeTests": {
-        "passed": 1105,
-        "total": 1105,
-        "failed": 0,
-        "run": 46131715957
+    "verifiedCi": [
+      {
+        "name": "Fast quality checks",
+        "id": 46048423361,
+        "conclusion": "success"
       },
-      "androidRun": 46131715957,
-      "governanceRun": 46131715951,
-      "previousFailedRun": 46131516935,
-      "failedReason": "2 synthetic test fixtures: createdAt timestamp in envelope and preserveIdenticalLiveBinary option; fixed",
-      "independentRestore": "PASS_FAKE_INDEXEDDB",
-      "realOnePlusRestore": "NOT_TESTED",
-      "realOriginalMedia": "NOT_TESTED"
+      {
+        "name": "Build Android APK",
+        "id": 46048431007,
+        "conclusion": "success"
+      },
+      {
+        "name": "Journal real-browser E2E",
+        "id": 46048430922,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance Docs Checks",
+        "id": 46048430929,
+        "conclusion": "success"
+      }
+    ],
+    "newInventoryClickBrowser": "NOT_TESTED",
+    "merged": false,
+    "browserClickValidated": true,
+    "browserOfflineValidated": true,
+    "syntheticMobileExport": "PASS",
+    "syntheticDesktopExport": "PASS",
+    "syntheticStateMutationObserved": false,
+    "staleVisibleIdRegression": {
+      "negativeCases": 1,
+      "expectedNoDownload": true,
+      "exactHeadCi": "PENDING",
+      "device": "NOT_TESTED"
+    }
+  },
+  "frameTypeStatus20261127": {
+    "pr": 636,
+    "codeSha": "7ff62b22ced9af19be38c4f146ec7a6a1bf7178d",
+    "base": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "nodeTests": {
+      "tests": 1078,
+      "pass": 1078,
+      "fail": 0
     },
-    "allDraft": true,
-    "mergeAuthorized": false,
-    "productionDeployed": false,
-    "sectionalProfileActivated": false
+    "verifiedCi": [
+      {
+        "id": 46048613209,
+        "conclusion": "success"
+      },
+      {
+        "id": 46048633114,
+        "conclusion": "success"
+      }
+    ],
+    "integration": "DRAFT",
+    "device": "NOT_TESTED",
+    "production": false,
+    "unknownTypeRegression": {
+      "negativeCases": 1,
+      "expectedNoAudit": true,
+      "device": "NOT_TESTED",
+      "exactHeadCi": "PENDING"
+    }
+  },
+  "dailyAccountingIntegration20261127": {
+    "sources": [
+      630,
+      631,
+      632,
+      633,
+      636
+    ],
+    "base": "6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b",
+    "scope": "DRAFT_INTEGRATION_TEST_ONLY",
+    "op02Activated": false,
+    "exactHeadCi": "CODE_SHA_VERIFIED_DOCS_HEAD_PENDING",
+    "device": "NOT_TESTED",
+    "productionMutation": false,
+    "codeSha": "c4ad3ee3e0bd4e7a9b958d5706c4d43985b95e5e",
+    "nodePass": 1118,
+    "nodeFail": 0,
+    "verifiedCi": [
+      {
+        "name": "Build Android APK",
+        "id": 46057440938,
+        "conclusion": "success"
+      },
+      {
+        "name": "Journal real-browser E2E",
+        "id": 46057440925,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance Docs Checks",
+        "id": 46057440915,
+        "conclusion": "success"
+      }
+    ],
+    "conflictResolution": {
+      "newMain": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "oldHead": "fa5f260a206318f010a4db1fc1e920435f9b7849",
+      "level": "CODE_RECONCILED_CI_PENDING",
+      "sectionalChangesPreserved": true,
+      "onePlus": "NOT_TESTED"
+    }
+  },
+  "branchDependencyAudit20261128": {
+    "mainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "4e4870aa4c31b6fcaf59ff3f5f0781afef663f25",
+    "branches": 671,
+    "openPr": 404,
+    "closedPr": 243,
+    "rootPr": 44,
+    "stackedPr": 351,
+    "orphanBasePr": 9,
+    "missingBaseRefs": 0,
+    "cycles": 0,
+    "maxPrDepth": 142,
+    "branchesWithoutOpenPr": 268,
+    "branchesWithoutAnyPr": 25,
+    "withMergedPr": 178,
+    "codeDependencyScripts": 25,
+    "duplicateScriptSources": 0,
+    "missingStaticScriptFiles": 0,
+    "isolatedOp02": true,
+    "cleanupDeletes": 0,
+    "fullReviewOfEachPr": false,
+    "additionalTestsPending": false,
+    "moduleOrderEdgesChecked": 13,
+    "moduleOrderPassExpected": true,
+    "ciAtCodeSha": [
+      {
+        "name": "Fast Quality",
+        "id": 46070253517,
+        "conclusion": "success",
+        "tests": 1138
+      },
+      {
+        "name": "Android APK",
+        "id": 46070253525,
+        "conclusion": "success"
+      },
+      {
+        "name": "Android APK",
+        "id": 46070261611,
+        "conclusion": "success"
+      },
+      {
+        "name": "Chromium E2E",
+        "id": 46070261620,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance",
+        "id": 46070261652,
+        "conclusion": "success"
+      }
+    ],
+    "device": "NOT_TESTED",
+    "productionMutation": false
+  },
+  "b07Merged20261128": {
+    "stage": "IN_MAIN",
+    "pr": 649,
+    "verifiedHead": "642db8f42ee5af36783dbee23926fba4ece9ad3a",
+    "mainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1101,
+      "total": 1101,
+      "failed": 0,
+      "run": 46068699199
+    },
+    "android": {
+      "status": "PASS",
+      "run": 46068699199
+    },
+    "chromium": {
+      "status": "PASS_SYNTHETIC",
+      "run": 46068699194,
+      "scenario": "actual UI 4→0→2, stock regroup, atomic main+previous backup and reload"
+    },
+    "governance": {
+      "status": "PASS",
+      "run": 46068699235
+    },
+    "workers": "PASS",
+    "mergeAuthorized": true,
+    "activationAuthorized": false,
+    "physicalDeviceVerified": false,
+    "independentRestoreVerified": false,
+    "releaseAuthorized": false,
+    "mainCI": "PASS",
+    "remainingBlocker": "B07 profile/other technological operations and physical acceptance",
+    "mainCIRuns": [
+      46068898999,
+      46068899089,
+      46068899057,
+      46068898991
+    ]
+  },
+  "dailyAccountingMerged20261128": {
+    "stage": "IN_MAIN",
+    "pr": 647,
+    "verifiedHead": "8a221bc73a09f995cd425250ec41bb53028d5c97",
+    "mainSha": "31fdfe86d2d9b2ecd398ed9595e153b6bc0962ed",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1153,
+      "total": 1153,
+      "failed": 0,
+      "run": 46073096481
+    },
+    "runs": [
+      46073096436,
+      46073096520,
+      46073096481,
+      46073096441,
+      46073096551,
+      46073096652,
+      46073096403
+    ],
+    "browser": "PASS_SYNTHETIC_4_0_2",
+    "mergeAuthorized": true,
+    "activationAuthorized": false,
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "mainCI": "PENDING"
+  },
+  "uxDeviceFeedback20261127": {
+    "stage": "READY_FOR_MERGE_REVIEW",
+    "pr": 648,
+    "codeSha": "a922cf3b6fa597d1e360ba012657c95ee5b24bba",
+    "previousQa": {
+      "pr": 646,
+      "run": 46057173507,
+      "artifact": 15228280916,
+      "apkSha256": "6d1141e35037ed4bbeb0260827f488bec64506e9c7490b56bcf1db5875e620bd",
+      "userReportedPass": 9,
+      "userReportedNotTested": 2
+    },
+    "nodeTests": 1096,
+    "ci": {
+      "fast": 46061936051,
+      "chromium": 46061936096,
+      "android": 46061941186,
+      "governance": 46061941115,
+      "result": "PASS"
+    },
+    "honeyPairDomainPr": 649,
+    "deviceRetest": "NOT_TESTED",
+    "productionMutation": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
+  },
+  "uxReconciliation20261128": {
+    "stage": "IN_MAIN",
+    "pr": 648,
+    "previousHead": "21933ef67846f84fedeb5853e7fd86e92b5a29d1",
+    "baseSha": "1b5ccf3d9084d6270976b6af2e9112faa3b49347",
+    "scope": "UX onboarding, seasonal navigation, four interactive metrics, keyboard/media, frame status correction, SW v328",
+    "ci": "PASS",
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "verifiedHead": "04da243b15d2192e8fb93597bd41c881b97766d5",
+    "mainSha": "a7fcf2f15fc38d2a932f1493844e620b9049dcdf",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1157,
+      "total": 1157,
+      "failed": 0,
+      "run": 46132385418
+    },
+    "runs": [
+      46132389061,
+      46132389050,
+      46132388993,
+      46132385424,
+      46132385416,
+      46132385418
+    ],
+    "chromiumSectional": "PASS_SYNTHETIC_4_0_2",
+    "mergeAuthorized": true
+  },
+  "numericMarking20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "sourceMainSha": "6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b",
+    "codeSha": "2160fabf3210b08faaca7bac8bd5d4c87d8e090c",
+    "targetedTests": 14,
+    "nodeTests": "1099/1099",
+    "ci": "PASS_ON_INTERMEDIATE_SHA; exact latest PR head requires fresh CI",
+    "device": "NOT_TESTED",
+    "storageChanges": "optional metadata counters; no IndexedDB version change",
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
+  },
+  "numericMarkingReconciliation20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 651,
+    "baseSha": "a7fcf2f15fc38d2a932f1493844e620b9049dcdf",
+    "previousHead": "74094c2bca4d79f9cbe54d6ee2b7d8913af92b76",
+    "ci": "PENDING",
+    "scope": "numeric/legacy code, exact search, stable family and queen numbers, preserve UX/accounting/sectional UI, SW v329",
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "activationAuthorized": false
+  },
+  "inventoryReconciled20261128": {
+    "pr": 661,
+    "sourceHead": "754051fbd65b3580d5b9be7b15deafbcccf6ba69",
+    "mainBase": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+    "stage": "RECONCILED_REVIEW",
+    "node": "PENDING",
+    "android": "PENDING",
+    "physicalDevice": "NOT_TESTED",
+    "release": false
+  },
+  "sevenAuthorizedMerges20261128": {
+    "stage": "IN_MAIN",
+    "ownerAuthorizedMerge": true,
+    "mergeMethod": "squash",
+    "finalMainSha": "6a8c419a1b3ad64d38bb63104760061ea3a6bbca",
+    "prToMainSha": {
+      "634": "1c6c50d0ad152b76e43fefb62b4c1c6e5051c51c",
+      "658": "876286a81e57c2e1a702d057e87bedb2e4fc3e9f",
+      "659": "f5bdd8bd78dd9c52db38f0e88cc4065ba4215190",
+      "661": "1370d443d01a9c188971aed6ff238f656667eb80",
+      "666": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+      "668": "b56c1944dc93545d11095a24915e1b9ec0c9e61b",
+      "669": "6a8c419a1b3ad64d38bb63104760061ea3a6bbca"
+    },
+    "exactPrCi": "PASS",
+    "postMergeMainCi": "PASS",
+    "physicalOnePlus": "NOT_TESTED",
+    "b07Activation": "BLOCKED",
+    "productionRelease": false,
+    "productionDataMutated": false,
+    "postMergeChecks": [
+      "test",
+      "build",
+      "journal-browser",
+      "governance",
+      "Workers Builds: pasekaapp",
+      "Verify Pages source is GitHub Actions (read-only)"
+    ]
+  },
+  "plantCsv20261128": {
+    "pr": 671,
+    "status": "IN_MAIN",
+    "mainSha": "0f80d7d787de763a67c9a56eae65e5e39203e76d",
+    "exactPrCi": "PASS",
+    "device": "NOT_TESTED",
+    "release": false
+  },
+  "pwaShellV33020261128": {
+    "pr": 672,
+    "status": "IN_MAIN",
+    "codeSha": "08ad0998a650f9dfbbd31742a99dcebe92c603ca",
+    "oldShellVersion": 329,
+    "newShellVersion": 330,
+    "node": "PASS",
+    "android": "PASS",
+    "governance": "PASS",
+    "device": "NOT_TESTED",
+    "productionRelease": false,
+    "mainSha": "35eb9603befc64289cc95964f5b5046b61ed10c7",
+    "postMergeCi": "PASS"
   }
 }
