@@ -2569,5 +2569,34 @@
     "android": "PENDING",
     "physicalDevice": "NOT_TESTED",
     "release": false
+  },
+  "sevenAuthorizedMerges20261128": {
+    "stage": "IN_MAIN",
+    "ownerAuthorizedMerge": true,
+    "mergeMethod": "squash",
+    "finalMainSha": "6a8c419a1b3ad64d38bb63104760061ea3a6bbca",
+    "prToMainSha": {
+      "634": "1c6c50d0ad152b76e43fefb62b4c1c6e5051c51c",
+      "658": "876286a81e57c2e1a702d057e87bedb2e4fc3e9f",
+      "659": "f5bdd8bd78dd9c52db38f0e88cc4065ba4215190",
+      "661": "1370d443d01a9c188971aed6ff238f656667eb80",
+      "666": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+      "668": "b56c1944dc93545d11095a24915e1b9ec0c9e61b",
+      "669": "6a8c419a1b3ad64d38bb63104760061ea3a6bbca"
+    },
+    "exactPrCi": "PASS",
+    "postMergeMainCi": "PASS",
+    "physicalOnePlus": "NOT_TESTED",
+    "b07Activation": "BLOCKED",
+    "productionRelease": false,
+    "productionDataMutated": false,
+    "postMergeChecks": [
+      "test",
+      "build",
+      "journal-browser",
+      "governance",
+      "Workers Builds: pasekaapp",
+      "Verify Pages source is GitHub Actions (read-only)"
+    ]
   }
 }
