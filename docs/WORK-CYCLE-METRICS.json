@@ -2559,5 +2559,15 @@
     "physicalDeviceVerified": false,
     "releaseAuthorized": false,
     "activationAuthorized": false
+  },
+  "inventoryReconciled20261128": {
+    "pr": 661,
+    "sourceHead": "754051fbd65b3580d5b9be7b15deafbcccf6ba69",
+    "mainBase": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+    "stage": "RECONCILED_REVIEW",
+    "node": "PENDING",
+    "android": "PENDING",
+    "physicalDevice": "NOT_TESTED",
+    "release": false
   }
 }

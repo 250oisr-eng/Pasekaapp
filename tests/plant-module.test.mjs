@@ -27,3 +27,23 @@ test('photo capture, optional GPS and explicit shared-catalog consent are presen
 test('shared plant atlas migration separates species, regional risk, private observations and photos',()=>{for(const table of ['plant_species','plant_regional_assessments','plant_observations','plant_observation_media'])assert.match(migration,new RegExp('CREATE TABLE public\\.'+table+'\\b'));assert.match(migration,/UNIQUE \(species_id, region_code\)/);assert.match(migration,/contribution_consent boolean NOT NULL DEFAULT false/);assert.match(migration,/visibility <> 'public' OR \(contribution_consent = true AND moderation_status = 'approved'\)/);assert.match(migration,/latitude numeric\(9,6\)/);assert.match(migration,/storage_key text NOT NULL UNIQUE/);assert.match(migration,/cultivation_advice text NOT NULL DEFAULT 'unknown'/);assert.match(migration,/invasive_status text NOT NULL DEFAULT 'unknown'/);});
 
 test('schema 9 repairs a missing inventory section once without repeating migration',()=>{const s={meta:{schemaVersion:9},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],equipmentLabels:{bodies:{}}};const migrate=loadFunction('migrateState',{S:s,uid:()=> 'repair-id'});assert.equal(migrate(),true);assert.deepEqual(s.equipmentInventory,{bodies:{},events:[]});assert.equal(migrate(),false)});
+
+test('flowering observation history reaches older records and applies search, phase and year without mutation',()=>{
+ const filter=loadFunction('filterPlantObservationHistory');
+ const observations=Array.from({length:91},(_,i)=>({id:String(i),plantName:i===90?'Старое растение':'Липа',locationLabel:'Луг',observedAt:i===90?'2025-06-01':'2026-07-01',phase:i===90?'beginning':'mass'}));
+ const before=JSON.stringify(observations);
+ assert.equal(filter(observations,'','all','').length,91);
+ assert.deepEqual(filter(observations,'старое','beginning','2025').map(r=>r.id),['90']);
+ assert.equal(filter(observations,'луг','mass','2026').length,90);
+ assert.equal(filter(observations,'','finished','').length,0);
+ assert.equal(JSON.stringify(observations),before);
+});
+
+test('flowering history skips corrupted non-object records without modifying source',()=>{
+ const filter=loadFunction('filterPlantObservationHistory');
+ const rows=[null,'legacy garbage',17,[],{id:'safe',plantName:'Клевер',observedAt:'2026-08-11',phase:'mass'}];
+ const before=JSON.stringify(rows);
+ assert.deepEqual(filter(rows,'','all','').map(x=>x.id),['safe']);
+ assert.deepEqual(filter(rows,'клевер','mass','2026').map(x=>x.id),['safe']);
+ assert.equal(JSON.stringify(rows),before);
+});
