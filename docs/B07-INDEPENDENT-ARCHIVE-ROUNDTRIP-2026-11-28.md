@@ -28,3 +28,6 @@
 **Итоговый код+тесты SHA `0da7ec56ffaa5d1af44d57f66a78d187c55e3737`:** [Android + Node #46131715957](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46131715957) **SUCCESS, 1105/1105 PASS, 0 FAIL, 0 SKIPPED**; конкретно новый B07 независимый reopen тест #61 и stale same-revision abort тест #63 PASS; debug APK и проверка signer provenance PASS. [Governance #46131715951](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46131715951) **SUCCESS**.
 
 **Граница доказательства:** независимый full-store экспорт и восстановление в `fake-indexeddb` доказаны для **синтетической** схемы B07 с физическим валидатором. Реальные видео, реальная база, OnePlus, pwa/offline, storage quota на устройстве, сохранённый OP11/13 в пользовательской записи и production release **NOT_TESTED/BLOCKED**. Внешний физический полный архив реальной пасеки по-прежнему требует отдельного подтверждения, никаких изменений настоящих данных не было.
+
+## 28.11.2026 — дополнительная checksum-проверка
+Synthetic test `a0316c0329f2d37fe37d7d86de52cdbb49e03c07` подменяет SHA-256 в manifest, проверяет отказ до записи, неизменность `main.state` и исходные байты video Blob в `entrance_media`. Exact code SHA: Node, Android build, Governance PASS. Это не физическое испытание OnePlus, не разрешение реального restore и не активация B07.
