@@ -362,7 +362,7 @@ test('R4 accepts exactly two large excluders with FULL/HALF footprints on explic
  assert.deepEqual(validateAll(state),[]);
 });
 
-test('R4 rejects incorrect FULL/HALF section assignment and an unsupported early four-body stack',()=>{
+test('R4 permits an early four-body count and rejects incorrect FULL/HALF section assignment',()=>{
  const {state,layout}=sideBySide();
  removeHoneyStageAccessories(state,layout);
  state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
@@ -373,7 +373,7 @@ test('R4 rejects incorrect FULL/HALF section assignment and an unsupported early
  state.equipmentInventory.items.hl=makeItem('hl','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:wrong});
  state.equipmentInventory.items.hr=makeItem('hr','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}]});
  layout.honeyStack={purpose:'early',bodyIds:['hb1','hb2','hb3','hb4'],excluders:[{side:'left',itemId:'hl'},{side:'right',itemId:'hr'}]};
- assert.ok(Layout.inspect(state).some(error=>error.code==='honey_stack_body_count_invalid'));
+ assert.ok(!Layout.inspect(state).some(error=>error.code==='honey_stack_body_count_invalid'));
  assert.ok(Layout.inspect(state).some(error=>error.code==='section_accessory_footprint_mismatch'));
 });
 
