@@ -43,3 +43,19 @@ test('a stale journal result cannot open an archived, moved or missing entry',()
  assert.deepEqual(opened,['one'],'ambiguous ID must not open another editor');
  assert.equal(alerts.length,5,'ambiguous ID must fail closed');
 });
+
+test('exact marking search routes via live identity and refuses a disappeared or duplicate record',()=>{
+ const code=html.slice(html.indexOf('function openGlobalSearchResult('),html.indexOf('function inventoryConditionLabel('));
+ const calls=[],button={dataset:{kind:'family',markType:'family',markCode:'12',id:'f',hive:'h'}},S={};
+ let answer={status:'found',target:{kind:'family',id:'f',hiveId:'h'}};
+ const fn=new Function('S','PasekaLabels','openFamilyHistory','renderGlobalSearch','alert',code+';return openGlobalSearchResult')(S,{lookupMarking:()=>answer},(...args)=>calls.push(args),()=>calls.push('refresh'),msg=>calls.push(msg));
+ fn(button);assert.deepEqual(calls,[['f','h']]);answer={status:'ambiguous'};fn(button);assert.equal(calls[1],'refresh');assert.match(calls[2],/однозначно/);
+ answer={status:'found',target:{kind:'family',id:'different',hiveId:'h'}};fn(button);assert.equal(calls[3],'refresh');assert.match(calls[4],/однозначно/);assert.equal(calls.length,5);
+});
+
+ test('exact family search preserves its semantic kind and permanent ID in result markup',()=>{
+ const code=html.slice(html.indexOf('function renderGlobalSearch()'),html.indexOf("document.addEventListener('keydown',event=>",html.indexOf('function renderGlobalSearch()')));
+ const host={innerHTML:''},els={globalSearch:{value:'С-12'},globalSearchResults:host,globalSearchStatus:{}};
+ const render=new Function('$','S','safe','PasekaReconciliationVoice','PasekaLabels',code+';return renderGlobalSearch')(id=>els[id],{},String,{parseMarkingLookup:()=>({kind:'family',code:'12'})},{lookupMarking:()=>({status:'found',title:'С-12',target:{kind:'family',id:'family-uid',hiveId:'h'}})});
+ render();assert.match(host.innerHTML,/data-kind="family"/);assert.match(host.innerHTML,/data-id="family-uid"/);assert.match(host.innerHTML,/data-mark-code="12"/);
+});
