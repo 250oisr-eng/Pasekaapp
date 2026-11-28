@@ -217,7 +217,7 @@ function prepareOP07Fixture(){
  if(!started.ok)throw new Error('OP-04 fixture setup failed: '+JSON.stringify(started));
  const bodyIds=['honey1','honey2'];
  for(const [index,id] of bodyIds.entries()){
-  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'honey-pair-1',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
+  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,kind:'honey',framesPerBox:10,frame:{heightMm:180}},pairId:'honey-pair-1',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
   fixture.state.equipmentLabels.bodies[id]=index===0?'ААХ':'ААЦ';
  }
  fixture.state.equipmentInventory.items['ex-left']=item('ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
@@ -888,7 +888,7 @@ test('OP-04 staged first-row to second-row sequence composes with OP-05, OP-06 a
 
  const honeyBodyIds=['staged-honey-1','staged-honey-2'];
  for(const [index,id] of honeyBodyIds.entries()){
-  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'staged-honey-pair',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
+  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,kind:'honey',framesPerBox:10,frame:{heightMm:180}},pairId:'staged-honey-pair',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
   fixture.state.equipmentLabels.bodies[id]=index===0?'ААХ':'ААЦ';
  }
  fixture.state.equipmentInventory.items['staged-ex-left']=item('staged-ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
@@ -920,7 +920,7 @@ function preparedSecondHoneyPair(){
  assert.equal(completed.ok,true,JSON.stringify(completed.details||completed));
  const bodies=prepared.fixture.state.equipmentInventory.bodies;
  for(const id of ['honey3','honey4']){
-  bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},
+  bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,kind:'honey',framesPerBox:10,frame:{heightMm:180}},
     pairId:'honey-pair-2',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
  }
  return prepared.fixture.state;
@@ -982,7 +982,7 @@ function preparedMainHoneyForLatePair(){
  assert.equal(result.ok,true,'initial main-flow OP-07 must succeed: '+JSON.stringify(result));
  for(const [index,id] of ['honey3','honey4'].entries()){
   prepared.fixture.state.equipmentInventory.bodies[id]={
-   id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},
+   id,kind:'honey',condition:'good',spec:{profileId:PROFILE,kind:'honey',framesPerBox:10,frame:{heightMm:180}},
    pairId:'honey-pair-2',storageLocation:'Склад',events:[],frames:honeyFrames(id)
   };
   prepared.fixture.state.equipmentLabels.bodies[id]=index===0?'ААЧ':'ААШ';
