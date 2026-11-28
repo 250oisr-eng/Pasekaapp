@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "PARALLEL_ONNX_RETRY_AND_CROSSING_PROXY",
+    "stage": "PARALLEL_STATIC_POSITION_EXPORT_AND_EVENT_DIAGNOSTIC",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -431,17 +431,55 @@
       "conclusion": "HTTP502_BEFORE_EXPORT",
       "deltaPreserved": true,
       "artifactId": 15257755499,
-      "retry": "pinned_direct_source_export_first"
+      "retry": {
+        "run": 46130912621,
+        "codeSha": "8b1edba19edb08e4be43a043397e083e28fd40f6",
+        "testsPassed": 4,
+        "conclusion": "UNSUPPORTED_ANTIALIASED_BICUBIC",
+        "artifactId": 15257735886,
+        "corrective": "fixed_position_original_eager_scoped_export"
+      }
     },
     "crossingTrial": {
+      "run": 46130912739,
+      "codeSha": "8b1edba19edb08e4be43a043397e083e28fd40f6",
+      "testsPassed": 6,
+      "conclusion": "EXECUTION_SUCCESS_PROXY_INSUFFICIENT",
+      "artifactId": 15257453751,
+      "frames": 11929,
+      "referenceObservations": 199629,
+      "geometricReferenceEvents": {
+        "a": 332,
+        "b": 228
+      },
+      "decimationRecall": {
+        "a": [
+          0.9036144578313253,
+          0.8162650602409639,
+          0.7590361445783133
+        ],
+        "b": [
+          0.8026315789473685,
+          0.5745614035087719,
+          0.4298245614035088
+        ]
+      },
+      "actualFrames": 64,
+      "actualProxy": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 4
+      },
+      "physicalDirectionTruth": false
+    },
+    "eventTrial": {
       "state": "implemented_pending_actual_run",
+      "windows": 12,
+      "frames": 384,
+      "high": 0.8,
+      "low": 0.5,
       "physicalDirectionTruth": false,
-      "windows": 2,
-      "framesPerWindow": 32,
-      "deadbandPx": 12,
-      "dwellFrames": 2,
-      "matchToleranceFrames": 5,
-      "matchTolerancePx": 30
+      "representativeEventSample": false
     }
   },
   "seasonalWorkspaceUI20261127": {

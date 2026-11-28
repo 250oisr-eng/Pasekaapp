@@ -8,7 +8,8 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from types import SimpleNamespace
+from types import SimpleNamespace,MethodType
+from contextlib import contextmanager
 import numpy as np
 import torch
 import onnx
@@ -33,6 +34,40 @@ class Export(torch.nn.Module):
     def forward(self,pixel_values):
         out=self.model(pixel_values=pixel_values)
         return out.logits,out.pred_boxes
+
+@contextmanager
+def fixed_position_encoding(model,x):
+    """Fold only frozen input-shape-dependent DINO positional encoding.
+    Transformers v5.11.0 interpolates during JIT tracing even at fixed shape.
+    Compute with the original eager method, not altered antialias settings.
+    Restore the original method before all real-tile parity measurements.
+    """
+    if tuple(x.shape)!=(1,3,384,384):raise ValueError("fixed export shape required")
+    modules=[(name,m) for name,m in model.named_modules()
+             if type(m).__name__=="RfDetrDinov2Embeddings"]
+    if len(modules)!=1:raise ValueError("unexpected positional embedding modules")
+    name,m=modules[0];original=m.interpolate_pos_encoding
+    if "interpolate_pos_encoding" in m.__dict__ or hasattr(m,"_paseka_static_pos"):
+        raise ValueError("positional method already modified")
+    with torch.no_grad():
+        patch=m.patch_embeddings(x.to(dtype=m.patch_embeddings.projection.weight.dtype))
+        tokens=torch.cat((m.cls_token.expand(1,-1,-1),patch),dim=1)
+        position=original(tokens,384,384).detach().contiguous().clone()
+    if tuple(position.shape)!=tuple(tokens.shape) or not torch.isfinite(position).all():
+        raise ValueError("invalid static position tensor")
+    info={"module":name,"shape":list(position.shape),
+      "sha256":hashlib.sha256(position.cpu().numpy().tobytes()).hexdigest(),
+      "method":"original eager positional encoding; fixed 384x384; no change to interpolation"}
+    m.register_buffer("_paseka_static_pos",position,persistent=False)
+    def fixed(self,embeddings,height,width):
+        if not torch.jit.is_tracing() and (height!=384 or width!=384 or embeddings.shape[1:]!=self._paseka_static_pos.shape[1:]):
+            raise ValueError("static positional shape mismatch")
+        return self._paseka_static_pos
+    m.interpolate_pos_encoding=MethodType(fixed,m)
+    try:yield info
+    finally:
+        delattr(m,"interpolate_pos_encoding")
+        delattr(m,"_paseka_static_pos")
 
 def checked_pixels(data):
     if set(data.keys())-{"pixel_values","pixel_mask"}:
@@ -102,8 +137,16 @@ def run(out,delta):
             x=torch.zeros((1,3,384,384),dtype=torch.float32)
             path=root/"experimental_bee_fp32.onnx"
             with torch.no_grad():
-                torch.onnx.export(wrapper,(x,),str(path),input_names=["pixel_values"],output_names=["logits","boxes"],
-                                  opset_version=OPSET,dynamo=False,external_data=False,do_constant_folding=True)
+                original=tuple(v.numpy() for v in wrapper(x))
+                with fixed_position_encoding(model,x) as position_info:
+                    report["staticPositionEncoding"]=position_info
+                    adapted=tuple(v.numpy() for v in wrapper(x))
+                    report["staticPositionEncoding"]["zeroInputParity"]=verify_outputs(original,adapted)
+                    if not report["staticPositionEncoding"]["zeroInputParity"]["pass"]:
+                        raise ValueError("static positional folding changed eager result")
+                    torch.onnx.export(wrapper,(x,),str(path),input_names=["pixel_values"],output_names=["logits","boxes"],
+                                      opset_version=OPSET,dynamo=False,external_data=False,do_constant_folding=True)
+            report["phases"]["trace"]="POSITION_METHOD_RESTORED_AFTER_TRACE";checkpoint()
             size=path.stat().st_size
             if not 0<size<=MAX_MODEL_BYTES:raise ValueError("export size cap")
             graph=onnx.load(str(path),load_external_data=False)
