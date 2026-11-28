@@ -124,3 +124,16 @@ test('incident snapshots explicitly selected families and preserves historical a
  const legacy={...row};delete legacy.affectedFamilyIds;delete legacy.affectedFamilySnapshots;
  assert.deepEqual(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[legacy]}),[]);
 });
+
+test('historical hive snapshot cannot lose its saved label without integrity finding',()=>{
+ const row=build({...base,hiveIds:['h1','h2']});
+ const before=structuredClone(row);
+ for(const label of ['',null,42,'   ']){
+  const broken={...row,affectedHiveSnapshots:row.affectedHiveSnapshots.map((s,i)=>i===0?{...s,label}:s)};
+  const state={meta:{schemaVersion:11},hives:[],pesticideIncidents:[broken]};
+  const frozen=structuredClone(state);
+  assert.ok(api.inspectPesticideIncidentIntegrity(state).some(x=>x.code==='pesticide_incident_invalid_or_duplicate_hive_snapshot'));
+  assert.deepEqual(state,frozen);
+ }
+ assert.deepEqual(row,before);
+});
