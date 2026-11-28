@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "FROZEN_ROI_PAIRED_MEASURED_ONNX_TRIAL",
+    "stage": "PARALLEL_ONNX_RETRY_AND_CROSSING_PROXY",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -424,7 +424,25 @@
         "productAdmission": false
       }
     },
-    "onnxTrial": "implemented_pending_actual_run"
+    "onnxTrial": {
+      "run": 46130641128,
+      "codeSha": "dea7f37959e08263bfaf1d80c09c6c8422d00df1",
+      "testsPassed": 4,
+      "conclusion": "HTTP502_BEFORE_EXPORT",
+      "deltaPreserved": true,
+      "artifactId": 15257755499,
+      "retry": "pinned_direct_source_export_first"
+    },
+    "crossingTrial": {
+      "state": "implemented_pending_actual_run",
+      "physicalDirectionTruth": false,
+      "windows": 2,
+      "framesPerWindow": 32,
+      "deadbandPx": 12,
+      "dwellFrames": 2,
+      "matchToleranceFrames": 5,
+      "matchTolerancePx": 30
+    }
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",

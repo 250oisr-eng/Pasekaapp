@@ -97,14 +97,9 @@ def run(out,delta):
                 sources.download(f"https://huggingface.co/Roboflow/rf-detr-nano/resolve/{rev}/{name}",md/name,65536,sha,size)
             model,report["frozenModel"]=frozen.load_frozen(md,delta)
             processor=AutoImageProcessor.from_pretrained(md,local_files_only=True,trust_remote_code=False)
-            # Fixed previously observed July A frames; verify original publisher bytes.
-            samples,refs=frozen.acquire_a(root,report)
-            samples=[samples[i] for i in (0,11,23)]
-            report["frames"]=[s[2] for s in samples]
-            tiles=[v[4] for image,_,_,poly in samples for v in frozen.roi_tiles(image,poly)]
-            if len(tiles)<6:raise ValueError("insufficient real tiles")
+            # Trace fixed shape only; zero input is NOT real parity evidence.
             wrapper=Export(model).eval()
-            x=checked_pixels(processor(images=[tiles[0]],return_tensors="pt",size={"height":384,"width":384}))
+            x=torch.zeros((1,3,384,384),dtype=torch.float32)
             path=root/"experimental_bee_fp32.onnx"
             with torch.no_grad():
                 torch.onnx.export(wrapper,(x,),str(path),input_names=["pixel_values"],output_names=["logits","boxes"],
@@ -126,6 +121,25 @@ def run(out,delta):
                 raise ValueError("runtime input contract")
             if [x.name for x in session.get_outputs()]!=["logits","boxes"]:raise ValueError("runtime output contract")
             report["phases"]["export"]="CHECKED_STANDARD_ONNX_CPU_LOADED";checkpoint()
+            # Prior July A run 46129548587 verified these exact publisher UUIDs
+            # and bytes; no catalog request needed to re-verify immutable pins.
+            name=roi.DEVELOPMENT
+            v=frozen.acquire_checked(root,name,"video",base.VIDEO,sources.MAX_VIDEO,".mp4",report)
+            t=frozen.acquire_checked(root,name,"tracks",base.TRACKS,sources.MAX_LABELS,".txt",report)
+            z=frozen.acquire_checked(root,name,"zone",("7fa8a906-4f75-4559-bd60-9b557ec2c8a8",70,"23a339cef571975e18fdaafbb01c988c0e3ec4668bac7a491c8effe54ad50580"),65536,".zone",report)
+            refs=roi.load_ids(t);poly=roi.parse_zone(z.read_text(encoding="ascii"))
+            ids=[3001,3012,3024]
+            if not all(f in refs for f in ids):raise ValueError("missing pinned reference frames")
+            from PIL import Image
+            samples=[]
+            for f,px in zip(ids,base.decode(v,ids)):
+                gt=[b for b in refs[f].values() if roi.inside([b],poly)[0]]
+                samples.append((Image.fromarray(px),gt,{"frame":f,"decodedSha256":hashlib.sha256(px.tobytes()).hexdigest()},poly))
+            if len(samples)!=3:raise ValueError("incomplete frame decode")
+            report["frames"]=[s[2] for s in samples]
+            tiles=[v[4] for image,_,_,poly in samples for v in frozen.roi_tiles(image,poly)]
+            if len(tiles)<6:raise ValueError("insufficient real tiles")
+            report["phases"]["realInput"]="PINNED_BYTES_VERIFIED";checkpoint()
             results=[];torch_ms=[];ort_ms=[]
             # Fixed six lexicographic-position crops, no score selection.
             selected=[tiles[((2*i+1)*len(tiles))//12] for i in range(6)]

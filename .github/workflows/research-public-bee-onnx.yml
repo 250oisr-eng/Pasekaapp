@@ -27,8 +27,8 @@ jobs:
       - name: Retrieve exact frozen detector delta
         uses: actions/download-artifact@v4
         with:
-          name: public-bee-native-research
-          run-id: 46117679978
+          name: public-bee-onnx-research
+          run-id: 46130641128
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/native-frozen
       - name: Install pinned CPU dependencies
