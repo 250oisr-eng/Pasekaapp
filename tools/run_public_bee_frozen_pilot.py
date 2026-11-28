@@ -104,12 +104,62 @@ def b_frames(refs):
     if not all(i in refs for i in result):raise ValueError("48-frame extension unavailable")
     return result
 
+def verify_catalog_pair(catalog,name,video,tracks):
+    pairs=[p for p in catalog["pairs"] if p["recording"]==name]
+    if len(pairs)!=1:raise ValueError("missing/ambiguous pinned recording")
+    for kind,pin in (("video",video),("labels",tracks)):
+        r=pairs[0][kind]
+        if (r["uuid"],r["bytes"],r["sha256"])!=pin:
+            raise ValueError("publisher catalog differs from pinned "+kind)
+    return pairs[0]
+
+def acquire_checked(root,name,kind,pin,cap,suffix,report):
+    uid,size,sha=pin
+    path=root/(name+suffix)
+    row={"uuid":uid,"expectedBytes":size,"expectedSha256":sha,"state":"REQUESTED"}
+    report["sourceAttempts"][kind]=row
+    try:
+        evidence=sources.download(sources.source_url(uid),path,cap,sha,size)
+    except Exception as exc:
+        row["state"]="REJECTED"
+        row["errorType"]=type(exc).__name__
+        row["error"]=str(exc)[:160]
+        if path.is_file():
+            row["observedBytes"]=path.stat().st_size
+            if row["observedBytes"]<=cap:
+                digest=hashlib.sha256()
+                with path.open("rb") as stream:
+                    for part in iter(lambda:stream.read(1024*1024),b""):digest.update(part)
+                row["observedSha256"]=digest.hexdigest()
+        raise ValueError("pinned "+kind+" rejected; see sourceAttempts") from exc
+    row.update(evidence);row["state"]="VERIFIED"
+    return path
+
+def acquire_a(root,report):
+    name=roi.DEVELOPMENT
+    report["publisherPair"]=verify_catalog_pair(sources.tracking_catalog(),name,base.VIDEO,base.TRACKS)
+    zones=roi.zone_catalog()
+    v=acquire_checked(root,name,"video",base.VIDEO,sources.MAX_VIDEO,".mp4",report)
+    t=acquire_checked(root,name,"tracks",base.TRACKS,sources.MAX_LABELS,".txt",report)
+    z=acquire_checked(root,name,"zone",zones[name],65536,".zone",report)
+    refs=roi.load_ids(t);poly=roi.parse_zone(z.read_text(encoding="ascii"))
+    ids=roi.consecutive(refs,A_FRAME_COUNT);pixels=base.decode(v,ids);samples=[];seen=set()
+    for f,px in zip(ids,pixels):
+        digest=hashlib.sha256(px.tobytes()).hexdigest()
+        if digest in seen:raise ValueError("duplicate video sample")
+        seen.add(digest)
+        gt=[box for box in refs[f].values() if roi.inside([box],poly)[0]]
+        samples.append((Image.fromarray(px),gt,{"source":name,"frame":f,"decodedSha256":digest},poly))
+    if len(samples)!=A_FRAME_COUNT:raise ValueError("incomplete frame decode")
+    return samples,refs
+
 def run(out,delta):
     torch.set_num_threads(min(4,os.cpu_count() or 1));torch.set_num_interop_threads(1);torch.manual_seed(base.SEED)
     out.mkdir(parents=True,exist_ok=True);start=time.monotonic()
     report={"scope":"frozen RF-DETR paired ROI coverage and actual prediction tracking",
       "sourceRun":46117679978,"sourceCodeSha":"1ea3f34558b89e4e2321ab94de9bf858b436d28f",
-      "sourceModelSha256":base.MODEL_SHA,"videoSources":{},"phases":{},"comparisons":{},
+      "sourceModelSha256":base.MODEL_SHA,"sourceAttempts":{},"phases":{},"comparisons":{},
+      "priorJulyBRun":46121293618,"priorJulyBCodeSha":"cc16fc1a79c17aec6e416b6cf6eee200030d6203","priorJulyBRepeated":False,
       "training":False,"directionCountingEvaluated":False,"productRecognitionAuthorized":False,
       "cleanupAuthorized":False,"androidVerified":False,"physicalHiveIndependenceVerified":False}
     def checkpoint():
@@ -117,39 +167,30 @@ def run(out,delta):
         print("RF_FROZEN_CHECKPOINT",json.dumps(report["phases"]),flush=True)
     try:
         with tempfile.TemporaryDirectory(prefix="paseka-frozen-") as directory:
-            root=Path(directory);md=root/"model";md.mkdir()
+            root=Path(directory)
+            samples,refs=acquire_a(root,report)
+            report["phases"]["julyASource"]="PINNED_BYTES_VERIFIED";checkpoint()
+            md=root/"model";md.mkdir()
             sources.download(base.MODEL_URL,md/"model.safetensors",base.MAX_MODEL,base.MODEL_SHA,121926336)
             for name,(sha,size,rev) in roi.CONFIGS.items():
                 sources.download(f"https://huggingface.co/Roboflow/rf-detr-nano/resolve/{rev}/{name}",md/name,65536,sha,size)
             model,report["frozenModel"]=load_frozen(md,delta)
             processor=AutoImageProcessor.from_pretrained(md,local_files_only=True,trust_remote_code=False)
             report["phases"]["weights"]="EXACT_DELTA_RESTORED_NO_TRAINING";checkpoint()
-            seen=set();zones=roi.zone_catalog()
-            for name,video,tracks,selector in ((roi.CONTROL,roi.CONTROL_VIDEO,roi.CONTROL_TRACKS,b_frames),
-                  (roi.DEVELOPMENT,base.VIDEO,base.TRACKS,lambda refs:roi.consecutive(refs,A_FRAME_COUNT))):
-                samples=transfer.samples_video(root,name,video,tracks,zones[name],selector,seen,report)
-                refs=roi.load_ids(root/(name+".txt"))
-                plain,pperf=native.collect_predictions(model,processor,samples)
-                if name==roi.CONTROL:
-                    replay=native.metric(plain[:12],THRESHOLD);report["original12Replay"]=replay
-                    if (replay["tp"],replay["fp"],replay["fn"])!=(137,69,41):
-                        raise ValueError("exact original 12-frame metric replay mismatch")
-                    report["phases"]["original12"]="MATCHED_EXACT_COUNTS";checkpoint()
-                reduced,rperf=reduced_predictions(model,processor,samples)
-                a=native.metric(plain,THRESHOLD);b=native.metric(reduced,THRESHOLD)
-                report["comparisons"][name]={"frames":[x[2]["frame"] for x in samples],
-                  "pixelsSha256":[x[2]["decodedSha256"] for x in samples],
-                  "baseline":{"metrics":a,"perf":pperf,"tracking":track_result(plain,samples,refs)},
-                  "reduced":{"metrics":b,"perf":rperf,"tracking":track_result(reduced,samples,refs)},
-                  "tilesSaved":a["tiles"]-b["tiles"],"referenceScope":"publisher entrance ROI",
-                  "speedup":a["pipelineMsPerImage"]/b["pipelineMsPerImage"]}
-                report["phases"][name]="COMPLETED_PAIRED_COMPARISON";checkpoint()
-            # Diagnostic criterion only: don't select by test metrics or promote
-            # any pipeline; report whether BOTH prior comparison sets support it.
-            report["reducedResearchCandidate"]=all(
-              v["reduced"]["metrics"]["f1"]>=v["baseline"]["metrics"]["f1"]-.02
-              and v["reduced"]["metrics"]["recall"]>=v["baseline"]["metrics"]["recall"]-.02
-              and v["speedup"]>1.15 for v in report["comparisons"].values())
+            name=roi.DEVELOPMENT
+            plain,pperf=native.collect_predictions(model,processor,samples)
+            reduced,rperf=reduced_predictions(model,processor,samples)
+            a=native.metric(plain,THRESHOLD);b=native.metric(reduced,THRESHOLD)
+            report["comparisons"][name]={"frames":[x[2]["frame"] for x in samples],
+              "pixelsSha256":[x[2]["decodedSha256"] for x in samples],
+              "baseline":{"metrics":a,"perf":pperf,"tracking":track_result(plain,samples,refs)},
+              "reduced":{"metrics":b,"perf":rperf,"tracking":track_result(reduced,samples,refs)},
+              "tilesSaved":a["tiles"]-b["tiles"],"referenceScope":"publisher entrance ROI",
+              "speedup":a["pipelineMsPerImage"]/b["pipelineMsPerImage"]}
+            report["phases"][name]="COMPLETED_PAIRED_COMPARISON";checkpoint()
+            report["julyAReducedCriterionMet"]=(b["f1"]>=a["f1"]-.02
+              and b["recall"]>=a["recall"]-.02
+              and report["comparisons"][name]["speedup"]>1.15)
             report["status"]="FROZEN_RESEARCH_COMPLETED"
     except Exception as exc:
         report["status"]="STOP_WITHOUT_ACCEPTANCE";report["errorType"]=type(exc).__name__;report["detail"]=str(exc)[:280]

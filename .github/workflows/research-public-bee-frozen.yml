@@ -43,7 +43,7 @@ jobs:
           fi
       - name: Frozen weights and ROI coverage tests
         run: python -m unittest discover -s tests -p 'test_public_bee_frozen_pilot.py' -v
-      - name: Replay frozen 12 frames and compare ROI tiling and tracking
+      - name: Verify July A source and compare only that recording
         run: python -u tools/run_public_bee_frozen_pilot.py "${RUNNER_TEMP}/bee-frozen" "${RUNNER_TEMP}/native-frozen/experimental_native_delta.safetensors"
       - name: Preserve only frozen comparison evidence
         if: always()

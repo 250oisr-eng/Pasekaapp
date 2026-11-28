@@ -25,4 +25,23 @@ class FrozenTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             f=Path(d)/"delta";f.write_bytes(b"bad")
             with self.assertRaisesRegex(ValueError,"digest/size"):p.load_frozen(Path(d),f)
+    def test_publisher_changed_pin_rejected(self):
+        pin=("uid",123,"a"*64)
+        pair={"recording":"clip","video":{"uuid":"uid","bytes":123,"sha256":"a"*64},
+              "labels":{"uuid":"uid","bytes":123,"sha256":"a"*64}}
+        self.assertEqual(p.verify_catalog_pair({"pairs":[pair]},"clip",pin,pin),pair)
+        pair["video"]["bytes"]=124
+        with self.assertRaisesRegex(ValueError,"catalog differs"):p.verify_catalog_pair({"pairs":[pair]},"clip",pin,pin)
+    def test_rejected_bytes_reported_not_used(self):
+        from unittest.mock import patch
+        import hashlib,tempfile
+        report={"sourceAttempts":{}}
+        def bad(url,path,cap,sha,size):
+            path.write_bytes(b"wrong");raise ValueError("source size/SHA mismatch")
+        with tempfile.TemporaryDirectory() as d,patch.object(p.sources,"source_url",return_value="https://example.invalid"),patch.object(p.sources,"download",side_effect=bad):
+            with self.assertRaisesRegex(ValueError,"pinned video rejected"):
+                p.acquire_checked(Path(d),"clip","video",("id",10,"a"*64),100,".mp4",report)
+        r=report["sourceAttempts"]["video"]
+        self.assertEqual(r["state"],"REJECTED");self.assertEqual(r["observedBytes"],5)
+        self.assertEqual(r["observedSha256"],hashlib.sha256(b"wrong").hexdigest())
 if __name__=="__main__":unittest.main()
