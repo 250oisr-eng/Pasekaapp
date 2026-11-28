@@ -4,9 +4,9 @@
 
 **UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 исправления 1096/1096, Android/Chromium PASS; #650 separate QA built. **[#649 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/649):** OP07/08, склад, UI, IndexedDB; 1101/1101 Node/Android/Chromium/Gov PASS. Profile gate closed, B07 BLOCKED. Detailed history in journal/metrics. No release.
 
-**B07 [#663 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/663):** OP11 UI read-only 1113/1113 Node/Android/Chromium/Gov PASS `3a044227`; no write, B07 BLOCKED. **#662 Draft:** OP12 2 снизу+1+1, 1101/1101 Node/Android/Gov PASS. **#660 Draft:** склад 180 мм 1102/1102 Node/Android/Gov PASS. **#657 Draft:** B01 ZIP 1102/1102 Node/Android/QA/Gov PASS. Нет merge/release.
+**B07 Draft #663:** OP11 UI+реальный Chromium-сценарий без IndexedDB-записи, 1113/1113 Node/Android/Chromium/Gov PASS `426f6783`. **#664 Draft:** OP12 история/evidence 2+1+1, 1101/1101 PASS. **#665 Draft:** OP13 read-only перемещение однокорпусных семей, 1109/1109 PASS, write BLOCKED. **#662 Draft:** физический OP12, PASS. **#660 Draft:** склад 180 мм, PASS. **#657 Draft:** B01 ZIP, PASS. B07 не активирован; merge/release нет.
 
-**B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
+**B03 IN_MAIN (#626):** #472/#623 интегрированы; Fast/Android/Chromium/Governance PASS на `94f883be`. B01/B02/B04/B05/B11/B15 ещё открыты; релиз и независимое восстановление не подтверждены.
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
@@ -37,7 +37,7 @@
 - **B01 P0 · #623 / IN_MAIN:** [два ZIP и одна кнопка](docs/B01-DAILY-TWO-ARCHIVES-2026-11-27.md). Код `70216c73`: Node **1054/1054**, Android build, Chromium restore + simulated background, Governance PASS. JobScheduler реализован. Изолированный QA #45993522131 PASS, [APK](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993522131/artifacts/15193929646) до 04.12.2026; физический OnePlus/фон и большие ZIP >256 MiB не подтверждены. Draft #452 исторический. #479/#522/#543 CLOSED. B06/B10 не ослаблены.
 - **B04/B05 P0 BLOCKED (Draft #469):** signer и совместимость обновления установленного Android APK, сохранение данных и rollback не доказаны. **Не устанавливать/обновлять производственный APK; установленный отдельный QA пакет не считать доказательством B04/B05.**
 - **B06/B10 #442 FROZEN:** нет всех V0–V6 (права/лицензии весов, реальный видеоконвейер и GT, все копии, независимый restore). Автоудаление оригинальных видео запрещено.
-- **B07 P1 BLOCKED:** секционный профиль/OP11–14 не активировать без полного набора физических моделей/валидаторов/миграций и сверки DOCX.
+- **B07 P1 BLOCKED:** OP11 запись, OP13 перенос/дополнительные корпуса, OP14 и полный backup/restore не доказаны; профиль не активировать.
 - **B09/B11/P2:** зелёный синтетический CI не доказывает настоящий offline, power-loss, storage quota и OnePlus.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_APK_REINSTALL / NO_PRODUCTION_APK_INSTALL / NO_MASS_MERGE.**
