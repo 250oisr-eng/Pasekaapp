@@ -4,10 +4,11 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 function load(deps) {
- const filterStart=html.indexOf('function filteredJournalRows(');
+ const filterStart=html.indexOf('function journalRecordMatchesPeriod(');
  const filterEnd=html.indexOf('function journalCsvCell(',filterStart);
  assert.ok(filterStart>=0&&filterEnd>filterStart);
- deps.filteredJournalRows=new Function('deps','with(deps){return ('+html.slice(filterStart,filterEnd)+');}')(deps);
+ deps.renderJournalPeriodSummary=()=>{};
+ deps.filteredJournalRows=new Function('deps','with(deps){'+html.slice(filterStart,filterEnd)+';return filteredJournalRows;}')(deps);
   const start = html.indexOf('function renderJournalRecords(){');
   assert.ok(start >= 0);
   const next = /\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
@@ -76,7 +77,7 @@ test('no text search does not enumerate obsolete media names',()=>{
  assert.throws(render,/full-text media accessed unnecessarily/);
 });
 test('shared selected-hive filter sorts only matching records and render reuses the family index',()=>{
- const filterStart=html.indexOf('function filteredJournalRows(');
+ const filterStart=html.indexOf('function journalRecordMatchesPeriod(');
  const filterEnd=html.indexOf('function journalCsvCell(',filterStart);
  const filterSource=html.slice(filterStart,filterEnd);
  const renderSource=html.slice(html.indexOf('function renderJournalRecords(){'),html.indexOf('function clearJournalFilters(){'));
