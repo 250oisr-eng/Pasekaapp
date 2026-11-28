@@ -14,3 +14,7 @@ F6: small main-based Draft #635, без схематических миграц�
 ## 28.11 — F0–F5: форма и история наблюдения
 
 Снимки семьи и улья на дату обнаружения, совместимость старых записей без снимков, безопасное добавление фото и просмотр всех сохранённых полей. Chromium 412/1280: синтетическая семья, фото, ошибочная замена, сохранение при отключённой сети, повторная загрузка с доступным localhost; снимки и фото равны исходному сохранению, семья и инвентарь не меняются. Android/камера/автономный запуск NOT_TESTED.
+
+
+## 28.11 — current main reconciliation
+Base `00b82f0457c3c5a5da5e4edeba27f886e3dd13a8`; original deadout code/test changes applied without overwriting merged incident and numeric-marking code. Offline shell v331; current/future/user cache protection retained. Exact-head CI pending; no physical proof or release.
