@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "NATIVE_ADAPTATION_MEASURED_ZERO_DETECTIONS_CORRECTIVE_TRIAL",
+    "stage": "CORRECTED_NATIVE_MEASURED_FROZEN_REPLAY_TRIAL",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -308,8 +308,41 @@
         "artifactId": 15251434694
       },
       "historicalResearchWorkflowsOptIn": 9,
-      "corrective": "implemented_pending_actual_run"
-    }
+      "corrective": {
+        "run": 46117679978,
+        "codeSha": "1ea3f34558b89e4e2321ab94de9bf858b436d28f",
+        "conclusion": "success",
+        "testsPassed": 6,
+        "fitImages": 15,
+        "steps": 320,
+        "trainableParameters": 1604709,
+        "totalParameters": 30444168,
+        "changedTensors": 34,
+        "frozenParametersUnchanged": true,
+        "threshold": 0.8,
+        "calibrationMacroF1": 0.6257530120481928,
+        "externalFixed": {
+          "tp": 7,
+          "fp": 9,
+          "fn": 5
+        },
+        "externalNamed": {
+          "tp": 152,
+          "fp": 199,
+          "fn": 188
+        },
+        "julyROI": {
+          "tp": 137,
+          "fp": 69,
+          "fn": 41
+        },
+        "deltaBytes": 6422772,
+        "deltaSha256": "200367277181fbb29dbb530bb7df5f0eff97684ed25eee3b86520d08fa1ca999",
+        "artifactId": 15251858751,
+        "productAdmission": false
+      }
+    },
+    "frozenTrial": "implemented_pending_actual_run"
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
