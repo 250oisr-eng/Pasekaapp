@@ -341,3 +341,35 @@ test('a blank storage label cannot replace a known workshop during maintenance',
  assert.equal(I.updateDetails(s,body.id,{condition:'repair',storageLocation:'   '},now).error,'invalid_details');
  assert.deepEqual(s,before);
 });
+
+test('re-registering an existing physical body refuses changed kind and incompatible dimensions atomically',()=>{
+ const s=fixture(),profile=s.hives[0].profile;
+ assert.equal(I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile},labels,makeId,now).ok,true);
+ const body=s.equipmentInventory.bodies.b1;
+ body.kind='honey';
+ let before=structuredClone(s);
+ assert.equal(I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile},labels,makeId,now).error,'wrong_body_kind');
+ assert.deepEqual(s,before);
+ body.kind='brood';
+ body.spec.frame.heightMm=195;
+ before=structuredClone(s);
+ assert.equal(I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile},labels,makeId,now).error,'incompatible_body_dimensions');
+ assert.deepEqual(s,before);
+ body.spec.frame.heightMm=180;
+ assert.equal(I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile},labels,makeId,now).existing,true);
+});
+
+test('legacy registered body with missing dimensions can be enriched only at its unique valid position',()=>{
+ const s=fixture(),profile=s.hives[0].profile;
+ s.equipmentInventory={bodies:{b1:{id:'b1',kind:'brood',condition:'good',events:[],frames:[]}},events:[]};
+ const result=I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile},labels,makeId,now);
+ assert.equal(result.ok,true);
+ assert.equal(result.existing,true);
+ assert.deepEqual(s.equipmentInventory.bodies.b1.spec,I.specFor(profile,'brood'));
+ const after=structuredClone(s);
+ s.layouts.h2.corpusIds['2']='b1';
+ const duplicate=structuredClone(s);
+ assert.equal(I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile},labels,makeId,now).error,'duplicate_mapping');
+ assert.deepEqual(s,duplicate);
+ assert.notDeepEqual(s,after);
+});
