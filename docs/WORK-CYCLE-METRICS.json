@@ -2560,13 +2560,14 @@
     "releaseAuthorized": false,
     "activationAuthorized": false
   },
-  "floweringHistoryReconciled20261128": {
-    "pr": 659,
-    "baseSha": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
-    "stage": "RECONCILED_DRAFT",
+  "inventoryReconciled20261128": {
+    "pr": 661,
+    "sourceHead": "754051fbd65b3580d5b9be7b15deafbcccf6ba69",
+    "mainBase": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+    "stage": "RECONCILED_REVIEW",
     "node": "PENDING",
-    "browser": "PENDING",
-    "device": "NOT_TESTED",
+    "android": "PENDING",
+    "physicalDevice": "NOT_TESTED",
     "release": false
   }
 }
