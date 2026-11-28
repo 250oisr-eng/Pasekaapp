@@ -1,6 +1,5 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**28.11.2026 · [#647 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/647)** `31fdfe86`: повседневный учёт, офлайн-экспорт, изолированный OP02, runtime assets и npm lock; exact HEAD `8a221bc7`, Node 1153/1153, Fast/Android/Chromium/3 QA/Gov 7/7 PASS. Дерево merge совпало с проверенным HEAD. 100/100 pinned deps reachable. [Аудит](docs/PR-BRANCH-DEPENDENCY-AUDIT-2026-11-28.md). Без удаления веток, релиза или активации B07.
 
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
