@@ -27,16 +27,17 @@ import run_public_bee_query_head_pilot as base
 import verify_public_bee_pilot_inputs as sources
 import probe_public_bee_external as ext
 
-STEPS=96
-THRESHOLDS=(.05,.10,.20,.35,.50,.65,.80,.90,.95)
+STEPS=320
+THRESHOLDS=(.001,.005,.01,.025,.05,.10,.20,.35,.50,.65,.80,.90,.95,.98,.99)
 CLASS_KEYS=("class_embed","class_labels_classifier","class_head","class_predictor","enc_out_class_embed","enc_output_class_embed","encoder_class_head")
 BOX_KEYS=("bbox_embed","bbox_head","bbox_predictor","enc_out_bbox_embed","enc_output_bbox_embed","encoder_bbox_head")
 
 def key_kind(name,last):
     parts=name.split(".")
     if "backbone" in parts or "projector" in parts:return None
-    if any(p in CLASS_KEYS for p in parts):return "class"
-    if any(p in BOX_KEYS for p in parts):return "box"
+    # Keep every encoder proposal head at its original COCO weights.
+    if parts[0]=="class_embed":return "class"
+    if parts[0]=="bbox_embed":return "box"
     if re.search(r"(?:^|\.)decoder\.(?:layers|layer)\."+str(last)+r"\.",name):return "decoder"
     return None
 
@@ -66,25 +67,34 @@ def matched_loss(logits,boxes,truth):
         target[i,a]=1;count+=len(a)
         bbox+=F.l1_loss(pred[a],t[b],reduction="sum")
         giou+=(1-generalized_box_iou(xyxy(pred[a]),g[b]).diag()).sum()
-    p=scores.sigmoid()
-    ce=F.binary_cross_entropy_with_logits(scores,target,reduction="none")
-    focal=torch.where(target>0,.25*(1-p).square(),.75*p.square())
     denom=max(1,count)
-    cls=(ce*focal).sum()/denom
+    cls=balanced_classification(scores,target)
     return cls+5*bbox/denom+2*giou/denom,{"matched":count,"classification":float(cls.detach()),"bbox":float((bbox/denom).detach()),"giou":float((giou/denom).detach())}
+
+def balanced_classification(scores,target):
+    # Positive BCE is separately normalized, so hundreds of background
+    # queries cannot drown it. Train on the hardest unmatched queries.
+    positive=scores[target>0];negative=scores[target==0]
+    pos_loss=F.softplus(-positive).mean() if positive.numel() else scores.sum()*0
+    k=min(negative.numel(),max(8,8*positive.numel()))
+    neg_loss=F.softplus(negative.topk(k).values).mean() if k else scores.sum()*0
+    return pos_loss+neg_loss
 
 def model_load(md):
     model,info=RfDetrForObjectDetection.from_pretrained(md,local_files_only=True,use_safetensors=True,
-      trust_remote_code=False,num_labels=1,id2label={0:"bee"},label2id={"bee":0},
-      ignore_mismatched_sizes=True,output_loading_info=True)
+      trust_remote_code=False,output_loading_info=True)
+    base.validate_pretrained_labels(model.config.id2label)
     last=int(model.config.decoder_layers)-1
-    # Size mismatch must be confined to reinitialized one-class heads.
-    def key(item):return item if isinstance(item,str) else item[0]
-    mismatch=[key(x) for x in info.get("mismatched_keys",[])]
-    missing=list(info.get("missing_keys",[]));unexpected=list(info.get("unexpected_keys",[]))
-    if any(key_kind(x,last)!="class" for x in mismatch+missing+unexpected):
-        raise ValueError("unexpected checkpoint mismatch: "+str((mismatch,missing,unexpected))[:180])
-    if model.config.num_labels!=1 or model.config.id2label.get(0)!="bee":raise ValueError("one-class config failed")
+    mismatch=list(info.get("mismatched_keys",[]));missing=list(info.get("missing_keys",[]));unexpected=list(info.get("unexpected_keys",[]))
+    if mismatch or missing or unexpected:raise ValueError("unexpected base checkpoint mismatch")
+    # Verified v5.11.0 source: encoder proposal ranking uses its own
+    # enc_out_class_embed; final predict_class_and_boxes uses class_embed.
+    # Do NOT reinitialize or change the encoder classifier/config.
+    encoder_classes=model.config.num_labels
+    old=model.class_embed
+    model.class_embed=torch.nn.Linear(old.in_features,1)
+    torch.nn.init.normal_(model.class_embed.weight,std=.01)
+    torch.nn.init.constant_(model.class_embed.bias,-2.)
     names={};counts={}
     for name,p in model.named_parameters():
         kind=key_kind(name,last);p.requires_grad_(kind is not None)
@@ -92,17 +102,21 @@ def model_load(md):
     if set(counts)!={"class","box","decoder"}:raise ValueError("required trainable groups missing: "+str(counts))
     total=sum(p.numel() for p in model.parameters())
     if sum(counts.values())>=total/2:raise ValueError("trainable parameter cap exceeded")
-    model.eval() # single inference query group, gradients remain enabled.
+    model.eval()
     return model,names,{"totalParameters":total,"trainableParameters":sum(counts.values()),"groups":counts,
+      "encoderClasses":encoder_classes,"encoderProposalHeadsPreserved":True,"finalOutputClasses":1,
       "mismatchedKeys":mismatch,"missingKeys":missing,"unexpectedKeys":unexpected,
-      "trainMode":"eval forward with gradients, final Hungarian loss, no dropout/group-DETR auxiliary loss"}
+      "trainMode":"eval forward with gradients, final Hungarian loss, separately normalized BCE and hard negative mining"}
 
 def train(model,processor,names,rows):
     rng=np.random.default_rng(base.SEED)
     pos=np.array([i for i,(_,b) in enumerate(rows) if b]);neg=np.array([i for i,(_,b) in enumerate(rows) if not b])
     if len(pos)<10 or len(neg)<10:raise ValueError("insufficient labelled tile diversity")
     before={n:hashlib.sha256(p.detach().numpy().tobytes()).hexdigest() for n,p in model.named_parameters()}
-    opt=torch.optim.AdamW(list(names.values()),lr=3e-5,weight_decay=.01)
+    rates={"class":.001,"box":.0001,"decoder":.00003}
+    last=int(model.config.decoder_layers)-1
+    opt=torch.optim.AdamW([{"params":[p for n,p in names.items() if key_kind(n,last)==kind],"lr":lr}
+                          for kind,lr in rates.items()],weight_decay=.01)
     first=None;history=[]
     for step in range(STEPS):
         inds=[int(rng.choice(pos)),int(rng.choice(neg))]
@@ -116,7 +130,7 @@ def train(model,processor,names,rows):
             first={n:bool(p.grad is not None and torch.isfinite(p.grad).all() and p.grad.abs().max()>0) for n,p in names.items()}
             if not any(first.values()):raise ValueError("no actual detector gradients")
         torch.nn.utils.clip_grad_norm_(list(names.values()),1.0,error_if_nonfinite=True);opt.step()
-        if step in (0,15,31,47,63,79,95):
+        if step==0 or (step+1)%40==0:
             history.append({"step":step+1,"loss":float(loss.detach()),**stats})
             print("RF_NATIVE_STEP",json.dumps(history[-1]),flush=True)
     changed=[n for n,p in model.named_parameters() if hashlib.sha256(p.detach().numpy().tobytes()).hexdigest()!=before[n]]
@@ -125,7 +139,7 @@ def train(model,processor,names,rows):
     if not {"class","box","decoder"}<=changed_groups:raise ValueError("detector groups did not all update: "+str(changed_groups))
     return {"steps":STEPS,"positiveTiles":len(pos),"negativeTiles":len(neg),"history":history,
       "changedParameterTensors":len(changed),"changedGroups":sorted(changed_groups),"frozenParametersUnchanged":True,
-      "nonzeroGradientTensorsFirstStep":sum(first.values())}
+      "nonzeroGradientTensorsFirstStep":sum(first.values()),"learningRates":rates}
 
 def collect_predictions(model,processor,samples):
     rows=[];total_tiles=0;elapsed=0
@@ -155,6 +169,11 @@ def collect_predictions(model,processor,samples):
         rows.append((gt,b[keep],s[keep],{"tiles":len(items),"ortMs":0,"pipelineMs":(time.monotonic()-start)*1000}))
         total_tiles+=len(items);elapsed+=time.monotonic()-start
     return rows,{"tiles":total_tiles,"elapsedSec":elapsed}
+
+def score_summary(rows):
+    scores=np.concatenate([s for _,_,s,_ in rows])
+    return {"count":len(scores),"min":float(scores.min()),"max":float(scores.max()),
+      "quantiles":{str(q):float(np.quantile(scores,q)) for q in (.5,.9,.99,.999)}} if len(scores) else {"count":0}
 
 def metric(rows,t):
     result=full.score_rows(rows,t)
@@ -244,11 +263,15 @@ def run(out):
             curve=[{"threshold":t,"june":metric(a,t),"external":metric(b,t)} for t in THRESHOLDS]
             for x in curve:x["macroF1"]=(x["june"]["f1"]+x["external"]["f1"])/2
             best=max(curve,key=lambda m:(m["macroF1"],m["threshold"]))
-            report["calibration"]={"selected":best,"curve":curve};t=best["threshold"]
+            report["calibration"]={"selected":best,"curve":curve,"scoreDistributions":{"june":score_summary(a),"external":score_summary(b)}}
+            if best["macroF1"]<=0 or best["june"]["tp"]==0 or best["external"]["tp"]==0:
+                report["phases"]["calibration"]="FAILED_NO_CROSS_SOURCE_DETECTION"
+                raise ValueError("calibration rejected: no true positive in at least one source")
+            t=best["threshold"]
             path=out/"experimental_native_delta.safetensors"
             save_file({n:p.detach().contiguous().clone() for n,p in names.items()},str(path),
               metadata={"scope":"research-only","base_sha256":base.MODEL_SHA,"threshold":str(t),
-                "class":"bee","transformers":"5.11.0","method":"single-group final Hungarian loss"})
+                "class":"bee","transformers":"5.11.0","method":"preserved COCO encoder, one-class final head, balanced hard-negative BCE, Hungarian box loss"})
             report["delta"]={"bytes":path.stat().st_size,"sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
             report["phases"]["calibration"]="FROZEN";checkpoint()
             july=transfer.samples_video(root,roi.CONTROL,roi.CONTROL_VIDEO,roi.CONTROL_TRACKS,zones[roi.CONTROL],

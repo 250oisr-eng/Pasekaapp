@@ -11,6 +11,8 @@ class NativeTests(unittest.TestCase):
         self.assertIsNone(p.key_kind("model.backbone.class_embed.weight",2))
         self.assertEqual(p.key_kind("class_embed.weight",2),"class")
         self.assertEqual(p.key_kind("bbox_embed.layers.0.weight",2),"box")
+        self.assertIsNone(p.key_kind("model.enc_out_class_embed.0.weight",2))
+        self.assertIsNone(p.key_kind("model.enc_out_bbox_embed.0.layers.0.weight",2))
     def test_loss_gradients_and_one_to_one(self):
         logits=torch.zeros((1,2,1),requires_grad=True)
         boxes=torch.tensor([[[.2,.2,.1,.1],[.7,.7,.1,.1]]],requires_grad=True)
@@ -30,4 +32,13 @@ class NativeTests(unittest.TestCase):
         self.assertTrue(fit.isdisjoint(p.transfer.TEST_PREFIXES))
         for name in p.full.EXTERNAL_TEST:
             self.assertFalse(any(name.startswith(g+"_") for g in fit))
+    def test_positive_gradient_survives_many_negatives(self):
+        logits=torch.zeros((1,300),requires_grad=True);target=torch.zeros_like(logits);target[0,0]=1
+        loss=p.balanced_classification(logits,target);loss.backward()
+        self.assertAlmostEqual(float(logits.grad[0,0]),-.5,places=6)
+        self.assertEqual(int((logits.grad[0,1:]>0).sum()),8)
+    def test_low_score_grid_and_summary(self):
+        import numpy as np
+        rows=[([],np.empty((2,4)),np.array([.002,.03]),{})]
+        self.assertIn(.005,p.THRESHOLDS);self.assertAlmostEqual(p.score_summary(rows)["max"],.03)
 if __name__=="__main__":unittest.main()

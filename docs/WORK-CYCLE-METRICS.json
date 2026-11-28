@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "TRANSFER_MEASURED_NATIVE_SOURCE_RATE_LIMIT_RETRY",
+    "stage": "NATIVE_ADAPTATION_MEASURED_ZERO_DETECTIONS_CORRECTIVE_TRIAL",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -276,8 +276,39 @@
       "rangeBytes": 11593207,
       "requests": 74,
       "failedSamples": 16,
-      "retry": "LILA_fit_no_Zenodo",
-      "historicalResearchWorkflowsOptIn": 9
+      "retry": {
+        "run": 46116554558,
+        "codeSha": "55840687c457d692ea751da3469e2d2a72b9056d",
+        "testsPassed": 4,
+        "conclusion": "TECHNICAL_PASS_QUALITY_REJECTED",
+        "fitImages": 15,
+        "steps": 96,
+        "totalParameters": 30143478,
+        "trainableParameters": 3332006,
+        "changedTensors": 34,
+        "frozenParametersUnchanged": true,
+        "calibrationMacroF1": 0,
+        "threshold": 0.95,
+        "externalFixed": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 12
+        },
+        "externalNamed": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 340
+        },
+        "julyROI": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 178
+        },
+        "deltaSha256": "25f0ece79ef0dacde6e7501c1ebb671bab4333edb844da2758b7c0347f4f188c",
+        "artifactId": 15251434694
+      },
+      "historicalResearchWorkflowsOptIn": 9,
+      "corrective": "implemented_pending_actual_run"
     }
   },
   "seasonalWorkspaceUI20261127": {
