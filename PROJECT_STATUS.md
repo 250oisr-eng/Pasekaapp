@@ -4,7 +4,7 @@
 
 **UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 исправления 1096/1096, Android/Chromium PASS; #650 separate QA built. **[#649 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/649):** OP07/08, склад, UI, IndexedDB; source 1101/1101, Android/Chromium/Governance PASS; exact-main CI not claimed. Profile gate closed, B07 BLOCKED. Detailed history in journal/metrics. No release.
 
-**B07 OP12 Draft:** `fix/b07-op12-lower-two-body-20261128`: зимой сильная семья снизу 2, далее 1+1; регрессия, CI pending, B07 BLOCKED. **#660 Draft:** склад 180 мм 1102/1102 Node, Android/Gov PASS. **#657 Draft:** ZIP cap 1102/1102 Node, Android/QA/Gov PASS. Нет merge/release.
+**B07 [#662 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/662):** OP12 2 снизу/1+1, 1101/1101 Node, Android/Gov PASS `433d6925`, B07 BLOCKED. **#660 Draft:** склад 180 мм 1102/1102 Node, Android/Gov PASS. **#657 Draft:** ZIP cap 1102/1102 Node, Android/QA/Gov PASS. Нет merge/release.
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
