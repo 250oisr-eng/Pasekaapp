@@ -42,7 +42,9 @@ test('voice modules load before the app and are precached and packaged for offli
   assert.match(serviceWorker, /paseka-shell-v\d+/);
   assert.match(serviceWorker, /\.\/js\/voice-command-parser\.js/);
   assert.match(serviceWorker, /\.\/js\/voice-session\.js/);
-  assert.match(webPrepareScript, /cp\("js", "www\/js", \{ recursive: true \}\)/);
+  assert.match(webPrepareScript, /await prepareWebAssets\(\)/);
+  assert.match(webPrepareScript, /for\(const path of scripts\)await copyFile/);
+  assert.doesNotMatch(webPrepareScript, /cp\(["']js["']/);
 });
 
 test('voice parser recognizes wake phrases with punctuation and Russian case variants', () => {
