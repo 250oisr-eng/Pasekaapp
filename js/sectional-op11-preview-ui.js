@@ -82,7 +82,7 @@ function mount(host,options={}){
    'Заглушка: корпус '+opening.bodyId+', отверстие '+opening.openingId,
    candidates('plasticPlug',true),'data-op11-plug');
  }
- const ventilation=field('ventilationOption','Планируемая вентиляция (не подтверждает фактическую установку)',[
+ controls.ventilationOption=field('ventilationOption','Планируемая вентиляция (не подтверждает фактическую установку)',[
   ['upper_only','Верхний леток — авторский способ'],
   ['lower_round_plus_ceiling','Нижний круглый леток + потолочная вентиляция — альтернативный способ']
  ]);
