@@ -141,6 +141,18 @@ test('OP11 refuses foreign profiles, honey stage, invalid physical state and occ
   assert.deepEqual(state,before,'rejection must not rewrite source');
  }
 });
+test('OP11 inspect returns detached copies and cannot expose mutable live state aliases',()=>{
+ const state=fixture(),before=structuredClone(state);
+ const result=OP11.inspect(state,selection());
+ assert.equal(result.ok,true,JSON.stringify(result));
+ result.layout.sections[0].familyId='forged';
+ result.sections[0].upperBroodBodyId='forged';
+ result.stacks[0].bottomItemId='forged';
+ result.items.bl.condition='retired';
+ result.openings[0].openingId='forged';
+ result.kept[0]='forged';
+ assert.deepEqual(state,before,'caller mutating read-only preview must not modify live state');
+});
 test('OP11 preflight never completes operation even when all selections are supplied',()=>{
  const state=fixture(),input=selection();input.userConfirmed=true;
  input.actualWorkConfirmed=true;input.survivingQueenId='q-fictional';
