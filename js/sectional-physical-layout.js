@@ -153,7 +153,14 @@ function validate(layout,state){
   }else if(layout.mode===MODES.SIDE_BY_SIDE){
    if(stack.coverItemId)add('honey_stage_cover_must_be_removed',{stackId:stack.id??null,itemId:stack.coverItemId});
    if(stack.topRiserItemId)add('honey_stage_top_riser_must_be_removed',{stackId:stack.id??null,itemId:stack.topRiserItemId});
-  }else if(stack.coverItemId)checkItem(stack.coverItemId,'cover',{stackId:stack.id});
+  }else{
+   // Cover and top riser are a physical pair in consolidated winter stacks
+   // too (owner confirmation, 27.11.2026), not only in SIDE_BY_SIDE.
+   if(Boolean(stack.coverItemId)!==Boolean(stack.topRiserItemId))
+    add('section_stack_cover_top_riser_pair_required',{stackId:stack.id});
+   if(stack.coverItemId)checkItem(stack.coverItemId,'cover',{stackId:stack.id});
+   if(stack.topRiserItemId)checkItem(stack.topRiserItemId,'topRiser',{stackId:stack.id});
+  }
   if(stack.feederItemId)checkItem(stack.feederItemId,'feeder',{stackId:stack.id});
   if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
    const boundaries=rows(stack.boundaries);
