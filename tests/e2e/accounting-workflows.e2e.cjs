@@ -7,6 +7,10 @@ const {createServer}=require('node:http');
 const {readFile}=require('node:fs/promises');
 const {resolve,extname,sep}=require('node:path');
 const root=resolve(__dirname,'../..');
+async function openPrimary(page,tab){
+ await page.locator('main>nav button[data-tab="'+tab+'"]').click();
+}
+
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',
  '.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json',
  '.svg':'image/svg+xml','.css':'text/css; charset=utf-8'};
@@ -52,7 +56,7 @@ async function journey(browser,origin){
  try{
   await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});await ready();
   assert.equal(await page.evaluate(()=>S.hives.length),0,'fresh disposable database');
-  await page.locator('button[data-tab="hives"]').click();
+  await openPrimary(page,'hives');
   await page.locator('[data-action="open-new-hive"]').click();
   await page.locator('#hiveForm button.primary').click();
   await page.locator('#hiveDlg').waitFor({state:'hidden'});
@@ -62,6 +66,16 @@ async function journey(browser,origin){
   await page.locator('#familyDlg').waitFor({state:'hidden'});
   const ids=await page.evaluate(()=>({h:S.hives[0].id,f:S.families[0].id}));
   assert.ok(ids.h&&ids.f);
+  // Biological-first cards and technical configuration remain reachable during setup.
+  const familyCard=page.locator('[data-family-card="'+ids.f+'"]');
+  assert.match(await familyCard.textContent(),/Нет однозначно привязанного осмотра/);
+  const familyDraftBefore=await page.evaluate(()=>JSON.stringify(S.records));
+  await familyCard.getByRole('button',{name:'Осмотр этой семьи',exact:true}).click();
+  assert.equal(await page.locator('#rfamily').inputValue(),ids.f);
+  assert.equal(await page.locator('#roccupancy').inputValue(),'');
+  await page.locator('#recordDlg').getByRole('button',{name:'Отмена',exact:true}).click();
+  assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),familyDraftBefore);
+  assert.equal(await page.locator('#hiveTechnicalView').evaluate(x=>x.open),true,'unfinished assembly stays accessible');
   // Queen: actual UI form first registration, negative future replacement, valid replacement.
   await page.evaluate(()=>openQueenForm(S.families[0].id));
   await page.locator('#queenCodeInput').fill('QA-Q-OLD');
@@ -81,8 +95,33 @@ async function journey(browser,origin){
   await page.locator('#queenForm button.primary').click();
   await page.locator('#queenDlg').waitFor({state:'hidden'});
   assert.equal(await page.evaluate(()=>S.queens.filter(q=>q.status==='replaced').length),1);
-  // Real journal forms: feeding + inspection with explicit family selection.
-  await page.locator('button[data-tab="journal"]').click();
+  // Direct hive action opens an empty draft bound to the selected hive; cancel never writes.
+  const beforeQuick=await page.evaluate(()=>JSON.stringify(S.records));
+  for(const [width,height] of [[320,640],[390,844],[844,390]]){
+   await page.setViewportSize({width,height});
+   await openPrimary(page,'hives');
+   await page.locator('#hiveList .hive-row button.primary').first().click();
+   await page.locator('.hive-workspace-actions').getByRole('button',{name:'Осмотр семьи',exact:true}).click();
+   const draft=page.locator('#recordDlg');
+   await draft.waitFor({state:'visible'});
+   assert.equal(await draft.getByLabel('Улей',{exact:true}).inputValue(),ids.h);
+   assert.equal(await draft.getByLabel('Тип',{exact:true}).inputValue(),'Осмотр');
+   assert.equal(await draft.getByLabel('Семья',{exact:true}).inputValue(),'','no inferred family');
+   await draft.getByLabel('Наблюдения / работы',{exact:true}).fill('QA-DRAFT-CANCEL');
+   const footer=await draft.locator('.record-actions').boundingBox();
+   assert.ok(footer&&footer.width>0,'visible action bar');
+   await draft.getByRole('button',{name:'Отмена',exact:true}).click();
+   await draft.waitFor({state:'hidden'});
+   assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),beforeQuick,'cancel leaves records untouched');
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('.hive-workspace-actions').getByRole('button',{name:'Наблюдение',exact:true}).click();
+  assert.equal(await page.locator('#rtype').inputValue(),'Заметка');
+  assert.equal(await page.locator('#rhive').inputValue(),ids.h);
+  await page.locator('#recordDlg').getByRole('button',{name:'Отмена',exact:true}).click();
+  assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),beforeQuick);
+    // Real journal forms: feeding + inspection with explicit family selection.
+  await openPrimary(page,'journal');
   for(const entry of [{type:'Подкормка',date:'2026-11-15',text:'QA-ACCOUNTING-FEED',amount:'150 г'},
                      {type:'Осмотр',date:'2026-11-16',text:'QA-ACCOUNTING-INSPECTION'}]){
    await page.locator('#journal').getByRole('button',{name:'＋ Запись'}).click();
@@ -99,15 +138,20 @@ async function journey(browser,origin){
    await page.locator('#recordDlg').waitFor({state:'hidden'});
   }
   assert.match(await page.locator('#feedingLedgerContent').textContent(),/150\s*г/);
+  await openPrimary(page,'hives');
+  await page.locator('#hiveList .hive-row button.primary').first().click();
+  assert.match(await familyCard.textContent(),/2026-11-16/);
+  assert.match(await familyCard.textContent(),/Не указано/);
+  await openPrimary(page,'journal');
   const ledger=await page.evaluate((h)=>buildFeedingLedger(S.records,S.families,h),ids.h);
   assert.equal(ledger.find(g=>g.familyId===ids.f).totals.find(t=>t.unit==='г').amount,150);
-  await page.locator('button[data-tab="planning"]').click();
+  await openPrimary(page,'planning');
   await page.locator('#inspectionHiveSelect').selectOption(ids.h);
   await page.locator('button[onclick="useLastSavedInspection()"]').click();
   assert.equal(await page.locator('#inspectionLastDate').inputValue(),'2026-11-16',
     'planned inspection date must use actually saved record');
   // Inventory: create one physical body on storage, never manufacture two on a brood action.
-  await page.locator('button[data-tab="settings"]').click();
+  await openPrimary(page,'settings');
   await page.evaluate(()=>openEquipmentInventory());
   await page.locator('#equipmentInventoryDlg').waitFor({state:'visible'});
   await page.locator('#inventoryTemplateHive').selectOption(ids.h);
@@ -118,7 +162,7 @@ async function journey(browser,origin){
   assert.equal(await page.evaluate(()=>Object.values(S.equipmentInventory.bodies)[0].storageLocation),'QA-СКЛАД');
   await page.evaluate(()=>document.getElementById('equipmentInventoryDlg').close());
   // Hive assembly confirmation: physically meaningful 'Done' is committed before showing success.
-  await page.locator('button[data-tab="hives"]').click();
+  await openPrimary(page,'hives');
   await page.locator('.hive-row-main').first().click();
   // A pair is a single explicit user action; the change must persist before winter reconfiguration.
   await page.locator('#honeyPair [data-action="toggle-honey-pair"]').click();
@@ -157,6 +201,15 @@ async function journey(browser,origin){
   assert.equal(before.journal.length,2);
   assert.equal(before.inventory.length,1);
   assert.equal(before.layout.mode,'winter');
+  await page.locator('#hiveTechnicalView summary').first().click().catch(()=>{});
+  if(!(await page.locator('#hiveTechnicalView').evaluate(x=>x.open)))await page.locator('#hiveTechnicalView summary').first().click();
+  const technical=page.locator('#hiveTechnicalMap');
+  assert.equal(await technical.locator('.technical-body').count(),3,'only committed winter bodies');
+  await technical.locator('.technical-body summary').first().click();
+  await technical.locator('.technical-frame-grid button').first().click();
+  assert.equal(await page.locator('#frameMapDlg').isVisible(),true);
+  assert.match(await page.locator('#frameMapContent').textContent(),/Статус в модели/);
+  await page.locator('#frameMapDlg').getByRole('button',{name:'Закрыть'}).click();
   await page.evaluate(()=>saveQueue);
   const integrity=await page.evaluate(()=>validateRawBackupIntegrity(S));
   assert.deepEqual(integrity.errors,[],'accounting state must pass raw-backup integrity BEFORE reload');

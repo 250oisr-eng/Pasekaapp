@@ -18,13 +18,14 @@ function validGpsTimestamp(value){
  if(zone!=='Z'&&(Number(offsetHour)>14||Number(offsetMinute)>59||(Number(offsetHour)===14&&Number(offsetMinute)!==0)))return false;
  return Number.isFinite(Date.parse(value));
 }
-function buildPesticideIncidentDraft(input,hives,media,makeId,now){
+function buildPesticideIncidentDraft(input,hives,media,makeId,now,families=[]){
  if(!Array.isArray(hives))throw new Error('Не удалось прочитать список ульев.');
  const observedAt=String(input?.observedAt||'');
  if(!validDateTime(observedAt))throw new Error('Укажи корректные дату и время обнаружения.');
  const scope=String(input.scope||'unknown');
  if(!SCOPES.includes(scope))throw new Error('Выбери охват инцидента.');
- const allHives=hives.filter(h=>h&&h.id),requested=Array.isArray(input.hiveIds)?[...new Set(input.hiveIds.map(String))]:[];
+ const allHives=hives.filter(h=>h&&typeof h.id==='string'&&h.id.trim()),requested=Array.isArray(input.hiveIds)?[...new Set(input.hiveIds.map(String))]:[];
+ if((scope==='whole_apiary'||scope==='selected_hives')&&new Set(allHives.map(h=>h.id)).size!==allHives.length)throw new Error('Невозможно однозначно определить ульи инцидента.');
  let affected=scope==='whole_apiary'?allHives:scope==='selected_hives'?requested.map(id=>allHives.find(h=>h.id===id)).filter(Boolean):[];
  if(scope==='selected_hives'&&(!requested.length||affected.length!==requested.length))throw new Error('Выбери существующие ульи, затронутые инцидентом.');
  const deadRaw=input.deadBeesCount==null?'':String(input.deadBeesCount).trim();
@@ -48,8 +49,21 @@ function buildPesticideIncidentDraft(input,hives,media,makeId,now){
  const files=media||[];
  if(files.length>MAX_MEDIA)throw new Error('Можно прикрепить не более трёх фотографий.');
  for(const file of files){if(!file||file.kind!=='image'||typeof file.name!=='string'||file.name.length>180||!['image/jpeg','image/png','image/webp','image/heic'].includes(file.type)||typeof file.data!=='string'||!/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(file.data)||file.data.length>MAX_MEDIA_DATA)throw new Error('Фотография имеет неподдерживаемый формат или превышает лимит размера.')}
- const snapshots=affected.map(h=>({id:h.id,number:Number.isInteger(Number(h.number))?Number(h.number):null,label:Number.isInteger(Number(h.number))?'Улей №'+Number(h.number):'Улей'}));
- return {id:makeId(),observedAt,scope,affectedHiveIds:affected.map(h=>h.id),affectedHiveSnapshots:snapshots,deadBeesCount,symptoms,locationLabel,latitude,longitude,locationAccuracyM,gpsCapturedAt,suspectedCrop:crop,suspectedSubstance:substance,suspectedArea:area,weatherNotes:weather,reportedTo,reportReference,sampleId,sampleCollectedAt,sampleSeal,sampleTransferredTo,notes,media:files.map(x=>({kind:'image',name:x.name,type:x.type,data:x.data,sizeBytes:Number(x.sizeBytes)||0,capturedAt:x.capturedAt||null})),causationStatus:'unconfirmed',status:'open',source:'smartphone_manual',createdAt:now,updatedAt:now};
+ const snapshots=affected.map(h=>{
+  const number=h.number!=null&&String(h.number).trim()!==''&&Number.isSafeInteger(Number(h.number))&&Number(h.number)>0?Number(h.number):null;
+  return {id:h.id,number,label:number===null?'Улей':'Улей №'+number};
+ });
+ const affectedIds=new Set(affected.map(h=>h.id));
+ const familyIds=input.familyIds??[];
+ if(!Array.isArray(familyIds)||familyIds.some(id=>typeof id!=='string'||!id.trim())||new Set(familyIds).size!==familyIds.length)throw new Error('Проверь выбранные семьи.');
+ const familySnapshots=familyIds.map(id=>{
+  const matches=(Array.isArray(families)?families:[]).filter(f=>f?.id===id);
+  if(matches.length!==1||!affectedIds.has(matches[0].hive))throw new Error('Выбранная семья недоступна или принадлежит другому улью.');
+  const f=matches[0];
+  return {id:f.id,hiveId:f.hive,name:text(f.name||f.code,200)};
+ });
+
+ return {id:makeId(),observedAt,scope,affectedHiveIds:affected.map(h=>h.id),affectedHiveSnapshots:snapshots,affectedFamilyIds:familyIds.slice(),affectedFamilySnapshots:familySnapshots,deadBeesCount,symptoms,locationLabel,latitude,longitude,locationAccuracyM,gpsCapturedAt,suspectedCrop:crop,suspectedSubstance:substance,suspectedArea:area,weatherNotes:weather,reportedTo,reportReference,sampleId,sampleCollectedAt,sampleSeal,sampleTransferredTo,notes,media:files.map(x=>({kind:'image',name:x.name,type:x.type,data:x.data,sizeBytes:Number(x.sizeBytes)||0,capturedAt:x.capturedAt||null})),causationStatus:'unconfirmed',status:'open',source:'smartphone_manual',createdAt:now,updatedAt:now};
 }
 function inspectPesticideIncidentIntegrity(state){
  const errors=[],rows=Array.isArray(state?.pesticideIncidents)?state.pesticideIncidents:[],hives=new Set((Array.isArray(state?.hives)?state.hives:[]).map(h=>h?.id).filter(Boolean)),ids=new Set();
@@ -83,6 +97,13 @@ function inspectPesticideIncidentIntegrity(state){
     add('pesticide_incident_hive_missing',{id:row.id,hiveId});
    if(row.scope==='selected_hives'&&!row.affectedHiveIds.length)
     add('pesticide_incident_selected_scope_empty',{id:row.id});
+  }
+  if(row.affectedFamilyIds!=null||row.affectedFamilySnapshots!=null){
+   const familyIds=row.affectedFamilyIds,snapshots=row.affectedFamilySnapshots,hiveIds=new Set(Array.isArray(row.affectedHiveIds)?row.affectedHiveIds:[]);
+   if(!Array.isArray(familyIds)||!Array.isArray(snapshots)||familyIds.some(id=>typeof id!=='string'||!id.trim())||new Set(familyIds).size!==familyIds.length||
+      snapshots.length!==familyIds.length||new Set(snapshots.map(x=>x?.id)).size!==snapshots.length||
+      snapshots.some(x=>!x||!familyIds.includes(x.id)||!hiveIds.has(x.hiveId)||typeof x.name!=='string'))
+    add('pesticide_incident_invalid_family_snapshots',{id:row.id});
   }
   if(row.deadBeesCount!=null&&(!Number.isInteger(row.deadBeesCount)||row.deadBeesCount<0||row.deadBeesCount>10000000))add('pesticide_incident_invalid_dead_count',{id:row.id});
   const hasGps=row.latitude!=null&&row.longitude!=null;

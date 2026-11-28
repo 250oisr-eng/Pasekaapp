@@ -89,7 +89,7 @@ test('entrance anomaly engine suppresses poor video and emits cautious recommend
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 test('entrance video archive is available offline and stores blobs separately from the main state', () => {
-  assert.match(html, /data-tab="entrance"/);
+  assert.match(html, /data-subtab="entrance"/);
   assert.match(html, /id="entranceVideoInput"[^>]*capture="environment"/);
   assert.match(html, /indexedDB\.open\(DB,3\)/);
   assert.match(html, /createObjectStore\('entrance_media',\{keyPath:'id'\}\)/);
@@ -149,7 +149,7 @@ test('entrance anomaly baseline never triggers with fewer than five comparable o
 });
 
 test('entrance archive UI does not submit local video or blobs to a remote endpoint', () => {
-  const archiveSection=html.slice(html.indexOf('data-tab="entrance"'));
+  const archiveSection=html.slice(html.indexOf('data-subtab="entrance"'));
   assert.match(archiveSection,/local_only|waiting_for_server/);
   assert.match(archiveSection,/inspectEntranceVideoFrameQuality/);
   assert.match(archiveSection,/frameQualityCheck/);

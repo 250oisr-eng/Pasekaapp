@@ -109,3 +109,18 @@ test('incident draft refuses malformed photo lists instead of discarding evidenc
  }
  assert.equal(build(base,null).media.length,0);
 });
+
+test('incident snapshots explicitly selected families and preserves historical association',()=>{
+ const families=[{id:'f1',hive:'h1',name:'Семья 1'},{id:'f2',hive:'h2',name:'Семья 2'}];
+ const create=input=>api.buildPesticideIncidentDraft(input,hives,[],()=> 'family-incident','2026-11-27T10:00:00Z',families);
+ const row=create({...base,familyIds:['f1']});
+ assert.deepEqual(row.affectedFamilySnapshots,[{id:'f1',hiveId:'h1',name:'Семья 1'}]);
+ families[0].hive='h2';families[0].name='Переименована';
+ assert.deepEqual(api.inspectPesticideIncidentIntegrity({hives:[],families:[],pesticideIncidents:[row]}),[]);
+ assert.throws(()=>create({...base,familyIds:['f1']}),/другому улью/);
+ assert.throws(()=>create({...base,familyIds:['f2']}),/другому улью/);
+ assert.throws(()=>create({...base,scope:'unknown',familyIds:['f2']}),/другому улью/);
+ assert.ok(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[{...row,affectedFamilySnapshots:[{id:'f1',hiveId:'h2',name:'Семья 1'}]}]}).some(e=>e.code==='pesticide_incident_invalid_family_snapshots'));
+ const legacy={...row};delete legacy.affectedFamilyIds;delete legacy.affectedFamilySnapshots;
+ assert.deepEqual(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[legacy]}),[]);
+});
