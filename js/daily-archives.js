@@ -5,6 +5,9 @@ const DB_NAME='paseka-daily-archives-v1', STORE='files';
 const NAME=new TextEncoder().encode('paseka-full-idb.json');
 const SLOTS=['latest','previous','staging'];
 const MAX_BYTES=256*1024*1024;
+// ZIP32 STORE has one local header, central header and end record, with
+// the UTF-8 entry name stored twice. The cap applies to the whole ZIP Blob.
+const ZIP_OVERHEAD=30+NAME.length+46+NAME.length+22;
 function requireOk(ok,message){if(!ok)throw new Error(message);}
 const crcTable=Uint32Array.from({length:256},(_,i)=>{let n=i;for(let j=0;j<8;j++)n=(n>>>1)^((n&1)?0xedb88320:0);return n>>>0;});
 function crc32(bytes){let crc=0xffffffff;for(const byte of bytes)crc=(crc>>>8)^crcTable[(crc^byte)&255];return (crc^0xffffffff)>>>0;}
@@ -23,7 +26,7 @@ function zipHeaders(size,crc){
 function encodeZip(raw){
  requireOk(typeof raw==='string'&&raw.length>0&&raw.length<=MAX_BYTES,'Размер архива превышает безопасный предел');
  const bytes=new TextEncoder().encode(raw);
- requireOk(bytes.length<=MAX_BYTES-128,'Размер архива превышает безопасный предел');
+ requireOk(bytes.length<=MAX_BYTES-ZIP_OVERHEAD,'Размер архива превышает безопасный предел');
  const h=zipHeaders(bytes.length,crc32(bytes));
  return new Blob([h.local,bytes,h.central,h.end],{type:'application/zip'});
 }
