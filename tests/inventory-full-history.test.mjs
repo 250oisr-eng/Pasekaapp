@@ -28,3 +28,9 @@ test('history display exposes progressive paging control without altering storag
  assert.match(html,/insertAdjacentHTML\('beforeend'/);
  assert.match(html,/body\.id!==id/);
 });
+
+test('corrupt event collection is disclosed rather than silently displayed as an empty history',()=>{
+ const body={id:'broken',events:{corrupt:true}},before=JSON.stringify(body);
+ assert.match(rows(body,0,12),/Журнал корпуса повреждён/);
+ assert.equal(JSON.stringify(body),before);
+});
