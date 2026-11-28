@@ -595,13 +595,13 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
   <label for="varroaHive">Улей</label><select id="varroaHive" onchange="renderVarroaModule()" required><option value="">— Выбери улей —</option></select>
   <label for="varroaDate">Дата</label><input id="varroaDate" type="date" required>
   <label for="varroaType">Тип наблюдения</label><select id="varroaType" onchange="toggleVarroaFields()"><option value="adult_bee_sample">Проба взрослых пчёл</option><option value="sticky_board">Контрольный поддон</option></select>
-  <div id="varroaAdultFields"><label for="varroaMethod">Метод отбора</label><select id="varroaMethod"><option value="alcohol_wash">Смыв</option><option value="sugar_roll">Сахарная пудра</option><option value="other">Другой метод</option></select><label for="varroaBeesCount">Количество исследованных пчёл</label><input id="varroaBeesCount" type="number" min="10" max="1000" step="1" inputmode="numeric" value="300"><label for="varroaMitesCount">Количество обнаруженных клещей</label><input id="varroaMitesCount" type="number" min="0" max="100000" step="1" inputmode="numeric" value="0"></div>
+  <div id="varroaAdultFields"><label for="varroaFamily">Семья пробы (если установлена)</label><select id="varroaFamily"><option value="">Семья не установлена</option></select><label for="varroaMethod">Метод отбора</label><select id="varroaMethod"><option value="alcohol_wash">Смыв</option><option value="sugar_roll">Сахарная пудра</option><option value="other">Другой метод</option></select><label for="varroaBeesCount">Количество исследованных пчёл</label><input id="varroaBeesCount" type="number" min="10" max="1000" step="1" inputmode="numeric" value="300"><label for="varroaMitesCount">Количество обнаруженных клещей</label><input id="varroaMitesCount" type="number" min="0" max="100000" step="1" inputmode="numeric" value="0"></div>
   <div id="varroaBoardFields" hidden><label for="varroaBoardMites">Количество клещей на поддоне</label><input id="varroaBoardMites" type="number" min="0" max="100000" step="1" inputmode="numeric" value="0"><label for="varroaExposureHours">Время наблюдения, часов</label><input id="varroaExposureHours" type="number" min="1" max="720" step="1" inputmode="numeric" value="24"></div>
   <label for="varroaNotes">Примечание</label><textarea id="varroaNotes" maxlength="2000" rows="2" placeholder="Состояние расплода, дата обработки, условия отбора и другие факты"></textarea>
   <button class="primary" type="submit">Сохранить измерение</button>
  </form></div>
  <div class="card"><h3 style="margin-top:0">Фактически выполненная обработка Varroa</h3><p class="muted">Отдельная запись в журнале улья. Подтверди факт выполнения перед сохранением; дозу, препарат, сроки и условия указывай только по факту и инструкции. Наблюдение за клещом не считается обработкой.</p><button type="button" onclick="openVarroaTreatmentJournal()">Записать выполненную обработку</button></div>
- <div class="card"><div class="row"><b>История измерений</b><span class="muted" id="varroaCount">0</span></div><div class="muted">Проба взрослых пчёл и осыпь на поддоне показываются раздельно: эти показатели нельзя напрямую приравнивать друг к другу.</div><div id="varroaObservationsList"></div></div>
+ <div class="card"><div class="row"><b>История измерений</b><span class="muted" id="varroaCount">0</span></div><div class="muted">Проба взрослых пчёл и осыпь на поддоне показываются раздельно: эти показатели нельзя напрямую приравнивать друг к другу.</div><label for="varroaHistoryScope">Показать измерения</label><select id="varroaHistoryScope" onchange="renderVarroaModule()"><option value="selected">Выбранный улей</option><option value="all">Все ульи, включая архивные</option></select><div id="varroaObservationsList"></div></div>
  <div class="card"><div class="row"><b>История обработок выбранного улья</b><span class="muted" id="varroaTreatmentsCount">0</span></div><p class="muted">Все записи типа «Обработка» выбранного улья, не только против Varroa. Измерения клеща не являются лечением. Архивные записи доступны в общем журнале.</p><div id="varroaTreatmentsList"></div></div>
 </section>
 <section id="incidents" class="panel">
@@ -2217,17 +2217,24 @@ function renderVarroaModule(){
  const hiveSelect=$('varroaHive'),list=$('varroaObservationsList');if(!hiveSelect||!list)return;
  if(!$('varroaDate').value)$('varroaDate').value=today();const previous=hiveSelect.value;hiveSelect.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
  hiveSelect.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:(S.hives[0]?.id||''));
+ const familySelect=$('varroaFamily');
+ if(familySelect){
+  const old=familySelect.value,families=(S.families||[]).filter(f=>f.hive===hiveSelect.value);
+  familySelect.innerHTML='<option value="">Семья не установлена</option>'+families.map(f=>'<option value="'+safe(f.id)+'">'+safe(f.name||f.code||'Семья')+'</option>').join('');
+  familySelect.value=families.some(f=>f.id===old)?old:'';
+ }
  const treatmentsHost=$('varroaTreatmentsList');
  if(treatmentsHost){
   const treatments=(Array.isArray(S.records)?S.records:[]).filter(row=>row&&row.type==='Обработка'&&!row.archivedAt&&row.hive===hiveSelect.value).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   $('varroaTreatmentsCount').textContent=treatments.length+' '+ruPlural(treatments.length,'обработка','обработки','обработок');
-  treatmentsHost.innerHTML=treatments.length?treatments.map(row=>'<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(row.treatmentProduct||row.treatmentActive||'Обработка')+'</b><span class="muted">'+safe(row.date)+'</span></div><div class="muted">'+safe([row.treatmentActive,row.treatmentMethod].filter(Boolean).join(' · ')||'Параметры не указаны')+'</div>'+(row.text?'<div>'+safe(row.text)+'</div>':'')+'</div>').join(''):'<p class="muted">Записанных обработок для выбранного улья нет.</p>';
+  treatmentsHost.innerHTML=treatments.length?treatments.map(row=>'<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(row.treatmentProduct||row.treatmentActive||'Обработка')+'</b><span class="muted">'+safe(row.date)+'</span></div><div class="muted">'+safe([row.treatmentActive,row.treatmentMethod].filter(Boolean).join(' · ')||'Параметры не указаны')+'</div>'+recordFamilyHtml(row)+recordExtraHtml(row)+(row.text?'<div>'+safe(row.text)+'</div>':'')+'<button type="button" data-record-id="'+safe(row.id)+'" data-hive-id="'+safe(row.hive)+'" onclick="openVarroaTreatmentRecord(this)">Открыть запись журнала</button></div>').join(''):'<p class="muted">Записанных обработок для выбранного улья нет.</p>';
  }
- const rows=(Array.isArray(S.varroaObservations)?S.varroaObservations:[]).filter(row=>row&&row.hiveId===hiveSelect.value).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+ const allHistory=$('varroaHistoryScope')?.value==='all';
+ const rows=(Array.isArray(S.varroaObservations)?S.varroaObservations:[]).filter(row=>row&&(allHistory||row.hiveId===hiveSelect.value)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
  $('varroaCount').textContent=rows.length+' '+ruPlural(rows.length,'измерение','измерения','измерений');
  if(!rows.length){list.innerHTML='<p class="muted">Измерений пока нет. Добавь результат ручного контроля клеща.</p>';return}
  const methodLabels={alcohol_wash:'Смыв',sugar_roll:'Сахарная пудра',other:'Другой метод'};
- list.innerHTML=rows.map(row=>{const hive=S.hives.find(h=>h.id===row.hiveId),title=row.type==='adult_bee_sample'?'Проба взрослых пчёл':'Контрольный поддон',value=row.type==='adult_bee_sample'?row.mitesPer100Bees+' клеща на 100 пчёл':row.mitesPer24h+' клеща за 24 часа',detail=row.type==='adult_bee_sample'?methodLabels[row.method]+' · '+row.beesCount+' пчёл · '+row.mitesCount+' клещей':row.mitesCount+' клещей · '+row.exposureHours+' ч';return '<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(title)+' · '+safe(hive?hname(hive.id):(row.hiveLabelAtTime||'Архивный улей'))+'</b><span class="muted">'+safe(row.date)+'</span></div><div><b>'+safe(value)+'</b></div><div class="muted">'+safe(detail)+'</div>'+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>'}).join('');
+ list.innerHTML=rows.map(row=>{const hive=S.hives.find(h=>h.id===row.hiveId),title=row.type==='adult_bee_sample'?'Проба взрослых пчёл':'Контрольный поддон',value=row.type==='adult_bee_sample'?row.mitesPer100Bees+' клеща на 100 пчёл':row.mitesPer24h+' клеща за 24 часа',detail=row.type==='adult_bee_sample'?methodLabels[row.method]+' · '+row.beesCount+' пчёл · '+row.mitesCount+' клещей':row.mitesCount+' клещей · '+row.exposureHours+' ч';return '<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(title)+' · '+safe((row.hiveLabelAtTime||(hive?hname(hive.id):'Улей не указан'))+(hive?'':' · Архивный улей'))+'</b><span class="muted">'+safe(row.date)+'</span></div><div><b>'+safe(value)+'</b></div><div class="muted">'+safe(detail)+'</div>'+(row.familySnapshotAtTime?'<div class="muted">Семья на момент пробы: '+safe(row.familySnapshotAtTime.name||'Название не указано')+'</div>':'')+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>'}).join('');
 }
 async function saveVarroaObservation(event){
  event?.preventDefault?.();
@@ -2236,11 +2243,11 @@ async function saveVarroaObservation(event){
  form.dataset.saveInProgress='1';
  try{
   const type=$('varroaType').value,input={type,hiveId:$('varroaHive').value,date:$('varroaDate').value,notes:$('varroaNotes').value};
-  if(type==='adult_bee_sample'){input.method=$('varroaMethod').value;input.beesCount=$('varroaBeesCount').value;input.mitesCount=$('varroaMitesCount').value}
+  if(type==='adult_bee_sample'){input.familyId=$('varroaFamily')?.value||'';input.method=$('varroaMethod').value;input.beesCount=$('varroaBeesCount').value;input.mitesCount=$('varroaMitesCount').value}
   else{input.mitesCount=$('varroaBoardMites').value;input.exposureHours=$('varroaExposureHours').value}
   if(input.date>today()){alert('Фактически выполненное измерение Varroa не может иметь дату из будущего.');return}
   let observation;
-  try{observation=PasekaVarroa.buildVarroaObservation(input,S.hives,uid,new Date().toISOString())}
+  try{observation=PasekaVarroa.buildVarroaObservation(input,S.hives,uid,new Date().toISOString(),S.families)}
   catch(error){alert(error.message||'Проверь данные измерения');return}
   let previous;
   try{previous=cloneApiaryState()}
@@ -2267,6 +2274,14 @@ async function saveVarroaObservation(event){
  }finally{
   form.dataset.saveInProgress='';
  }
+}
+function openVarroaTreatmentRecord(button){
+ const {recordId,hiveId}=button.dataset;
+ const matches=S.records.filter(row=>row?.id===recordId);
+ if(!recordId||matches.length!==1||matches[0].archivedAt||matches[0].type!=='Обработка'||matches[0].hive!==hiveId||!S.hives.some(h=>h.id===hiveId)){
+  renderVarroaModule();alert('Связанная запись обработки недоступна.');return;
+ }
+ editRecord(recordId);
 }
 function openVarroaTreatmentJournal(){
  const hiveId=$('varroaHive')?.value;
