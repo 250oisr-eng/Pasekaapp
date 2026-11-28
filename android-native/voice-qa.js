@@ -46,7 +46,7 @@
       const h=findHive(hive.id);
       if(!h||Number(h.number)!==hive.number||rows().hives.filter(x=>x&&Number(x.number)===hive.number).length!==1)return null;
       if(family){const f=findFamily(family.id);
-        if(!f||f.hive!==hive.id||norm(f.name)!==family.name||rows().families.filter(x=>x?.hive===hive.id&&norm(x.name)===family.name).length!==1)return null;
+        if(!f||f.recordStatus==='historical'||f.hive!==hive.id||norm(f.name)!==family.name||rows().families.filter(x=>x?.hive===hive.id&&norm(x.name)===family.name).length!==1)return null;
         return {hiveId:hive.id,hiveNumber:hive.number,familyId:family.id,familyName:String(f.name)};
       }
       return explicitNoFamily?{hiveId:hive.id,hiveNumber:hive.number,familyId:'',familyName:''}:null;
@@ -82,7 +82,7 @@
         family=null;explicitNoFamily=false;
         if(!hive||!findHive(hive.id))return result('Сначала выбери улей.');
         if(c.kind==='noFamily'){explicitNoFamily=true;return result('Улей '+hive.number+'. Запись без семьи, только заметка.');}
-        const matches=rows().families.filter(f=>f?.hive===hive.id&&norm(f.name)===c.name);
+        const matches=rows().families.filter(f=>f?.recordStatus!=='historical'&&f?.hive===hive.id&&norm(f.name)===c.name);
         if(matches.length!==1||!validId(matches[0].id)||!findFamily(matches[0].id))return result('Семья не найдена или имя неоднозначно. Назови точное уникальное имя.');
         family={id:matches[0].id,name:c.name};return result('Выбрана семья '+matches[0].name+' в улье '+hive.number+'.');
       }
@@ -115,18 +115,41 @@
       const i=ordinals.findIndex((stem,i)=>i>0&&new RegExp('^'+stem+'(?:ый|ой|ий|ая|ое|ую|ого|ому|ом|ем|им|ей|ю|ьего|ьем|ью|ьи|ьей|ья|ье)$').test(s));
       return i>0?i:null;
     }
+    const sharedNumber=value=>{const n=window.PasekaReconciliationVoice?.parseSpokenNumber?.(value);return n&&/^[1-9]\d{0,5}$/.test(n)?Number(n):null;};
+    function numberAt(w,start){
+      let best=null;
+      for(let end=start+1;end<=Math.min(w.length,start+9);end++){
+        const n=sharedNumber(w.slice(start,end).join(' '));
+        if(n!==null)best={n,end};
+      }
+      if(!best&&nword(w[start])!==null)best={n:nword(w[start]),end:start+1};
+      return best;
+    }
+    const anotherNumber=(w,i)=>nword(w[i])!==null||numberAt(w,i)!==null;
+    const multi=(w,i)=>anotherNumber(w,i)||(['или','либо','и'].includes(w[i])&&(anotherNumber(w,i+1)||w[i+1]==='с'&&anotherNumber(w,i+2)));
+    const numericFamily=f=>/^с-[1-9]\d{0,5}$/u.test(norm(f?.name))?norm(f.name):/^с-[1-9]\d{0,5}$/u.test(norm(f?.code))?norm(f.code):'';
+    const familyKey=f=>numericFamily(f)||norm(f?.name);
+    const active=f=>f&&f.recordStatus!=='historical';
     const rows=()=>{const s=readState()||{};return {hives:Array.isArray(s.hives)?s.hives:[],families:Array.isArray(s.families)?s.families:[]}};
     const validId=s=>typeof s==='string'&&s.trim()!=='';
     const hiveByNumber=n=>{const h=rows().hives.filter(x=>x&&Number(x.number)===n);
       return h.length===1&&validId(h[0].id)&&rows().hives.filter(x=>x?.id===h[0].id).length===1?h[0]:null;};
-    const familyByName=(h,name)=>{const f=rows().families.filter(x=>x?.hive===h.id&&norm(x.name)===name);
-      return f.length===1&&validId(f[0].id)&&rows().families.filter(x=>x?.id===f[0].id).length===1?f[0]:null;};
+    const familyByName=(h,name)=>{
+      const numeric=/^с-[1-9]\d{0,5}$/u.test(name);
+      const f=rows().families.filter(x=>(numeric||x?.hive===h.id)&&familyKey(x)===name);
+      if(f.length!==1||!active(f[0])||f[0].hive!==h.id||!validId(f[0].id)||rows().families.filter(x=>x?.id===f[0].id).length!==1)return null;
+      if(numeric){
+        const found=window.PasekaLabels?.lookupMarking?.(readState(),'family',name.slice(2));
+        if(found?.status!=='found'||found.target?.id!==f[0].id||found.target?.hiveId!==h.id)return null;
+      }
+      return f[0];
+    };
     function target(){
       if(!hive)return null;
       const h=hiveByNumber(hive.number);
       if(!h||h.id!==hive.id)return null;
       if(family){const f=familyByName(h,family.name);if(!f||f.id!==family.id)return null;
-        return {hiveId:h.id,hiveNumber:hive.number,familyId:f.id,familyName:String(f.name)};}
+        return {hiveId:h.id,hiveNumber:hive.number,familyId:f.id,familyName:String(f.name||f.code)};}
       return noFamily?{hiveId:h.id,hiveNumber:hive.number,familyId:'',familyName:''}:null;
     }
     function reset(){hive=null;family=null;noFamily=false;parts=[];type='';pending=null;ask='hive';ambiguousType=false;confirmed=false;deferredName='';}
@@ -140,7 +163,7 @@
       if(!hive){ask='hive';return reply('Какой улей? Назови его номер.');}
       if(!hiveByNumber(hive.number)||hiveByNumber(hive.number).id!==hive.id){reset();return reply('Улей изменился. Начни запись заново.');}
       if(!family&&!noFamily){
-        ask='family';const h=rows().families.filter(x=>x?.hive===hive.id&&typeof x.name==='string');
+        ask='family';const h=rows().families.filter(x=>active(x)&&x.hive===hive.id&&typeof x.name==='string');
         const names=[...new Set(h.map(x=>x.name))].slice(0,5).join(', ');
         return reply('Улей '+hive.number+'. Какая семья?'+(names?' '+names+'.':'')+' Можно сказать «без семьи» для общей заметки.');
       }
@@ -168,6 +191,12 @@
         confirmed=true;return reply('Открываю черновик. Проверь и сохрани вручную.',{draft:{...p}});
       }
       if(/^(?:нет|неверно|неправильно|не так|не подтверждаю)$/.test(key)){reset();return reply('Хорошо, ничего не сохранено. Расскажи исправленный вариант.');}
+      if(/^(?:где(?: находится)?|найди|покажи местоположение)\s/u.test(key)){
+        pending=null;
+        const query=window.PasekaReconciliationVoice?.parseMarkingLookup?.(clean);
+        const found=query&&window.PasekaLabels?.lookupMarking?.(readState(),query.kind,query.code);
+        return reply((found?.message||'Назови один вид объекта и точный номер для поиска.')+(parts.length?' Черновик не подтверждён. Скажи «повтори», чтобы проверить запись заново.':''));
+      }
       // Any non-confirmation turn invalidates the previously read-back proposal.
       pending=null;
       if(clean.length>500){reset();return reply('Фраза слишком длинная. Расскажи запись короткими частями.');}
@@ -181,17 +210,17 @@
       for(let i=0;i<w.length;i++)if(!none&&hiveWord.test(w[i])){
         hiveMention=true;mark(i);
         let after=i+1;if(w[after]==='номер'){mark(after);after++;}
-        const n=nword(w[after]),before=nword(w[i-1]);
+        const span=numberAt(w,after),n=span?.n??null,before=nword(w[i-1]);
         const beforeOrdinal=before!==null&&hiveNumber(w[i-1])===null;
-        const quantityAfter=/^(?:рамок|рамки|рамка|рамку|килограмм|килограмма|грамм|грамма|литр|литра|литров|корпуса|корпусов)$/.test(w[after+1]||'');
+        const quantityAfter=/^(?:рамок|рамки|рамка|рамку|килограмм|килограмма|грамм|грамма|литр|литра|литров|корпуса|корпусов)$/.test(w[span?.end??after+1]||'');
         if(/^(?:ульи|ульев|ульях)$/.test(w[i])||before!==null&&!beforeOrdinal)numberAmbiguous=true;
         if(beforeOrdinal&&n!==null&&!quantityAfter)numberAmbiguous=true;
-        if(n!==null&&!(beforeOrdinal&&quantityAfter)){numbers.push(n);mark(after);
-          if(nword(w[after+1])!==null||(['или','либо','и'].includes(w[after+1])&&nword(w[after+2])!==null))numberAmbiguous=true;
+        if(n!==null&&!(beforeOrdinal&&quantityAfter)){numbers.push(n);for(let k=after;k<span.end;k++)mark(k);
+          if(multi(w,span.end))numberAmbiguous=true;
         }
         else if(beforeOrdinal){numbers.push(before);mark(i-1);if(nword(w[i-2])!==null||(['или','либо','и'].includes(w[i-2])&&nword(w[i-3])!==null))numberAmbiguous=true;}
       }
-      if(ask==='hive'&&!hiveMention&&((w.length===1&&nword(w[0])!==null)||(w.length===2&&['номер','это'].includes(w[0])&&nword(w[1])!==null))){numbers.push(nword(w.at(-1)));w.forEach((v,i)=>mark(i));}
+      if(ask==='hive'&&!hiveMention){const start=['номер','это'].includes(w[0])?1:0,span=numberAt(w,start);if(span&&span.end===w.length){numbers.push(span.n);w.forEach((v,i)=>mark(i));}}
       const uniqueNumbers=[...new Set(numbers)];
       let hCandidate=null;
       if(hiveMention||numbers.length){
@@ -201,23 +230,37 @@
         if(hive&&(hive.id!==hCandidate.id||hive.number!==uniqueNumbers[0])){reset();return reply('Это другой улей. Старый черновик отменён. Расскажи запись для нового улья заново.');}
         hive={id:hCandidate.id,number:uniqueNumbers[0]};
       }
-      const candidates=rows().families.filter(f=>f&&(!hive||f.hive===hive.id)&&typeof f.name==='string'&&norm(f.name));
+      const candidates=rows().families.filter(f=>active(f)&&(!hive||f.hive===hive.id)&&familyKey(f));
       const familyMarks=none?[]:w.map((v,i)=>familyWord.test(v)?i:-1).filter(i=>i>=0);
       const matches=[];
       for(const i of familyMarks){
-        mark(i);const found=candidates.map(f=>({f,t:tokens(f.name)})).filter(({t})=>t.length&&t.every((v,k)=>w[i+1+k]===v)).sort((a,b)=>b.t.length-a.t.length);
+        mark(i);
+        let start=i+1;if(w[start]==='номер'){mark(start);start++;}
+        const prefixed=w[start]==='с';if(prefixed){mark(start);start++;}
+        const span=numberAt(w,start);
+        const legacy=candidates.filter(f=>!numericFamily(f)&&tokens(f.name).length&&tokens(f.name).every((x,k)=>w[i+1+k]===x));
+        if(span){
+          const key='с-'+span.n,found=candidates.filter(f=>familyKey(f)===key);
+          if(prefixed||found.length||!legacy.length){
+            if(multi(w,span.end)||['или','либо'].includes(w[span.end])||legacy.length||found.length!==1){reset();return reply('Семья с таким номером не найдена однозначно. Назови один номер и повтори наблюдение.');}
+            matches.push(found[0]);for(let k=start;k<span.end;k++)mark(k);
+            continue;
+          }
+        }
+        const found=candidates.map(f=>({f,t:tokens(f.name)})).filter(({t})=>t.length&&t.every((v,k)=>w[i+1+k]===v)).sort((a,b)=>b.t.length-a.t.length);
         if(found.length){const max=found[0].t.length;for(const m of found.filter(x=>x.t.length===max)){matches.push(m.f);for(let k=1;k<=max;k++)mark(i+k);}
           if(['или','либо','и'].includes(w[i+max+1])){const j=i+max+2;if(candidates.some(f=>tokens(f.name).every((v,k)=>w[j+k]===v))){reset();return reply('Назови одну семью, не несколько, и повтори наблюдение.');}}
         }
         else {reset();return reply('Не нашёл семью по этому имени. Назови её точное имя и повтори наблюдение.');}
       }
       if(ask==='family'&&hive&&!familyMarks.length&&!none){
-        const exact=candidates.filter(f=>norm(f.name)===key);
+        const short=key.replace(/^(?:номер\s+|с[-\s]+)/u,''),number=sharedNumber(short),wanted=number===null?key:'с-'+number;
+        const exact=candidates.filter(f=>familyKey(f)===wanted||!numericFamily(f)&&norm(f.name)===key);
         if(exact.length){matches.push(...exact);w.forEach((v,i)=>mark(i));}
       }
       if(none){if(family||deferredName){reset();return reply('Старый черновик отменён. Начни общую заметку заново.');}noFamily=true;w.forEach((v,i)=>mark(i));}
       if(matches.length){
-        const names=[...new Set(matches.map(f=>norm(f.name)))];
+        const names=[...new Set(matches.map(f=>familyKey(f)))];
         if(names.length!==1||deferredName&&deferredName!==names[0]){reset();return reply('Имя семьи неоднозначно. Начни запись заново.');}
         deferredName=names[0];noFamily=false;
       }

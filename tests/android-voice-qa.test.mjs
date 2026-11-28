@@ -91,9 +91,12 @@ test('failed native stop keeps start and journal transfer blocked until retry su
 });
 
 
+async function loadMarking(window){
+ for(const name of ['equipment-labels','equipment-reconciliation-voice'])vm.runInNewContext(await readFile(new URL('../js/'+name+'.js',import.meta.url),'utf8'),{window});
+}
 async function localDomain(){
  const source=await readFile(new URL('../android-native/voice-qa.js',import.meta.url),'utf8'),window={};
- vm.runInNewContext(source,{window,document:{getElementById:()=>null}});
+ await loadMarking(window);vm.runInNewContext(source,{window,document:{getElementById:()=>null}});
  return window.PasekaVoiceQa;
 }
 const sample=()=>({hives:[{id:'h3',number:3},{id:'h4',number:4}],families:[{id:'f1',name:'Альфа',hive:'h3'},{id:'f2',name:'Альфа',hive:'h4'}]});
@@ -163,7 +166,7 @@ async function commandUiHarness(natural=false){
  const window={Capacitor:{Plugins:{PasekaOfflineSpeech:api}},addEventListener(){}};
  const docEvents={},document={getElementById:id=>elements[id],addEventListener(n,fn){docEvents[n]=fn}};
  const S=sample(),context={window,document,S,startupWriteGate:{ready:true},activeJournalHive:'',showTab:t=>tabs.push(t),toggleOccupancy(){},setTimeout(fn){timers.set(++nextTimer,fn);return nextTimer;},clearTimeout(id){timers.delete(id);},newRecord(){elements.recordDlg.open=true;elements.rhive.value=context.activeJournalHive;}};
- vm.runInNewContext(source,context);await new Promise(resolve=>setImmediate(resolve));
+ await loadMarking(window);vm.runInNewContext(source,context);await new Promise(resolve=>setImmediate(resolve));
  const flush=()=>new Promise(resolve=>setImmediate(resolve));
  const send=async text=>{events.result({token:starts.at(-1),text});await flush();};
  const done=async()=>{speech.at(-1).resolve();await flush();};
@@ -249,7 +252,7 @@ test('natural dialogue can add detail, reread and reject a negated confirmation'
  assert.equal(s.receive('не подтверждаю').draft,undefined);assert.equal(s.receive('да').draft,undefined);
 });
 test('conversation QA package is separate from previous installed voice QA',async()=>{
- assert.equal(QA_ID,'ru.paseka.journal.qa.voice2');
+ assert.equal(QA_ID,'ru.paseka.journal.qa.voice3');
  const source=await readFile(new URL('../index.html',import.meta.url),'utf8'),generated=patchVoiceHtml(source);
  assert.match(generated,/id="qaVoiceNatural"/);assert.match(generated,/Расскажи обычными словами/);
  assert.equal(assertDailyConfig(voiceQaConfig(config)),QA_ID);
@@ -309,4 +312,51 @@ test('natural grouping cannot execute a delayed phrase after leaving the foregro
  h.document.hidden=true;h.docEvents.visibilitychange();await h.flush();
  assert.equal(h.timers.size,0);stale();await h.flush();
  assert.equal(h.speech.length,0);assert.equal(e.recordDlg.open,false);assert.equal(h.starts.length,1);
+});
+
+function numberedState(){
+ return {hives:[{id:'h137',number:137},{id:'h3',number:3}],families:[{id:'f12',hive:'h137',name:'С-12',code:'С-12'},{id:'f13',hive:'h3',name:'С-13',code:'С-13'}],layouts:{h137:{corpusIds:{1:'b'},boxes:{1:{family:'f12',frames:[{frameId:'r',labelCode:'137'}]}},installedBoxes:[1]}},equipmentLabels:{bodies:{b:'24'}},queens:[{id:'q',familyId:'f12',code:'М-18',status:'current'}]};
+}
+test('natural numbered dialogue understands compound hive and family number using shared parser',async()=>{
+ const {naturalSession}=await localDomain();const state=numberedState(),before=JSON.stringify(state),s=naturalSession(()=>state);
+ const p=s.receive('осмотрел улей сто тридцать семь семья двенадцать матка есть').pending;
+ assert.equal(p.hiveId,'h137');assert.equal(p.familyId,'f12');assert.equal(p.familyName,'С-12');assert.match(p.text,/матка есть/);
+ assert.equal(s.receive('да').draft.familyId,'f12');assert.equal(JSON.stringify(state),before);
+});
+test('numbered family can be spoken after clarification, or before hive; never inferred from global count',async()=>{
+ const {naturalSession}=await localDomain();const state=numberedState();
+ for(const family of ['двенадцать','С-12','номер двенадцать']){
+  const s=naturalSession(()=>state);s.receive('улей сто тридцать семь осмотрел матка есть');
+  assert.equal(s.receive(family).pending.familyId,'f12');
+ }
+ const s=naturalSession(()=>state);assert.match(s.receive('семья двенадцать матка есть').message,/Какой улей/);
+ assert.equal(s.receive('сто тридцать семь').pending.familyId,'f12');
+});
+test('numbered targets fail closed on duplicate global serial, historical record, wrong hive or alternative',async()=>{
+ const {naturalSession}=await localDomain();
+ for(const mutate of [s=>s.families.push({id:'dup',name:'С-12',hive:'h3'}),s=>s.families[0].recordStatus='historical',s=>s.families[0].hive='h3']){
+  const state=numberedState();mutate(state);const s=naturalSession(()=>state);
+  assert.equal(s.receive('улей сто тридцать семь семья двенадцать матка есть').pending,undefined);
+  assert.equal(s.receive('да').draft,undefined);
+ }
+ for(const text of ['улей сто тридцать семь или три семья двенадцать матка есть','улей сто тридцать семь семья двенадцать или тринадцать матка есть','улей сто тридцать семь семья С-12 и С-13 матка есть']){
+  const s=naturalSession(numberedState);assert.equal(s.receive(text).pending,undefined,text);
+ }
+});
+test('read-only marking lookup does not confirm or append to a draft; re-read required',async()=>{
+ const {naturalSession}=await localDomain();const state=numberedState(),before=JSON.stringify(state),s=naturalSession(()=>state);
+ const p=s.receive('улей сто тридцать семь семья двенадцать осмотрел матка есть').pending;
+ assert.match(s.receive('где рамка сто тридцать семь').message,/Р-137.*К-24/);
+ assert.equal(s.receive('да').draft,undefined);
+ assert.match(s.receive('повтори').message,/Всё верно/);
+ const confirmed=s.receive('да').draft;assert.equal(confirmed.text,p.text);assert.equal(JSON.stringify(state),before);
+ assert.match(naturalSession(()=>state).receive('где корпус двадцать четыре').message,/К-24/);
+ assert.match(naturalSession(()=>state).receive('где рамка 37').message,/не найдена/);
+});
+test('actual QA bridge answers local marking lookup aloud without opening or saving journal',async()=>{
+ const h=await commandUiHarness(true),e=h.elements;
+ Object.assign(h.context.S,numberedState());const before=JSON.stringify(h.context.S);
+ await e.qaVoiceStart.onclick();await h.send('где рамка сто тридцать семь');await h.fire();
+ assert.match(h.speech[0].text,/Р-137.*К-24/);assert.equal(e.recordDlg.open,false);
+ await h.done();assert.equal(h.starts.length,2);assert.equal(JSON.stringify(h.context.S),before);
 });

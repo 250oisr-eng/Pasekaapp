@@ -36,7 +36,7 @@ export async function prepareDailyWorkerWeb(workspace=root){
  await writeFile(join(workspace,'www/daily-archive-worker.html'),html);
  return html;
 }
-const allowed=new Set(['ru.paseka.journal','ru.paseka.journal.qa.daily','ru.paseka.journal.qa.voice','ru.paseka.journal.qa.voice2']);
+const allowed=new Set(['ru.paseka.journal','ru.paseka.journal.qa.daily','ru.paseka.journal.qa.voice3']);
 export function dailyQaConfig(config){
  if(config?.appId!=='ru.paseka.journal')throw Error('DAILY_QA_BLOCKED: unexpected original Capacitor config');
  assertDailyConfig(config);

@@ -1,4 +1,4 @@
-package ru.paseka.journal.qa.voice2;
+package ru.paseka.journal.qa.voice3;
 
 import android.Manifest;
 import com.getcapacitor.JSObject;
@@ -27,7 +27,7 @@ import java.util.zip.*;
     @Permission(alias="microphone", strings={Manifest.permission.RECORD_AUDIO})
 })
 public final class PasekaVoiceQaPlugin extends Plugin {
-    private static final String QA="ru.paseka.journal.qa.voice2";
+    private static final String QA="ru.paseka.journal.qa.voice3";
     private static final String MODEL="vosk-model-small-ru-0.22";
     private static final String ASSET="voice-qa/"+MODEL+".zip";
     private static final String SHA="961d5ff98a17f4aa6de69864d0aa71fa5bac682301d2b5d17a3f24c5c99a46d4";

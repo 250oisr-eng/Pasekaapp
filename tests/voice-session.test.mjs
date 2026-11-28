@@ -42,7 +42,9 @@ test('voice modules load before the app and are precached and packaged for offli
   assert.match(serviceWorker, /paseka-shell-v\d+/);
   assert.match(serviceWorker, /\.\/js\/voice-command-parser\.js/);
   assert.match(serviceWorker, /\.\/js\/voice-session\.js/);
-  assert.match(webPrepareScript, /cp\("js", "www\/js", \{ recursive: true \}\)/);
+  assert.match(webPrepareScript, /await prepareWebAssets\(\)/);
+  assert.match(webPrepareScript, /for\(const path of scripts\)await copyFile/);
+  assert.doesNotMatch(webPrepareScript, /cp\(["']js["']/);
 });
 
 test('voice parser recognizes wake phrases with punctuation and Russian case variants', () => {
@@ -202,3 +204,13 @@ test('voice parser recognizes explicit journal draft commands without saving rec
 test('voice journal command opens an unsaved draft only for an explicitly selected hive',async()=>{const calls=[],elements={recordDlg:{open:false},aiJournalHiveSelect:{value:'h-1',focus(){}},aiJournalDraftInput:{value:''}};const deps={apiaryVoiceSession:{isArmed:()=>true,clearArmed(){}},parseApiaryVoiceCommand:loadVoiceParser(),S:{hives:[{id:'h-1'}]},$(id){return elements[id]},prepareJournalDraftFromAI(){calls.push('prepare')},showTab(tab){calls.push('tab:'+tab)},apiaryVoiceStatus(value){calls.push('status:'+value)},speakApiaryVoice(value){calls.push('speak:'+value)}};await loadFunction('handleApiaryVoiceTranscript',deps)('Пасека, слушай, запиши в журнал: осмотрел улей, матку видел');assert.equal(elements.aiJournalDraftInput.value,'осмотрел улей, матку видел');assert.ok(calls.includes('prepare'));assert.equal(calls.some(x=>x==='save'),false)});
 test('voice journal command refuses to guess a hive and does not open a draft',async()=>{const calls=[],elements={recordDlg:{open:false},aiJournalHiveSelect:{value:'',focus(){}},aiJournalDraftInput:{value:''}};const deps={apiaryVoiceSession:{isArmed:()=>true,clearArmed(){}},parseApiaryVoiceCommand:loadVoiceParser(),S:{hives:[{id:'h-1'}]},$(id){return elements[id]},prepareJournalDraftFromAI(){calls.push('prepare')},showTab(tab){calls.push('tab:'+tab)},apiaryVoiceStatus(value){calls.push('status:'+value)},speakApiaryVoice(value){calls.push('speak:'+value)}};await loadFunction('handleApiaryVoiceTranscript',deps)('Пасека, слушай, запиши в журнал: дал сироп');assert.deepEqual(calls.filter(x=>x==='prepare'),[]);assert.ok(calls.includes('tab:ai'));assert.equal(elements.aiJournalDraftInput.value,'')});
 test('voice journal command appends to an open record note without saving it',async()=>{const calls=[],elements={recordDlg:{open:true},rtext:{value:'Первое наблюдение'}};const deps={apiaryVoiceSession:{isArmed:()=>true,clearArmed(){}},parseApiaryVoiceCommand:loadVoiceParser(),S:{hives:[{id:'h-1'}]},$(id){return elements[id]},apiaryVoiceStatus(value){calls.push(value)},speakApiaryVoice(value){calls.push(value)}};await loadFunction('handleApiaryVoiceTranscript',deps)('Пасека, слушай, запиши в журнал: добавил корпус');assert.equal(elements.rtext.value,'Первое наблюдение\nдобавил корпус');assert.equal(calls.some(x=>/сохрани запись вручную/.test(x)),true)});
+
+test('exact spoken marking lookup is handled locally without invoking external AI',async()=>{
+ const source=await readFile(new URL('../js/equipment-labels.js',import.meta.url),'utf8'),voice=await readFile(new URL('../js/equipment-reconciliation-voice.js',import.meta.url),'utf8'),app={};
+ new Function('window',source)(app);new Function('window',voice)(app);
+ let calls=0;const spoken=[];
+ const S={hives:[{id:'h',number:3}],layouts:{h:{boxes:{1:{frames:[{frameId:'x',labelCode:'137'}]}}}}};
+ const before=JSON.stringify(S),deps={apiaryVoiceSession:{isArmed:()=>true,clearArmed(){}},parseApiaryVoiceCommand:loadVoiceParser(),PasekaLabels:app.PasekaLabels,PasekaReconciliationVoice:app.PasekaReconciliationVoice,S,apiaryVoiceStatus(){},speakApiaryVoice:x=>spoken.push(x),sendAIQuestion(){calls++},$(){return null}};
+ await loadFunction('handleApiaryVoiceTranscript',deps)('Пасека слушай где рамка сто тридцать семь');
+ assert.equal(calls,0);assert.match(spoken[0],/Р-137.*улей 3/);assert.equal(JSON.stringify(S),before);
+});

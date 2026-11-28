@@ -55,6 +55,12 @@ def verify(apk):
         voice=z.read("assets/public/voice-qa.js")
         if b"PasekaOfflineSpeech" not in voice or b"aiJournalDraftInput" not in voice:
             raise ValueError("QA voice JS not packaged")
+        labels=z.read("assets/public/js/equipment-labels.js")
+        numbers=z.read("assets/public/js/equipment-reconciliation-voice.js")
+        if b"lookupMarking" not in labels or b"parseSpokenNumber" not in numbers or b"parseMarkingLookup" not in numbers:
+            raise ValueError("shared marking parser/lookup not packaged")
+        if b"lookupMarking" not in voice or b"parseSpokenNumber" not in voice:
+            raise ValueError("voice dialogue not connected to shared marking")
         worker=z.read("assets/public/daily-archive-worker.html")
         if b"bridge.finish(outcome)" not in worker or b'id="qaVoicePanel"' in worker:
             raise ValueError("daily worker changed or missing")
@@ -65,7 +71,7 @@ def verify(apk):
         libs={name:elf_load_alignment(z.read(name)) for name in names if name.startswith("lib/") and name.endswith(".so")}
         arm64={name:align for name,align in libs.items() if name.startswith("lib/arm64-v8a/")}
         return {"embeddedModelSha256":sha.hexdigest(),"modelBytes":46236750,
-                "qaUiPresent":True,"dailyWorkerPresent":True,"arm64Libraries":arm64,
+                "qaUiPresent":True,"dailyWorkerPresent":True,"sharedMarkingPresent":True,"arm64Libraries":arm64,
                 "arm64ElfLoadAlignmentAtLeast16k":all(v>=16384 for v in arm64.values()),
                 "physicalRecognitionTested":False,"physicalPageSizeTested":False}
 

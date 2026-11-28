@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const source=await readFile(new URL('../js/family-lineage.js',import.meta.url),'utf8');
 const windowRef={};
+new Function('window',await readFile(new URL('../js/equipment-labels.js',import.meta.url),'utf8'))(windowRef);
 new Function('window',source)(windowRef);
 const api=windowRef.PasekaFamilyLineage;
 let sequence=0;
@@ -625,4 +626,14 @@ test('queen absence event integrity rejects candidate queens, foreign resolution
  result.family.currentQueenId='q1';
  assert.equal(api.getQueenPresenceStatus(state,'absence-integrity-2'),'inconsistent');
  assert.ok(api.inspect(state).some(error=>error.code==='queen_absence_active_family_state_requires_resolution'));
+});
+
+test('split assigns independent permanent decimal family identities, preserves descriptive input',()=>{
+ const state=baseState();state.families[0].name='С-10';state.families[0].code='С-10';
+ const request={sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:children('section')},before=structuredClone(request);
+ const result=api.applySplit(state,request,makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(result.ok,true,JSON.stringify(result));assert.deepEqual(result.families.map(f=>f.name),['С-11','С-12','С-13']);
+ assert.deepEqual(result.families.map(f=>f.registrationName),['section 1','section 2','section 3']);
+ assert.deepEqual(request,before);assert.equal(state.families.find(f=>f.id==='f1').name,'С-10');
+ assert.equal(state.meta.nextFamilyNumber,14);assert.deepEqual(windowRef.PasekaLabels.inspectIdentityMarking(state),[]);
 });
