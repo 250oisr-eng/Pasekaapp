@@ -2,9 +2,9 @@
 
 **28.11.2026 · main `dcf8a7c5` (#649 IN_MAIN).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
-**UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 исправления 1096/1096, Android/Chromium PASS; #650 separate QA built. **[#649 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/649):** OP07/08, склад, UI, IndexedDB; 1101/1101 Node/Android/Chromium/Gov PASS. Profile gate closed, B07 BLOCKED. Detailed history in journal/metrics. No release.
+**UX:** #643 IN_MAIN; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production NOT_TESTED. #648 1096/1096 Android/Chromium PASS; #650 QA built. **#649 IN_MAIN:** OP07/08, склад, UI, IndexedDB; 1101/1101 Node/Android/Chromium/Gov PASS, B07 BLOCKED. История — в журнале; релиз не выполнялся.
 
-**B07 #663 Draft:** OP11 UI + detached simulated layout/lineage/inventory, пара крышка+подкрышник: **1121/1121 Node/Android/Chromium/Gov PASS** `8e7616ef`; запись BLOCKED. **#664 Draft:** OP12 история 2+1+1 1101 PASS. **#665 Draft:** OP13 1-корпусный перенос и отдельный ранний сценарий, **1113 PASS**, write BLOCKED. **#662:** OP12 физическая модель; **#660:** склад 180 мм; **#657:** ZIP. Все Draft, B07 не активирован, merge/release нет.
+**B07 5 циклов (Draft):** #663 OP11 36 рамок/18 снятых, **1126/1126 Node + Android/Chromium/Gov PASS**; #664 OP13 перенос 1 корпуса / legacy 2 сохранён, **1103 PASS**; #662 OP12 физика↔событие, **1106 PASS**; #665 ранний мёд 2/4, **1115 PASS**; [#666](https://github.com/250oisr-eng/Pasekaapp/pull/666) independent synthetic IDB restore **1105 PASS**. Все Android/Gov PASS. Реальная запись OP11/13/14, backup OnePlus и B07 activation BLOCKED; нет merge/release.
 
 **B03 IN_MAIN (#626):** #472/#623 интегрированы; Fast/Android/Chromium/Governance PASS на `94f883be`. B01/B02/B04/B05/B11/B15 ещё открыты; релиз и независимое восстановление не подтверждены.
 
