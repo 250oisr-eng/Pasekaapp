@@ -60,8 +60,9 @@ function preview(state,request){
  if(!source.ok)return source;
  if(request.firstFlightDate!=null){
   const value=request.firstFlightDate;
-  if(typeof value!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)||
-     new Date(value+'T00:00:00.000Z').toISOString().slice(0,10)!==value)
+  const parsed=typeof value==='string'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)
+   ? Date.parse(value+'T00:00:00.000Z') : NaN;
+  if(!Number.isFinite(parsed)||new Date(parsed).toISOString().slice(0,10)!==value)
    return reject('op13_first_flight_date_invalid');
  }
  if(!obj(request.bottomAssignments))return reject('op13_two_bottom_assignments_required');
