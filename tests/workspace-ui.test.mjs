@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import '../js/workspace-ui.js';
 const ui=globalThis.PasekaWorkspaceUI;
 test('calendar seasons use month boundaries without inferring colony state',()=>{
- const expected=['winter','winter','spring','spring','spring','summer','summer','summer','autumn','autumn','autumn','winter'];
+ const expected=['winter','winter','spring-summer','spring-summer','spring-summer','spring-summer','spring-summer','spring-summer','autumn','autumn','autumn','winter'];
  for(let m=1;m<=12;m++)assert.equal(ui.calendarSeason('2026-'+String(m).padStart(2,'0')+'-01'),expected[m-1]);
  assert.equal(ui.calendarSeason('2024-02-29'),'winter');
 });
@@ -16,7 +16,7 @@ test('invalid dates and unsupported keys are safe',()=>{
 });
 test('manual season overrides calendar without storage, network or task mutation',()=>{
  const result=ui.seasonalContext('2026-11-27','winter');
- assert.equal(result.source,'manual');assert.equal(result.label,'Зима');
+ assert.equal(result.source,'manual');assert.equal(result.label,'Зимовка');
  assert.ok(Object.isFrozen(result));assert.ok(Object.isFrozen(result.topics));
  assert.match(result.note,/Фактическое состояние/);
 });
@@ -48,4 +48,21 @@ test('display preferences are isolated, validated and survive reopening without 
  assert.deepEqual(ui.readPreferences(get),{mode:'home',season:'auto'});
  assert.equal(ui.writePreferences({mode:'field'},()=>{throw Error('disabled storage')}),false);
  assert.deepEqual(ui.readPreferences(()=>{throw Error('disabled storage')}),{mode:'home',season:'auto'});
+});
+
+test('exactly three seasons, old manual choices preserved, seasonal menu changes priority without losing routes',()=>{assert.equal(Object.keys(ui.seasons).length,3);for(const old of ['spring','summer'])assert.equal(ui.normalizePreferences({season:old}).season,'spring-summer');const winter=ui.seasonalContext('2026-01-01'),summer=ui.seasonalContext('2026-06-01'),autumn=ui.seasonalContext('2026-10-01');assert.notDeepEqual(winter.menu,summer.menu);assert.notDeepEqual(summer.menu,autumn.menu);assert.equal(winter.menu.length,4);assert.equal(summer.menu.length,6);assert.equal(autumn.menu.length,4);for(const season of [winter,summer,autumn]){assert.equal(new Set(season.menu).size,season.menu.length);assert.ok(season.menu.every(x=>x in ui.labels));}});
+
+test('direct URL routes are allowlisted and preserve all eleven public destinations',()=>{
+ const hives=[{id:'one'},{id:'two'}],snapshot=JSON.stringify(hives);
+ for(const tab of Object.keys(ui.labels))assert.deepEqual(ui.routeFromLocation('#'+tab,null,hives),{tab,hiveId:null});
+ for(const bad of ['','#','#globalSearch','#__proto__','#constructor','#%68ome','#hiveDetail?one',null])assert.deepEqual(ui.routeFromLocation(bad,null,hives),{tab:'home',hiveId:null});
+ assert.equal(JSON.stringify(hives),snapshot);
+});
+test('hive detail only restores an exact unique ID from matching history, not first hive or URL',()=>{
+ const hives=[{id:'one'},{id:'two'}],state={pasekaTab:'hiveDetail',hiveId:'two',pasekaBack:true};
+ assert.deepEqual(ui.routeFromLocation('#hiveDetail',state,hives),{tab:'hiveDetail',hiveId:'two'});
+ for(const stale of [null,{pasekaTab:'hives',hiveId:'two'},{pasekaTab:'hiveDetail',hiveId:'missing'}])assert.deepEqual(ui.routeFromLocation('#hiveDetail',stale,hives),{tab:'hives',hiveId:null});
+ assert.deepEqual(ui.routeFromLocation('#hiveDetail',state,[...hives,{id:'two'}]),{tab:'hives',hiveId:null});
+ assert.deepEqual(ui.resolveRoute('hiveDetail','one',hives),{tab:'hiveDetail',hiveId:'one'});
+ assert.deepEqual(ui.resolveRoute('globalSearch',null,hives),{tab:'home',hiveId:null});
 });
