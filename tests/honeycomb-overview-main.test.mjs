@@ -57,7 +57,7 @@ function exerciseHome(count, tasks = []) {
   const get = id => slots[id] || null;
   const render = new Function('$','S','renderApiaryStatus','layoutFor','getHiveProfile','profileBroodKeys',
     'profileHoneyKeys','today','safe','frameStatusName','hname','ruPlural','taskMarkup','Option','renderWorkspace',
-    homeSource+'\nreturn renderHome;'
+    html.slice(html.indexOf('function isSectionalHive('),html.indexOf('\nfunction sectionalLayoutForRead('))+'\n'+homeSource+'\nreturn renderHome;'
   )(get,S,()=>{},()=>({mode:'summer',installedBoxes:[],honeyBoxInstalled:[],honeyFrames:[],boxes:{}}),
     ()=>({family:'farrar',name:'Тестовый профиль',layout:{rows:[]}}),
     ()=>[],()=>[] ,()=> '2026-11-27',

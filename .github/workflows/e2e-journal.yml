@@ -35,6 +35,10 @@ jobs:
         run: node tests/e2e/accounting-workflows.e2e.cjs
       - name: Real browser navigation geometry (responsive, synthetic only)
         run: node tests/e2e/navigation-layout.e2e.cjs
+      - name: Real browser inventory filtered CSV, offline, zero-write (mobile and desktop)
+        run: node tests/e2e/inventory-csv.e2e.cjs
+      - name: Real browser B07 sectional honey (isolated QA gate)
+        run: node tests/e2e/sectional-honey.e2e.cjs
       - name: Synthetic screenshots on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -44,5 +48,7 @@ jobs:
             e2e-journal-*-failure.png
             e2e-nav-*-failure.png
             e2e-accounting-synthetic-failure.png
+            inventory-csv-*-failure.png
+            e2e-sectional-synthetic-failure.png
           if-no-files-found: ignore
           retention-days: 2
