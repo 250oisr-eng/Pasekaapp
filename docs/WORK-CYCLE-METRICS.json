@@ -2509,13 +2509,55 @@
     "repeatedDocumentReads": null
   },
   "uxReconciliation20261128": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "IN_MAIN",
     "pr": 648,
     "previousHead": "21933ef67846f84fedeb5853e7fd86e92b5a29d1",
     "baseSha": "1b5ccf3d9084d6270976b6af2e9112faa3b49347",
     "scope": "UX onboarding, seasonal navigation, four interactive metrics, keyboard/media, frame status correction, SW v328",
-    "ci": "PENDING",
+    "ci": "PASS",
     "physicalDeviceVerified": false,
-    "releaseAuthorized": false
+    "releaseAuthorized": false,
+    "verifiedHead": "04da243b15d2192e8fb93597bd41c881b97766d5",
+    "mainSha": "a7fcf2f15fc38d2a932f1493844e620b9049dcdf",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1157,
+      "total": 1157,
+      "failed": 0,
+      "run": 46132385418
+    },
+    "runs": [
+      46132389061,
+      46132389050,
+      46132388993,
+      46132385424,
+      46132385416,
+      46132385418
+    ],
+    "chromiumSectional": "PASS_SYNTHETIC_4_0_2",
+    "mergeAuthorized": true
+  },
+  "numericMarking20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "sourceMainSha": "6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b",
+    "codeSha": "2160fabf3210b08faaca7bac8bd5d4c87d8e090c",
+    "targetedTests": 14,
+    "nodeTests": "1099/1099",
+    "ci": "PASS_ON_INTERMEDIATE_SHA; exact latest PR head requires fresh CI",
+    "device": "NOT_TESTED",
+    "storageChanges": "optional metadata counters; no IndexedDB version change",
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
+  },
+  "numericMarkingReconciliation20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 651,
+    "baseSha": "a7fcf2f15fc38d2a932f1493844e620b9049dcdf",
+    "previousHead": "74094c2bca4d79f9cbe54d6ee2b7d8913af92b76",
+    "ci": "PENDING",
+    "scope": "numeric/legacy code, exact search, stable family and queen numbers, preserve UX/accounting/sectional UI, SW v329",
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "activationAuthorized": false
   }
 }
