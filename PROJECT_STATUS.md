@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**28.11.2026 · аудит зависимостей [#647](https://github.com/250oisr-eng/Pasekaapp/pull/647) (DRAFT, NOT_IN_MAIN).** На базе `main=dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417` добавлены: контроль полного состава `js/*.js`, безопасная сборка только активных Android `www/js` без изолированного OP02/устаревших артефактов, проверенный по структуре `package-lock.json` из #395 (100 транзитивных пакетов), 5 CI-переходов на `npm ci`, негативные тесты. Кодовый SHA `9f977aaaf1166327acb0417bcfd8c9bda7da6346`: lock reachability 100/100, Node 1153/1153, Fast/Android/Chromium/3 QA/Gov 7/7 SUCCESS на проверенном HEAD `b61282cc99f32b564bb77688bd7c738d765ea092`. Текущие docs-only изменения требуют отдельной сверки. Два старых ref (B01 QA и single-sectional catalog) полностью behind main (0 unique), не используются как base открытых PR, **не удалены**. Детали — [аудит](docs/PR-BRANCH-DEPENDENCY-AUDIT-2026-11-28.md). NO_MERGE/NO_RELEASE, B07 и физические gates не сняты.
+**28.11.2026 · [#647 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/647)** `31fdfe86`: повседневный учёт, офлайн-экспорт, изолированный OP02, runtime assets и npm lock; exact HEAD `8a221bc7`, Node 1153/1153, Fast/Android/Chromium/3 QA/Gov 7/7 PASS. Дерево merge совпало с проверенным HEAD. 100/100 pinned deps reachable. [Аудит](docs/PR-BRANCH-DEPENDENCY-AUDIT-2026-11-28.md). Без удаления веток, релиза или активации B07.
 
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
@@ -12,7 +12,7 @@
 
 ## План работ и журнал
 
-**#647 Draft:** конфликт с #649 устранён; 1138/1138 Node и Android/Chromium/Governance PASS на `4e4870aa`. Аудит 671 ветка / 404 PR / 351 stacked; cleanup без удаления.
+**#647 IN_MAIN:** интеграция с #649 проверена; аудит 671 ветка / 404 PR / 351 stacked; без массовых операций. Следующие #648/#651 требуют согласования с новым main.
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 

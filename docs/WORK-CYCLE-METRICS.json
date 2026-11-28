@@ -2412,5 +2412,73 @@
     ],
     "device": "NOT_TESTED",
     "productionMutation": false
+  },
+  "b07Merged20261128": {
+    "stage": "IN_MAIN",
+    "pr": 649,
+    "verifiedHead": "642db8f42ee5af36783dbee23926fba4ece9ad3a",
+    "mainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1101,
+      "total": 1101,
+      "failed": 0,
+      "run": 46068699199
+    },
+    "android": {
+      "status": "PASS",
+      "run": 46068699199
+    },
+    "chromium": {
+      "status": "PASS_SYNTHETIC",
+      "run": 46068699194,
+      "scenario": "actual UI 4→0→2, stock regroup, atomic main+previous backup and reload"
+    },
+    "governance": {
+      "status": "PASS",
+      "run": 46068699235
+    },
+    "workers": "PASS",
+    "mergeAuthorized": true,
+    "activationAuthorized": false,
+    "physicalDeviceVerified": false,
+    "independentRestoreVerified": false,
+    "releaseAuthorized": false,
+    "mainCI": "PASS",
+    "remainingBlocker": "B07 profile/other technological operations and physical acceptance",
+    "mainCIRuns": [
+      46068898999,
+      46068899089,
+      46068899057,
+      46068898991
+    ]
+  },
+  "dailyAccountingMerged20261128": {
+    "stage": "IN_MAIN",
+    "pr": 647,
+    "verifiedHead": "8a221bc73a09f995cd425250ec41bb53028d5c97",
+    "mainSha": "31fdfe86d2d9b2ecd398ed9595e153b6bc0962ed",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1153,
+      "total": 1153,
+      "failed": 0,
+      "run": 46073096481
+    },
+    "runs": [
+      46073096436,
+      46073096520,
+      46073096481,
+      46073096441,
+      46073096551,
+      46073096652,
+      46073096403
+    ],
+    "browser": "PASS_SYNTHETIC_4_0_2",
+    "mergeAuthorized": true,
+    "activationAuthorized": false,
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "mainCI": "PENDING"
   }
 }
