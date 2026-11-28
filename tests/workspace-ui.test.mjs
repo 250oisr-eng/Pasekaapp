@@ -51,3 +51,18 @@ test('display preferences are isolated, validated and survive reopening without 
 });
 
 test('exactly three seasons, old manual choices preserved, seasonal menu changes priority without losing routes',()=>{assert.equal(Object.keys(ui.seasons).length,3);for(const old of ['spring','summer'])assert.equal(ui.normalizePreferences({season:old}).season,'spring-summer');const winter=ui.seasonalContext('2026-01-01'),summer=ui.seasonalContext('2026-06-01'),autumn=ui.seasonalContext('2026-10-01');assert.notDeepEqual(winter.menu,summer.menu);assert.notDeepEqual(summer.menu,autumn.menu);assert.equal(winter.menu.length,4);assert.equal(summer.menu.length,6);assert.equal(autumn.menu.length,4);for(const season of [winter,summer,autumn]){assert.equal(new Set(season.menu).size,season.menu.length);assert.ok(season.menu.every(x=>x in ui.labels));}});
+
+test('direct URL routes are allowlisted and preserve all eleven public destinations',()=>{
+ const hives=[{id:'one'},{id:'two'}],snapshot=JSON.stringify(hives);
+ for(const tab of Object.keys(ui.labels))assert.deepEqual(ui.routeFromLocation('#'+tab,null,hives),{tab,hiveId:null});
+ for(const bad of ['','#','#globalSearch','#__proto__','#constructor','#%68ome','#hiveDetail?one',null])assert.deepEqual(ui.routeFromLocation(bad,null,hives),{tab:'home',hiveId:null});
+ assert.equal(JSON.stringify(hives),snapshot);
+});
+test('hive detail only restores an exact unique ID from matching history, not first hive or URL',()=>{
+ const hives=[{id:'one'},{id:'two'}],state={pasekaTab:'hiveDetail',hiveId:'two',pasekaBack:true};
+ assert.deepEqual(ui.routeFromLocation('#hiveDetail',state,hives),{tab:'hiveDetail',hiveId:'two'});
+ for(const stale of [null,{pasekaTab:'hives',hiveId:'two'},{pasekaTab:'hiveDetail',hiveId:'missing'}])assert.deepEqual(ui.routeFromLocation('#hiveDetail',stale,hives),{tab:'hives',hiveId:null});
+ assert.deepEqual(ui.routeFromLocation('#hiveDetail',state,[...hives,{id:'two'}]),{tab:'hives',hiveId:null});
+ assert.deepEqual(ui.resolveRoute('hiveDetail','one',hives),{tab:'hiveDetail',hiveId:'one'});
+ assert.deepEqual(ui.resolveRoute('globalSearch',null,hives),{tab:'home',hiveId:null});
+});

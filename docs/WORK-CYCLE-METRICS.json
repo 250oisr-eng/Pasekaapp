@@ -2676,7 +2676,7 @@
     "activationAuthorized": false
   },
   "uxRouteAndDevice20261128": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "IN_MAIN",
     "runtimeBase": "00b82f0457c3c5a5da5e4edeba27f886e3dd13a8",
     "routePr": 674,
     "routeHead": "6cc4ff97082c6ff0fd5cffaa145bc624ea6ee2bb",
@@ -2687,18 +2687,26 @@
       "run": 46142035806
     },
     "governance": "PASS",
-    "fullCI": "PENDING",
+    "fullCI": "PASS",
     "qaPr": 650,
     "qaHead": "5a5053176b324b3d6a3ff940cf15bd1ab718d230",
     "qaInitialBuild": {
       "run": 46141755217,
       "conclusion": "failure",
       "cause": "Maven HTTP 429",
-      "retry": "PENDING"
+      "retry": "PASS",
+      "artifactId": 15262586053,
+      "superseded": true
     },
     "qaPackage": "ru.paseka.journal.qa.ux20261128",
     "physicalDevice": "NOT_TESTED",
     "productionRelease": false,
-    "measuredSavings": null
+    "measuredSavings": null,
+    "mainSha": "12436a769f9774af86e83936a36662d9a2b9d85b",
+    "postMergeCI": "PENDING",
+    "qaFinalHead": "d94e629b50758ab46725a803c7ba8a779fa53641",
+    "qaFinalRuntime": "12436a769f9774af86e83936a36662d9a2b9d85b",
+    "qaFinalPackage": "ru.paseka.journal.qa.ux20261128final",
+    "qaFinalBuild": "PENDING"
   }
 }
