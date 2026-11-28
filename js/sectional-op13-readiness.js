@@ -165,5 +165,65 @@ function previewEarlyHoneySetup(state,request){
   ]
  };
 }
-window.PasekaSectionalOP13Readiness=Object.freeze({inspect,preview,previewEarlyHoneySetup});
+// P79–82: proposed honey super capacity for the EARLY flow, after the
+// separate-bottom and empty-brood preparation; no extraction / installation.
+function previewEarlyHoneySupers(state,request){
+ const prepared=previewEarlyHoneySetup(state,request);
+ if(!prepared.ok)return prepared;
+ const honeyIds=request?.honeyBodyIds;
+ const grids=request?.largeExcluderIds;
+ if(!Array.isArray(honeyIds)||![2,4].includes(honeyIds.length)||
+    honeyIds.some(x=>!id(x))||new Set(honeyIds).size!==honeyIds.length)
+  return reject('op14_early_honey_two_or_four_unique_supers_required');
+ if(!Array.isArray(grids)||grids.length!==2||grids.some(x=>!id(x))||grids[0]===grids[1])
+  return reject('op14_two_distinct_large_excluders_required');
+ const inventory=state.equipmentInventory;
+ const installed=new Set(rows(state.sectionalLayouts).flatMap(layout=>
+  rows(layout?.sections).flatMap(section=>rows(section?.broodBodyIds))
+   .concat(rows(layout?.honeyStack?.bodyIds))));
+ let foundationCount=0;
+ for(const bodyId of honeyIds){
+  const body=inventory?.bodies?.[bodyId];
+  if(!obj(body)||body.id!==bodyId||body.kind!=='honey'||body.condition!=='good'||
+     body.spec?.profileId!==PROFILE||body.spec?.kind!=='honey'||
+     body.spec?.framesPerBox!==10||body.spec?.frame?.heightMm!==180||
+     !id(body.storageLocation)||installed.has(bodyId)||
+     !Array.isArray(body.frames)||body.frames.length!==10||
+     body.frames.some(frame=>!obj(frame)||!id(frame.frameId)||
+       (frame.history!=null&&!Array.isArray(frame.history))))
+   return reject('op14_early_honey_super_geometry_or_stock_invalid',{bodyId});
+  for(const frame of body.frames){
+   if(frame.combType==='wax_foundation')foundationCount++;
+   else if(frame.combType!=='drawn_comb')
+    return reject('op14_early_honey_comb_type_unconfirmed',{bodyId,frameId:frame.frameId});
+  }
+ }
+ // The DOCX recommends drawn comb, and mentions "up to two" wax frames
+ // without defining the precise scope for 2 vs 4 supers. Never invent one.
+ if(foundationCount)
+  return reject('op14_early_honey_foundation_scope_requires_confirmation',{foundationCount});
+ const itemIds=new Set([...honeyIds,...grids]);
+ if(itemIds.size!==honeyIds.length+2)return reject('op14_early_honey_stock_alias');
+ for(const itemId of grids){
+  const item=inventory?.items?.[itemId];
+  if(!obj(item)||item.id!==itemId||item.kind!=='honeyQueenExcluder'||
+     item.condition!=='good'||item.location?.type!=='storage')
+   return reject('op14_early_honey_large_excluder_unavailable',{itemId});
+ }
+ return {ok:true,readOnly:true,readyForPersistence:false,completionRecorded:false,
+  operationId:'OP-14',scenario:'EARLY_HONEY',hiveId:prepared.hiveId,
+  sourceRevisionId:prepared.sourceRevisionId,
+  proposedHoneyBodyIds:[...honeyIds],proposedLargeExcluderIds:[...grids],
+  superCountIfConfirmed:honeyIds.length,combTypeConfirmed:'drawn_comb_only',
+  foundationScopeNotGuessed:true,
+  physicalHoneyBoxesInstalled:false,largeExcludersInstalled:false,
+  beekeeperWorkConfirmed:false,
+  unresolved:['separate_bottoms_and_family_moves','two_added_brood_bodies',
+   'validated_side_opening_connections','two_large_grid_physical_footprints',
+   'honey_super_installation_and_lid_pair','beekeeper_confirmation',
+   'atomic_OP14_inventory_and_frame_events','independent_restore']};
+}
+window.PasekaSectionalOP13Readiness=Object.freeze({
+ inspect,preview,previewEarlyHoneySetup,previewEarlyHoneySupers
+});
 })();
