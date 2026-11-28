@@ -44,6 +44,17 @@ function writePreferences(value,storageProvider=()=>root.localStorage){
  try{const storage=storageProvider();if(!storage)return false;storage.setItem(PREFERENCES_KEY,JSON.stringify(normalizePreferences(value)));return true;}catch{return false;}
 }
 function routeGroup(route){return route==='ai'?'ai':groups.find(group=>group.routes.includes(route))?.id||null;}
+function resolveRoute(tab,hiveId,hives){
+ if(tab==='hiveDetail'){
+  const valid=typeof hiveId==='string'&&hiveId.length>0&&Array.isArray(hives)&&hives.filter(h=>h?.id===hiveId).length===1;
+  return valid?{tab,hiveId}:{tab:'hives',hiveId:null};
+ }
+ return {tab:has(labels,tab)?tab:'home',hiveId:null};
+}
+function routeFromLocation(hash,state,hives){
+ const tab=typeof hash==='string'&&hash.startsWith('#')?hash.slice(1):'home';
+ return resolveRoute(tab,state?.pasekaTab===tab?state.hiveId:null,hives);
+}
 function mountControls(host,{modeHost=null,date=()=>localDate(),mode='home',season='auto',onMode=()=>{},onSeason=()=>{}}={}){
  if(!host||typeof host.replaceChildren!=='function')throw new TypeError('Нужен DOM-контейнер');
  const d=host.ownerDocument;
@@ -73,5 +84,5 @@ function mountControls(host,{modeHost=null,date=()=>localDate(),mode='home',seas
  render();
  return Object.freeze({refresh:render,getMode:()=>currentMode,getSeason:()=>currentSeason});
 }
-root.PasekaWorkspaceUI=Object.freeze({seasons,modes,groups,labels,calendarSeason,localDate,seasonalContext,normalizeMode,normalizePreferences,readPreferences,writePreferences,routeGroup,mountControls});
+root.PasekaWorkspaceUI=Object.freeze({seasons,modes,groups,labels,calendarSeason,localDate,seasonalContext,normalizeMode,normalizePreferences,readPreferences,writePreferences,routeGroup,resolveRoute,routeFromLocation,mountControls});
 })(typeof window!=='undefined'?window:globalThis);
