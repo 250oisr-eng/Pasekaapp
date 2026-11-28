@@ -55,7 +55,7 @@ test('OP11 staged candidate checks actual physical, lineage and inventory valida
  assert.equal(result.candidatePhysicalValidated,true);
  assert.equal(result.candidateLineageValidated,true);
  assert.equal(result.candidateInventoryValidated,true);
- assert.equal(result.plannedItemMoves.length,8+9+4+1);
+ assert.equal(result.plannedItemMoves.length,9+8+4+4);
  assert.equal(result.bodyAndFrameHistoryStaged,false);
  assert.equal(result.coordinatorCompletionStaged,false);
  assert.equal(result.backupRestoreProven,false);
