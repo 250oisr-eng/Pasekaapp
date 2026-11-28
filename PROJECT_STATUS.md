@@ -3,11 +3,13 @@
 
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
-**UX:** #643/#648/#651 IN_MAIN (`a7fcf2f1`, `085293cc`), 1157/1157 и 1177/1177 + exact main CI PASS. #646 owner 9/11, TalkBack/production unchanged NOT_TESTED. #674 IN_MAIN `12436a769`, exact 1210/1210 + all 8 checks PASS; post-merge CI pending. #650 final QA `d94e629b`, new isolated package; build/device pending. #649 IN_MAIN (`dcf8a7c5`): OP07/08 atomic; B07 BLOCKED. No release.
+**UX:** #643/#648/#651 IN_MAIN (`a7fcf2f1`, `085293cc`), 1157/1157 и 1177/1177 + exact main CI PASS. #646 owner 9/11, TalkBack/production unchanged NOT_TESTED. #674 IN_MAIN `12436a769`, exact 1210/1210 + all 8 checks PASS; post-merge CI 6/6 PASS. #650 final QA `d94e629b`, 9/9 CI PASS; device pending. #649 IN_MAIN (`dcf8a7c5`): OP07/08 atomic; B07 BLOCKED. No release.
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
+
+**28.11 · четыре направления:** #635/#641/#657 CI PASS; #663 (включает #660/#662/#664/#665) 1257/1257, 7/7; #644 QA ONLY 1309/1309, 9/9, voice4; #453 detached OP01/03/06 Node PASS. [SHA, доказательства, блокеры и очередь](docs/FOUR-WORKSTREAMS-2026-11-28.md). No merge/release; OnePlus NOT_TESTED.
 
 ## План работ и журнал
 
