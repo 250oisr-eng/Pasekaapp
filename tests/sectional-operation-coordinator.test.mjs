@@ -9,7 +9,8 @@ for(const path of [
  '../js/equipment-items.js',
  '../js/sectional-physical-layout.js',
  '../js/family-lineage.js',
- '../js/sectional-operation-coordinator.js'
+ '../js/sectional-operation-coordinator.js',
+ '../js/sectional-op03-body-swap.js'
 ]){
  const source=await readFile(new URL(path,import.meta.url),'utf8');
  new Function('window',source)(appWindow);
@@ -20,6 +21,7 @@ const Items=appWindow.PasekaEquipmentItems;
 const Layout=appWindow.PasekaSectionalPhysicalLayout;
 const Lineage=appWindow.PasekaFamilyLineage;
 const Coordinator=appWindow.PasekaSectionalOperationCoordinator;
+const OP03Swap=appWindow.PasekaSectionalOP03BodySwap;
 const PROFILE='sectional-multiqueen-v1';
 const NOW='2026-11-17T10:00:00.000Z';
 const codes=['ААА','ААБ','ААГ','ААД','ААЕ','ААЖ'];
@@ -1119,3 +1121,77 @@ test('late honey pair handles legacy states without revision and rejects invente
 });
 
 test('offer is available only after first complete pair, disappears after four; app profile remains isolated',()=>{const p=preparedMainHoneyForLatePair(),state=p.fixture.state,request={hiveId:'h1',techProcessId:'tp-h1'};const before=structuredClone(state);assert.deepEqual(Coordinator.availableSecondHoneyPairs(state,request),[{pairId:'honey-pair-2',bodyIds:['honey3','honey4']}]);assert.deepEqual(state,before);const other=structuredClone(state);other.hives[0].profileId='farrar-6x6-v1';assert.deepEqual(Coordinator.availableSecondHoneyPairs(other,request),[]);const early=structuredClone(state);early.sectionalLayouts[0].honeyStack.purpose='early';assert.deepEqual(Coordinator.availableSecondHoneyPairs(early,request),[]);assert.equal(Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),p.deps).ok,true);assert.deepEqual(Coordinator.availableSecondHoneyPairs(state,request),[]);});
+
+test('OP-03 physically swaps top and bottom brood bodies, keeps middle and original frames',()=>{
+ const fixture=makeFixture(),original=structuredClone(fixture.state),deps=dependencies();
+ const r=OP03Swap.applySwap(fixture.state,{hiveId:'h1',userConfirmed:true,occurredAt:'2026-11-17T10:00:00.000Z'},
+  {...deps,now:'2026-11-17T10:01:00.000Z'});
+ assert.equal(r.ok,true,JSON.stringify(r.details||r));
+ assert.deepEqual(fixture.state,original,'pure preflight must not mutate real state');
+ const before=original.sectionalLayouts[0].sections[0].broodBodyIds;
+ const after=r.draft.sectionalLayouts[0].sections[0].broodBodyIds;
+ assert.deepEqual(after,[before[2],before[1],before[0]]);
+ assert.equal(r.draft.sectionalLayouts[0].sections[0].upperBroodBodyId,before[0]);
+ assert.deepEqual(r.draft.equipmentInventory.bodies.b2,original.equipmentInventory.bodies.b2,'middle body not changed');
+ assert.deepEqual(r.draft.equipmentInventory.bodies.b1.frames.map(x=>x.frameId),original.equipmentInventory.bodies.b1.frames.map(x=>x.frameId));
+ assert.equal(r.draft.equipmentInventory.bodies.b1.frames[0].history.at(-1).action,'sectional_body_reordered');
+ assert.equal(r.draft.equipmentInventory.bodies.b3.frames[0].history.at(-1).action,'sectional_body_reordered');
+ assert.equal(r.draft.sectionalBodyReorders.length,1);
+ assert.equal(r.draft.sectionalBodyReorders[0].userConfirmed,true);
+ assert.deepEqual(OP03Swap.inspect(r.draft),[]);
+ assert.deepEqual(Layout.inspect(r.draft),[]);
+ assert.deepEqual(Lineage.inspect(r.draft),[]);
+});
+test('OP-03 refuses unconfirmed or duplicate swap and preserves all original state',()=>{
+ const f=makeFixture(),deps=dependencies(),before=structuredClone(f.state);
+ assert.equal(OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:false,occurredAt:NOW},{...deps,now:NOW}).ok,false);
+ assert.deepEqual(f.state,before);
+ let r=OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...deps,now:NOW});
+ assert.equal(r.ok,true,JSON.stringify(r.details||r));
+ const second=OP03Swap.applySwap(r.draft,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW});
+ assert.equal(second.error,'optional_swap_already_recorded');
+ assert.equal(OP03Swap.inspect(r.draft).length,0);
+ const changed=structuredClone(f.state);changed.hives[0].profileId='farrar-6x6-v1';
+ assert.equal(OP03Swap.applySwap(changed,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW}).error,'sectional_profile_required');
+});
+test('OP-03 fail-closed with partial body inventory, invalid timestamp or active split',()=>{
+ const f=makeFixture();
+ let modified=structuredClone(f.state);modified.equipmentInventory.bodies.b1.frames.pop();
+ assert.equal(OP03Swap.applySwap(modified,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW}).error,'body_or_frame_inventory_invalid');
+ modified=structuredClone(f.state);modified.sectionalTechProcesses.push({id:'tp',hiveId:'h1'});
+ assert.equal(OP03Swap.applySwap(modified,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW}).error,'pre_split_only');
+ assert.equal(OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:'2026-11-18T10:00:00.000Z'},{...dependencies(),now:NOW}).error,'operation_time_invalid');
+});
+
+test('OP-03 physical layout and complete frame histories survive isolated IndexedDB reopen',async()=>{
+ const {IDBFactory}=await import('fake-indexeddb');
+ const idb=new IDBFactory(),open=()=>new Promise((ok,no)=>{const q=idb.open('p1-op03-reopen',1);q.onupgradeneeded=()=>q.result.createObjectStore('main');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
+ const f=makeFixture(),deps=dependencies();
+ const result=OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...deps,now:'2026-11-17T10:01:00.000Z'});
+ assert.equal(result.ok,true,JSON.stringify(result));
+ let db=await open();
+ await new Promise((ok,no)=>{const tx=db.transaction('main','readwrite');tx.objectStore('main').put(result.draft,'state');tx.oncomplete=ok;tx.onabort=()=>no(tx.error)});
+ db.close();db=await open();
+ const saved=await new Promise((ok,no)=>{const req=db.transaction('main','readonly').objectStore('main').get('state');req.onsuccess=()=>ok(req.result);req.onerror=()=>no(req.error)});
+ assert.deepEqual(OP03Swap.inspect(saved),[]);
+ assert.deepEqual(Layout.inspect(saved),[]);
+ assert.deepEqual(saved.sectionalLayouts[0].sections[0].broodBodyIds,['b3','b2','b1']);
+ assert.equal(saved.equipmentInventory.bodies.b1.frames[0].history.at(-1).action,'sectional_body_reordered');
+ assert.equal(saved.equipmentInventory.bodies.b3.frames[0].history.at(-1).action,'sectional_body_reordered');
+ db.close();
+});
+test('OP03 remains detached from runtime and offline shell',async()=>{
+ for(const path of ['../index.html','../sw.js'])assert.doesNotMatch(await readFile(new URL(path,import.meta.url),'utf8'),/sectional-op03-body-swap\.js/);
+});
+test('OP-03 backup integrity rejects forged global or body movement evidence',()=>{
+ const f=makeFixture(),deps=dependencies();
+ const result=OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...deps,now:'2026-11-17T10:01:00.000Z'});
+ assert.equal(result.ok,true,JSON.stringify(result));
+ const globalMissing=structuredClone(result.draft);
+ globalMissing.equipmentInventory.events=globalMissing.equipmentInventory.events.filter(e=>e.type!=='sectional_op03_body_order_swapped');
+ assert.ok(OP03Swap.inspect(globalMissing).some(x=>x.code==='op03_global_movement_evidence_invalid'));
+ const bodyMissing=structuredClone(result.draft);
+ bodyMissing.equipmentInventory.bodies.b1.events=bodyMissing.equipmentInventory.bodies.b1.events.filter(e=>e.type!=='sectional_op03_body_reordered');
+ assert.ok(OP03Swap.inspect(bodyMissing).some(x=>x.code==='op03_body_movement_evidence_invalid'));
+ assert.deepEqual(OP03Swap.inspect(result.draft),[]);
+});

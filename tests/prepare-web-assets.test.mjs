@@ -17,7 +17,7 @@ async function fixture(fn){
   await writeFile(join(root,'icons','paseka.svg'),'<svg/>');
   await writeFile(join(root,'js','a.js'),'globalThis.a=1;');
   await writeFile(join(root,'js','b.js'),'globalThis.b=2;');
-  await writeFile(join(root,'js','sectional-op02-feeding.js'),'globalThis.unreleased=1;');
+  for(const name of ['sectional-op02-feeding.js','sectional-entrance-operations.js','sectional-op03-body-swap.js','sectional-queen-outcome.js']) await writeFile(join(root,'js',name),'globalThis.unreleased=1;');
   await writeFile(join(root,'www','js','old-stale.js'),'old generated code');
   await fn(root);
  }finally{
