@@ -2567,8 +2567,10 @@
     "historicalNodeTestsPassed": 1103,
     "newTests": 4,
     "additionalCodeSha": "73df120983767ae7671446aec0f2acd43bd1f7ca",
-    "nodeCodeSha": "73df120983767ae7671446aec0f2acd43bd1f7ca",
+    "nodeCodeSha": "ca8861ea7365b415785f710c9bd6377f31b78ac5",
     "nodeStatus": "PASS",
+    "fiveParallelDrafts": {"inventory":661,"archive":666,"flowering":659,"varroa":658,"incidents":634},
+    "additionalIdentityRegression": true,
     "governanceStatus": "PASS",
     "exactHeadCi": "PENDING",
     "physicalDeviceVerified": false
