@@ -2535,7 +2535,14 @@
       46132385418
     ],
     "chromiumSectional": "PASS_SYNTHETIC_4_0_2",
-    "mergeAuthorized": true
+    "mergeAuthorized": true,
+    "mainCI": "PASS",
+    "mainRuns": [
+      46132518745,
+      46132518708,
+      46132518707,
+      46132518767
+    ]
   },
   "numericMarking20261127": {
     "stage": "IMPLEMENTED_DRAFT",
@@ -2550,12 +2557,59 @@
     "measuredSavings": null
   },
   "numericMarkingReconciliation20261128": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "IN_MAIN",
     "pr": 651,
     "baseSha": "a7fcf2f15fc38d2a932f1493844e620b9049dcdf",
     "previousHead": "74094c2bca4d79f9cbe54d6ee2b7d8913af92b76",
-    "ci": "PENDING",
+    "ci": "PASS",
     "scope": "numeric/legacy code, exact search, stable family and queen numbers, preserve UX/accounting/sectional UI, SW v329",
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "activationAuthorized": false,
+    "verifiedHead": "15b9fa88ee0f42ff19ba911a8b0a9260cdae629a",
+    "mainSha": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1177,
+      "total": 1177,
+      "failed": 0,
+      "run": 46132660746
+    },
+    "runs": [
+      46132663376,
+      46132663324,
+      46132663317,
+      46132660807,
+      46132660746,
+      46132660790
+    ],
+    "chromiumSectional": "PASS_SYNTHETIC_4_0_2",
+    "mergeAuthorized": true,
+    "mainCI": "PENDING"
+  },
+  "integrationQueue20261128": {
+    "stage": "PARTIAL_IN_MAIN",
+    "mainSha": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
+    "merged": [
+      649,
+      647,
+      652,
+      648,
+      651
+    ],
+    "superseded": [
+      {
+        "pr": 633,
+        "by": 647,
+        "proof": "byte-identical CSV export code, documentation and two original test suites"
+      }
+    ],
+    "qaOnly": [
+      650
+    ],
+    "historicalSelectivePort": [
+      453
+    ],
     "physicalDeviceVerified": false,
     "releaseAuthorized": false,
     "activationAuthorized": false
