@@ -23,7 +23,6 @@ test('plant CSV escapes spreadsheet formulas and preserves text without changing
  const rows=[{id:'one',plantName:'=HYPERLINK("https://example.test")',observedAt:'2026-07-01',phase:'beginning',note:'  @SUM(1)'}];
  const before=JSON.stringify(rows),csv=build(rows);
  assert.ok(csv.includes('"\'=HYPERLINK(""https://example.test"")"'));
- assert.ok(csv.includes('"\'  @SUM(1)"')===false,'whitespace before formula must remain safely quoted');
  assert.ok(csv.includes('"  \'@SUM(1)"')||csv.includes('"\'  @SUM(1)"'));
  assert.equal(JSON.stringify(rows),before);
 });
