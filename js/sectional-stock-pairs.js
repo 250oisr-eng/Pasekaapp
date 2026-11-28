@@ -3,7 +3,7 @@
 const PROFILE='sectional-multiqueen-v1',rows=x=>Array.isArray(x)?x:[],str=x=>typeof x==='string'&&x.trim().length>0,fail=(error,details)=>({ok:false,error,details});
 function available(state,inventory){
  if(typeof inventory?.locateAll!=='function')return [];
- return Object.values(state?.equipmentInventory?.bodies||{}).filter(b=>b?.kind==='honey'&&b.condition==='good'&&b.spec?.profileId===PROFILE&&b.spec?.framesPerBox===10&&str(b.storageLocation)&&Array.isArray(b.frames)&&b.frames.length===10&&inventory.locateAll(state,b.id).length===0).map(b=>({id:b.id,label:b.labelCode||b.id,pairId:b.pairId||null,storageLocation:b.storageLocation}));
+ return Object.values(state?.equipmentInventory?.bodies||{}).filter(b=>b?.kind==='honey'&&b.condition==='good'&&b.spec?.profileId===PROFILE&&b.spec?.kind==='honey'&&b.spec?.framesPerBox===10&&b.spec?.frame?.heightMm===180&&str(b.storageLocation)&&Array.isArray(b.frames)&&b.frames.length===10&&inventory.locateAll(state,b.id).length===0).map(b=>({id:b.id,label:b.labelCode||b.id,pairId:b.pairId||null,storageLocation:b.storageLocation}));
 }
 // Re-form complete pairs of selected free bodies, and dissolve affected old
 // pairs only when every affected member is free in the same sectional stock.

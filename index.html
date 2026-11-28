@@ -732,6 +732,7 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
   <div class="card hive-family-card"><div class="row"><h3>Состояние семей</h3><span class="muted">По записям осмотров</span></div><div id="selectedFamilies" class="family-observation-grid"></div><div id="familyHealthSummary"></div>
    <div class="row" style="margin-top:10px"><button onclick="addFamily(selectedHiveId)">＋ Семья</button><button onclick="openHiveJournal(selectedHiveId)">Журнал</button><button id="legacyExtractionButton" class="primary" onclick="openExtractionDialog()">Откачка мёда</button></div><div id="hiveExtractionActions"></div>
   </div>
+  <div id="sectionalOp11PreviewHost" hidden></div>
   <details id="hiveTechnicalView" class="card hive-technical-view"><summary><span>Конструкция и рамки</span><span class="muted">Техническое представление</span></summary><p class="muted">Карта учтённой комплектации. Состояния рамок в модели не заменяют фактический осмотр.</p><div id="hiveTechnicalMap"></div><details id="hiveAssemblyEditor" class="card"><summary>Настройка комплектации и операции</summary>
   <div class="row"><h3>Конструкция и рамки</h3></div>
   <div class="assembly-mode-control" id="assemblyModeControl"><label for="assemblyMode">Комплектация улья</label><select id="assemblyMode" onchange="beginModeChange(this.value)"><option value="summer">Летняя сборка</option><option value="winter">Зимняя сборка</option></select><p id="assemblyModeHint" class="muted">После настройки состав будет зафиксирован.</p><button type="button" id="assemblyEditBtn" onclick="editCurrentAssembly()">Изменить</button><button type="button" class="primary" id="assemblyDoneBtn" style="display:none" onclick="finishAssemblySetup()">Готово</button></div><div id="modeTransition" class="card" style="display:none"></div>
@@ -801,7 +802,7 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
 <script src="./js/hive-model.js"></script>
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
 <script src="./js/equipment-items.js"></script>
-<script src="./js/sectional-physical-layout.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script><script src="./js/sectional-stock-pairs.js"></script><script src="./js/sectional-honey-review.js"></script><script src="./js/sectional-honey-persistence.js"></script><script src="./js/sectional-honey-review-ui.js"></script>
+<script src="./js/sectional-physical-layout.js"></script><script src="./js/sectional-op11-preview.js"></script><script src="./js/sectional-op11-preview-ui.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script><script src="./js/sectional-stock-pairs.js"></script><script src="./js/sectional-honey-review.js"></script><script src="./js/sectional-honey-persistence.js"></script><script src="./js/sectional-honey-review-ui.js"></script>
 <script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
@@ -2554,6 +2555,7 @@ function render(){
  S.extractions=S.extractions||[];if(!S.hives.some(h=>h.id===selectedHiveId))selectedHiveId=S.hives[0]?.id||'';
  $('selectedHivePanel').style.display=selectedHiveId?'block':'none';
  if(selectedHiveId){const h=S.hives.find(x=>x.id===selectedHiveId);$('selectedHiveTitle').textContent=hname(h.id);renderHiveHeaderSummary(h);renderFamilyObservationCards();renderHiveOnboarding();}
+ renderSectionalOp11Preview();
  const jh=$('journalHive');if(jh){jh.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');if(S.hives.some(h=>h.id===activeJournalHive))jh.value=activeJournalHive;else if(selectedHiveId){activeJournalHive=selectedHiveId;jh.value=selectedHiveId}else activeJournalHive='';}
  const list=activeJournalHive?S.records.filter(r=>r.hive===activeJournalHive):[];
  renderJournalRecords();
@@ -4981,6 +4983,15 @@ async function commitSectionalHoneyCandidate(candidate,baseState){
   alert('Операция записана в базу, но состояние страницы изменилось. Запись заблокирована. Не повторяйте операцию; сохраните несохранённые данные и перезапустите приложение.');
  }
  return result;
+}
+function renderSectionalOp11Preview(){
+ const host=$('sectionalOp11PreviewHost');if(!host)return;
+ const visible=!!selectedHiveId&&isSectionalHive(selectedHiveId);
+ host.hidden=!visible;host.replaceChildren();
+ if(!visible)return;
+ if(!startupWriteGate.ready){host.textContent='OP11: предварительный просмотр недоступен до безопасного открытия базы.';return;}
+ if(S.meta?.saveError){host.textContent='OP11: в состоянии пасеки обнаружена ошибка. Проверка недоступна.';return;}
+ PasekaSectionalOP11PreviewUI.mount(host,{getState:()=>S,hiveId:selectedHiveId});
 }
 function renderSectionalHoneyScreen(host){
  const context=sectionalHoneyContext();host.replaceChildren();

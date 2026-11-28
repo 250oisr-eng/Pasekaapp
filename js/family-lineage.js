@@ -121,9 +121,10 @@ function inspect(state) {
      if (!event.familyIds?.includes(row?.familyId) || ![1,2].includes(row?.bodyCount))
       add('alternative_wintering_body_distribution_invalid',{eventId:event.id,position:row?.position,bodyCount:row?.bodyCount??null});
     }
-    const bodyCounts=event.layout.map(row=>row?.bodyCount).sort((a,b)=>a-b);
-    if (bodyCounts.length!==3||bodyCounts[0]!==1||bodyCounts[1]!==1||bodyCounts[2]!==2)
-     add('alternative_wintering_body_distribution_invalid',{eventId:event.id,bodyCounts});
+    // DOCX 66–69: lower=2, middle=1, upper=1; do not sort away physical order.
+    const bodyCounts=POSITIONS.map(position=>event.layout.find(row=>row?.position===position)?.bodyCount??null);
+    if (bodyCounts.length!==3||bodyCounts[0]!==2||bodyCounts[1]!==1||bodyCounts[2]!==1)
+     add('alternative_wintering_body_distribution_invalid',{eventId:event.id,bodyCounts,order:POSITIONS});
     if (new Set(event.layout.map(row=>row?.familyId)).size !== 3) add('alternative_wintering_layout_family_duplicate',{eventId:event.id});
    }
    const itemMap = state.equipmentInventory?.items;
@@ -245,7 +246,12 @@ function inspect(state) {
    const eventIndex=events.indexOf(event),winterEvent=events.slice(0,eventIndex).reverse().find(row=>row?.type==='alternative_wintering_configured'&&row.hiveId===event.hiveId&&row.familyIds?.includes(event.familyId));
    const sourceRow=winterEvent?.layout?.find(row=>row?.familyId===event.familyId);
    if (!sourceRow||sourceRow.bodyCount!==1||sourceRow.position!==event.from?.position) add('family_placement_event_source_mismatch',{eventId:event.id});
-   if (!uniqueStrings(event.from?.bodyIds) || event.from.bodyIds.length!==1 || !uniqueStrings(event.to?.bodyIds) || event.to.bodyIds.length!==2) add('family_placement_event_body_refs_invalid',{eventId:event.id});
+   // Existing 2-body OP13 records are historical snapshots; keep them readable.
+   // New normal OP13 writes only the original one-body family; expansion is later.
+   if (!uniqueStrings(event.from?.bodyIds) || event.from.bodyIds.length!==1 ||
+       !uniqueStrings(event.to?.bodyIds) || ![1,2].includes(event.to.bodyIds.length) ||
+       !event.to.bodyIds.includes(event.from.bodyIds[0]))
+    add('family_placement_event_body_refs_invalid',{eventId:event.id});
    const bodyMap=state.equipmentInventory?.bodies||{};
    for (const bodyId of [...(Array.isArray(event.from?.bodyIds)?event.from.bodyIds:[]),...(Array.isArray(event.to?.bodyIds)?event.to.bodyIds:[])]) if (!bodyMap[bodyId] || bodyMap[bodyId].id!==bodyId) add('family_placement_event_body_missing',{eventId:event.id,bodyId});
    const itemMap=state.equipmentInventory?.items||{},bottom=itemMap[event.to?.bottomItemId];
@@ -586,8 +592,8 @@ function configureAlternativeWintering(state, request, makeId, now) {
    return {ok:false,error:'alternative_wintering_layout_invalid'};
   if (layout.some(row=>!familyIds.includes(row?.familyId)||![1,2].includes(row?.bodyCount))||new Set(layout.map(row=>row?.familyId)).size!==3)
    return {ok:false,error:'alternative_wintering_body_distribution_invalid'};
-  const counts=layout.map(row=>row.bodyCount).sort((a,b)=>a-b);
-  if (counts[0]!==1||counts[1]!==1||counts[2]!==2) return {ok:false,error:'alternative_wintering_body_distribution_invalid'};
+  const counts=POSITIONS.map(position=>layout.find(row=>row?.position===position)?.bodyCount??null);
+  if (counts[0]!==2||counts[1]!==1||counts[2]!==1) return {ok:false,error:'alternative_wintering_body_distribution_invalid'};
   const items=itemIds.map(id=>draft.equipmentInventory?.items?.[id]);
   if (items.some(item=>!item||item.kind!=='meshDiaphragm'||item.condition!=='good'||item.location?.type!=='hive'||item.location?.hiveId!==hiveId||!item.location?.positionLabel))
    return {ok:false,error:'alternative_wintering_physical_diaphragm_invalid'};
@@ -624,7 +630,7 @@ function recordPlacementChanged(state, request, makeId, now) {
    return {ok:false,error:'placement_already_recorded'};
   const fromBodyIds=Array.isArray(request?.from?.bodyIds)?request.from.bodyIds:[];
   const toBodyIds=Array.isArray(request?.to?.bodyIds)?request.to.bodyIds:[];
-  if (!uniqueStrings(fromBodyIds)||fromBodyIds.length!==1||!uniqueStrings(toBodyIds)||toBodyIds.length!==2)
+  if (!uniqueStrings(fromBodyIds)||fromBodyIds.length!==1||!uniqueStrings(toBodyIds)||toBodyIds.length!==1)
    return {ok:false,error:'placement_body_references_invalid'};
   if (!toBodyIds.includes(fromBodyIds[0]))
    return {ok:false,error:'placement_existing_body_not_preserved'};
@@ -696,7 +702,7 @@ function validateOperationEvidence(state, record, operationId) {
   if (rows.length!==1) add('OP12_ALTERNATIVE_WINTERING_EVENT_REQUIRED',{techProcessId});
   else {
    const event=rows[0],layout=Array.isArray(event.layout)?event.layout:[];
-   const validLayout=layout.length===3&&POSITIONS.every(position=>layout.filter(row=>row?.position===position).length===1)&&new Set(layout.map(row=>row?.familyId)).size===3&&layout.every(row=>event.familyIds?.includes(row?.familyId)&&[1,2].includes(row?.bodyCount))&&layout.filter(row=>row?.bodyCount===2).length===1&&layout.filter(row=>row?.bodyCount===1).length===2;
+   const validLayout=layout.length===3&&POSITIONS.every(position=>layout.filter(row=>row?.position===position).length===1)&&new Set(layout.map(row=>row?.familyId)).size===3&&layout.every(row=>event.familyIds?.includes(row?.familyId)&&[1,2].includes(row?.bodyCount))&&layout.find(row=>row?.position==='lower')?.bodyCount===2&&layout.find(row=>row?.position==='middle')?.bodyCount===1&&layout.find(row=>row?.position==='upper')?.bodyCount===1;
    const laterEarlyHoneySplit=record.state.operations?.some(operation=>operation?.operationId==='OP-14'&&operation.status==='DONE');
    if (!laterEarlyHoneySplit&&!sameSet(event.familyIds,sectionFamilyIds)) add('OP12_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
    if (event.diaphragmItemIds?.length!==2) add('OP12_TWO_PHYSICAL_DIAPHRAGMS_REQUIRED',{techProcessId});
@@ -734,9 +740,15 @@ function validateOperationEvidence(state, record, operationId) {
      add('OP13_TWO_BODY_FAMILY_REMAINS',{techProcessId});
     for (const move of moves) {
      const sourceRow=winterLayout.find(row=>row?.familyId===move.familyId),section=sections.find(row=>row?.familyId===move.familyId);
-     if (!sourceRow||move.from?.position!==sourceRow.position||move.from?.bodyIds?.length!==1||move.to?.bodyIds?.length!==2)
+     const movedBodies=move.to?.bodyIds;
+     if (!sourceRow||move.from?.position!==sourceRow.position||move.from?.bodyIds?.length!==1||
+         ![1,2].includes(movedBodies?.length)||!movedBodies.includes(move.from.bodyIds[0]))
       add('OP13_MOVE_SOURCE_OR_BODY_COUNT_MISMATCH',{familyId:move.familyId});
-     if (!section||section.winteringPosition!=='separate_bottom'||section.bodyIds?.length!==2)
+     // Backward compatible: older already-recorded OP13 places 2 bodies at
+     // once; source-aligned new OP13 places 1. Never silently add body #2.
+     if (!section||section.winteringPosition!=='separate_bottom'||
+         ![1,2].includes(section.bodyIds?.length)||
+         !movedBodies?.every(id=>section.bodyIds.includes(id)))
       add('OP13_SEPARATE_BOTTOM_STATE_MISMATCH',{familyId:move.familyId});
     }
    }
