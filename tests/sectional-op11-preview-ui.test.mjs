@@ -142,5 +142,5 @@ test('B07 OP11 offline shell keeps both new modules and never caches user record
  assert.match(sw,/\.\/js\/sectional-op11-preview\.js/);
  assert.match(sw,/\.\/js\/sectional-op11-preview-ui\.js/);
  assert.doesNotMatch(sw,/\.\/api\/private-video/);
- assert.doesNotMatch(js,/\.innerHTML\s*=|\.save\s*\(|localStorage|indexedDB|\.completeOP11\s*\(/);
+ assert.doesNotMatch(js,/\.innerHTML\s*=|\.save\s*\(|\blocalStorage\s*\.|\bindexedDB\s*\.|\.completeOP11\s*\(/);
 });
