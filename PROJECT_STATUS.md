@@ -12,6 +12,10 @@
 
 ## План работ и журнал
 
+**#669 Draft:** полная история корпуса по 12 событий; сохранённое расположение и даты/ID не переписываются; повреждённые записи/список явно отмечаются. Code SHA `e6ee1d5`, Node/Governance PASS; Android/Chromium проверяются отдельно. OnePlus NOT_TESTED, B07 BLOCKED. No merge/release.
+
+
+
 **#647 IN_MAIN:** интеграция с #649 проверена; аудит 671 ветка / 404 PR / 351 stacked; без массовых операций. Следующие #648/#651 требуют согласования с новым main.
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.

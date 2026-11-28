@@ -2559,5 +2559,18 @@
     "physicalDeviceVerified": false,
     "releaseAuthorized": false,
     "activationAuthorized": false
+  },
+  "inventoryFullHistory20261128": {
+    "pr": 669,
+    "baseSha": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
+    "testedCodeSha": "e6ee1d5a5f04b0099aa6ff5c3b7b8074901d0475",
+    "stage": "IMPLEMENTED_DRAFT",
+    "node": "PASS",
+    "governance": "PASS",
+    "android": "PENDING",
+    "chromium": "PENDING",
+    "device": "NOT_TESTED",
+    "productionMutation": false,
+    "mergeAuthorized": false
   }
 }
