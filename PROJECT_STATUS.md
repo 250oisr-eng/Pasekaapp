@@ -12,19 +12,7 @@
 
 ## План работ и журнал
 
-**#669 full inventory history review:** события корпуса доступны страницами по 12 без изменения хранения; повреждённые записи видимо отмечаются, HTML экранируется. `main=b56c1944`; требуется exact-head CI.
-
-
-
-**#668 CSV period review:** сводка событий по всем ульям и типам CSV, без медиа и без изменения базы. `main=1c6c50d0`, точный HTML перенос двух фрагментов; Node/Android/Governance/Chromium требуются на новом SHA.
-
-
-
-**#659 integration review:** медоносы, наблюдения, фильтры по годам и стадиям, полная история. Точечно перенесено 2 HTML-ханка с сохранением новых защит инвентаря и архива; exact CI ожидается. Не автоматизирует физические действия.
-
-
-
-**#661 inventory reconciliation:** база `e94111aa`, защита карточки/повторной регистрации корпуса и 5 регрессий, никаких правок пользовательских записей. Exact SHA CI PENDING; OnePlus NOT_TESTED.
+**28.11.2026 · семь PR IN_MAIN:** #666 B07 synthetic archive (`e94111aa`), #661 инвентарь (`1370d443`), #659 медоносы (`f5bdd8bd`), #658 Varroa (`876286a8`), #634 инциденты (`1c6c50d0`), #668 CSV-журнал (`b56c1944`), #669 полная история корпуса (`6a8c419a`). Все ветки прошли Node/Android/Governance и применимые Chromium/Workers на точном HEAD перед squash. Итоговый main `6a8c419a1b3ad64d38bb63104760061ea3a6bbca`: post-merge CI на `6a8c419a`: Node/Android/Chromium/Governance/Workers SUCCESS. Публикация НЕ выполнялась, B07 profile BLOCKED, OnePlus real restore NOT_TESTED.
 
 
 
