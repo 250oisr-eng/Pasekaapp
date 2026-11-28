@@ -2585,10 +2585,18 @@
       "669": "6a8c419a1b3ad64d38bb63104760061ea3a6bbca"
     },
     "exactPrCi": "PASS",
-    "postMergeMainCi": "PENDING",
+    "postMergeMainCi": "PASS",
     "physicalOnePlus": "NOT_TESTED",
     "b07Activation": "BLOCKED",
     "productionRelease": false,
-    "productionDataMutated": false
+    "productionDataMutated": false,
+    "postMergeChecks": [
+      "test",
+      "build",
+      "journal-browser",
+      "governance",
+      "Workers Builds: pasekaapp",
+      "Verify Pages source is GitHub Actions (read-only)"
+    ]
   }
 }

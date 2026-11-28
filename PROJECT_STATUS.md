@@ -12,7 +12,7 @@
 
 ## План работ и журнал
 
-**28.11.2026 · семь PR IN_MAIN:** #666 B07 synthetic archive (`e94111aa`), #661 инвентарь (`1370d443`), #659 медоносы (`f5bdd8bd`), #658 Varroa (`876286a8`), #634 инциденты (`1c6c50d0`), #668 CSV-журнал (`b56c1944`), #669 полная история корпуса (`6a8c419a`). Все ветки прошли Node/Android/Governance и применимые Chromium/Workers на точном HEAD перед squash. Итоговый main `6a8c419a1b3ad64d38bb63104760061ea3a6bbca`: post-merge CI проверяется отдельно. Публикация НЕ выполнялась, B07 profile BLOCKED, OnePlus real restore NOT_TESTED.
+**28.11.2026 · семь PR IN_MAIN:** #666 B07 synthetic archive (`e94111aa`), #661 инвентарь (`1370d443`), #659 медоносы (`f5bdd8bd`), #658 Varroa (`876286a8`), #634 инциденты (`1c6c50d0`), #668 CSV-журнал (`b56c1944`), #669 полная история корпуса (`6a8c419a`). Все ветки прошли Node/Android/Governance и применимые Chromium/Workers на точном HEAD перед squash. Итоговый main `6a8c419a1b3ad64d38bb63104760061ea3a6bbca`: post-merge CI на `6a8c419a`: Node/Android/Chromium/Governance/Workers SUCCESS. Публикация НЕ выполнялась, B07 profile BLOCKED, OnePlus real restore NOT_TESTED.
 
 
 
