@@ -1,4 +1,20 @@
 {
+  "b07Op12LowerFamilyOrder20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "bf58dface8c176da3cd37b1fe882e765c3b600af",
+    "sourceParagraphs": "DOCX P66-P70",
+    "contract": "ALTERNATIVE_WINTERING_COLUMN bodyCounts lower/middle/upper=2/1/1",
+    "testsUpdated": 1,
+    "fullNodeTests": null,
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "sectionalProfileActivated": false,
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0
+  },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 638,
