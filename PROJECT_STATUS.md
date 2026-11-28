@@ -11,7 +11,7 @@
 
 ## План работ и журнал
 
-**#671 IN_MAIN:** CSV медоносов (все отфильтрованные наблюдения, без фото/GPS/медиа), squash `0f80d7d787de763a67c9a56eae65e5e39203e76d`, кодовый CI Node/Android/Chromium/Governance/Workers PASS. **#672 Draft:** обновление Service Worker `v329 → v330` из-за cache-first изменённых JS. Code/test `08ad0998` Node/Android/Governance/Workers PASS; docs-only SHA требует проверки; OnePlus OFFLINE NOT_TESTED. Без публикации.
+**#671 IN_MAIN:** CSV медоносов (все отфильтрованные наблюдения, без фото/GPS/медиа), squash `0f80d7d787de763a67c9a56eae65e5e39203e76d`, кодовый CI Node/Android/Chromium/Governance/Workers PASS. **#672 IN_MAIN:** Service Worker `v330` после изменений JS, `35eb9603`, exact-main Node/Android/Governance/Workers PASS; OnePlus OFFLINE NOT_TESTED. Без публикации.
 
 
 
