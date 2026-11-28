@@ -2620,28 +2620,5 @@
     "productionRelease": false,
     "mainSha": "35eb9603befc64289cc95964f5b5046b61ed10c7",
     "postMergeCi": "PASS"
-  },
-  "deadoutCompletion20261128": {
-    "browserViewports": 2,
-    "device": "NOT_TESTED",
-    "completedVerifiedUserScenarios": 0
-  },
-  "deadoutDuplicateHive20261127": {
-    "pr": 635,
-    "scope": "UNIQUE_HIVE_REFERENCE",
-    "negativeCases": 1,
-    "positiveCases": 1,
-    "device": "NOT_TESTED",
-    "exactHeadCi": "HISTORICAL_PASS",
-    "productionMutation": false
-  },
-  "deadoutMainReconciliation20261128": {
-    "baseSha": "00b82f0457c3c5a5da5e4edeba27f886e3dd13a8",
-    "sourceHead": "ac5f50ede7eda400f96b0affb85629d01234dd5e",
-    "stage": "IMPLEMENTED_DRAFT",
-    "historicalNodeTestsPassed": 1106,
-    "shellVersion": 331,
-    "exactHeadCi": "PENDING",
-    "physicalDeviceVerified": false
   }
 }

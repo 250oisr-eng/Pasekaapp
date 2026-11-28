@@ -2900,8 +2900,29 @@ function updateJournalInspectionCapacity(){
 function toggleOccupancy(){const on=$('rtype').value==='Осмотр',treat=$('rtype').value==='Обработка',feeding=$('rtype').value==='Подкормка';['occupancyLabel','roccupancy','broodLabel','rbrood','drawnLabel','rdrawn','expansionHint'].forEach(id=>$(id).style.display=on?'block':'none');$('queenFields').style.display=on?'block':'none';$('treatmentFields').style.display=treat?'block':'none';$('feedingFields').style.display=feeding?'block':'none';if(!on){$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value=''}updateJournalInspectionCapacity()}
 function selectJournalHive(id){activeJournalHive=id;render()}
 function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const pageTitles={home:'Обзор',hives:'Ульи',hiveDetail:'Улей',entrance:'Лёток',journal:'Журнал',settings:'Ещё',ai:'ИИ-помощник',forage:'Медоносы',varroa:'Клещ',incidents:'Инциденты',planning:'План',deadout:'Потери'};const currentTitle=$('currentSectionTitle');if(currentTitle){const currentHive=tab==='hiveDetail'?S.hives?.find(h=>h.id===selectedHiveId):null;currentTitle.textContent=currentHive?.name||pageTitles[tab]||'Обзор';}const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';document.querySelector('meta[name="theme-color"]')?.setAttribute('content',document.body.dataset.workspaceMode==='night'?'#161e1a':'#f7f8f5');if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();if(tab==='planning')renderSeasonPlanning();if(tab==='deadout')renderDeadoutModule();document.querySelectorAll('nav button').forEach(x=>{const parent=({hiveDetail:'hives',entrance:'hives',forage:'planning',varroa:'settings',incidents:'settings',deadout:'settings'})[tab]||tab;const active=x.dataset.tab===parent;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
-function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab);if(push&&current!==tab)window.scrollTo(0,0);if(tab==='ai')initAIAuth()}
-function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
+function workspaceRouteURL(tab){return location.pathname+location.search+(tab==='home'?'':'#'+tab)}
+function workspaceHistoryEntry(route,back){return {pasekaTab:route.tab,pasekaBack:back===true,...(route.hiveId?{hiveId:route.hiveId}:{})}}
+function restoreWorkspaceNavigation(){
+ const previous=history.state,route=PasekaWorkspaceUI.routeFromLocation(location.hash,previous,S.hives);
+ if(route.hiveId&&selectedHiveId!==route.hiveId){
+  selectedHiveId=route.hiveId;activeJournalHive=route.hiveId;render();
+ }
+ const back=previous?.pasekaTab===route.tab&&previous?.pasekaBack===true;
+ history.replaceState(workspaceHistoryEntry(route,back),'',workspaceRouteURL(route.tab));
+ paintTab(route.tab);
+ if(route.tab==='ai'&&!aiInitPromise)$('aiAuthStatus').textContent='Для подключения нажми «ИИ» в меню.';
+}
+function showTab(tab,push=true){
+ const route=PasekaWorkspaceUI.resolveRoute(tab,selectedHiveId,S.hives);
+ const current=document.querySelector('.panel.active')?.id||'home',previous=history.state;
+ const changed=current!==route.tab||Boolean(route.hiveId&&previous?.hiveId!==route.hiveId);
+ if(push&&changed)history.pushState(workspaceHistoryEntry(route,true),'',workspaceRouteURL(route.tab));
+ else if(!push||previous?.pasekaTab!==route.tab)history.replaceState(workspaceHistoryEntry(route,false),'',workspaceRouteURL(route.tab));
+ paintTab(route.tab);
+ if(push&&changed)window.scrollTo(0,0);
+ if(route.tab==='ai')initAIAuth();
+}
+function goBack(){if(history.state?.pasekaBack===true&&history.length>1)history.back();else showTab('home',false)}
 
 const AI_AUTH_URL='https://ep-lively-field-b97xerkf.neonauth.c-7.eu-central-1.aws.neon.tech/paseka/auth';
 const AI_FUNCTION_URL='https://pasekaapp.250oisr.workers.dev/';
@@ -3536,7 +3557,7 @@ async function sendAIQuestion(){
 }
 async function clearAIHistory(){if(!confirm('Очистить историю диалога с ИИ на этом устройстве?'))return;S.aiMessages=[];await save();renderAIChat()}
 
-window.addEventListener('popstate',event=>paintTab(event.state&&event.state.pasekaTab?event.state.pasekaTab:'home'))
+window.addEventListener('popstate',()=>{if(startupWriteGate.ready)restoreWorkspaceNavigation()})
 function openHive(id){$('hiveTechnicalView').open=false;$('hiveAssemblyEditor').open=false;selectedHiveId=id;activeJournalHive=id;render();showTab('hiveDetail')}function showHiveListScreen(){showTab('hives')}function editSelectedHive(){if(selectedHiveId)editHive(selectedHiveId)}function openHiveJournal(id){activeJournalHive=id;selectedHiveId=id;showTab('journal');render()}
 async function deleteHive(id){
  if(isSectionalHive(id))return alert('Удаление секционного улья пока заблокировано.');
@@ -5691,8 +5712,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   try{const existingBackup=await readAutoBackup();await ensureAutomaticBackup(S,existingBackup)}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось проверить или обновить полную резервную копию'}
   startupWriteGate.ready=true;
   selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
-  history.replaceState({pasekaTab:'home'},'',location.pathname);
-  showTab('home',false);
+  restoreWorkspaceNavigation();
   startDailyArchiveScheduler();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});
  }catch(e){showStartupFailure(e);alert('Не удалось безопасно открыть данные пасеки. Действия заблокированы, хранилище не очищено. '+(e.message||e))}

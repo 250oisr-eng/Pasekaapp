@@ -3,15 +3,13 @@
 
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
-**UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 IN_MAIN `a7fcf2f1`, exact 1157/1157 + Chromium/Android/Gov/Workers PASS; #650 QA only. #651 IN_MAIN `085293cc`. **#649 IN_MAIN** (`dcf8a7c5`): OP07/08 секционный медосбор, атомарное сохранение и проверки. На точном main Fast/Android/Chromium/Governance SUCCESS. B07 profile gate остаётся BLOCKED; данные пользователя не затронуты. No release.
+**UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 IN_MAIN `a7fcf2f1`, exact 1157/1157 + Chromium/Android/Gov/Workers PASS; #650 QA only. #651 согласован с main, CI pending. **#649 IN_MAIN** (`dcf8a7c5`): OP07/08 секционный медосбор, атомарное сохранение и проверки. На точном main Fast/Android/Chromium/Governance SUCCESS. B07 profile gate остаётся BLOCKED; данные пользователя не затронуты. No release.
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
 ## План работ и журнал
-
-**#635 Draft:** историческая связь семьи при гибели, сохранность фото, наблюдения без диагноза, SW v331; exact CI PENDING. OnePlus NOT_TESTED.
 
 **#671 IN_MAIN:** CSV медоносов (все отфильтрованные наблюдения, без фото/GPS/медиа), squash `0f80d7d787de763a67c9a56eae65e5e39203e76d`, кодовый CI Node/Android/Chromium/Governance/Workers PASS. **#672 IN_MAIN:** Service Worker `v330` после изменений JS, `35eb9603`, exact-main Node/Android/Governance/Workers PASS; OnePlus OFFLINE NOT_TESTED. Без публикации.
 
@@ -21,7 +19,7 @@
 
 
 
-**#647 IN_MAIN:** интеграция с #649 проверена; аудит 671 ветка / 404 PR / 351 stacked; без массовых операций. #648/#651 IN_MAIN.
+**#647 IN_MAIN:** интеграция с #649 проверена; аудит 671 ветка / 404 PR / 351 stacked; без массовых операций. Следующие #648/#651 требуют согласования с новым main.
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 
