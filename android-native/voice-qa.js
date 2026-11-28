@@ -127,7 +127,8 @@
     }
     const anotherNumber=(w,i)=>nword(w[i])!==null||numberAt(w,i)!==null;
     const multi=(w,i)=>anotherNumber(w,i)||(['или','либо','и'].includes(w[i])&&(anotherNumber(w,i+1)||w[i+1]==='с'&&anotherNumber(w,i+2)));
-    const numericFamily=f=>/^с-[1-9]\d{0,5}$/u.test(norm(f?.name))?norm(f.name):/^с-[1-9]\d{0,5}$/u.test(norm(f?.code))?norm(f.code):'';
+    const familySerials=f=>[...new Set([norm(f?.name),norm(f?.code)].filter(x=>/^с-[1-9]\d{0,5}$/u.test(x)))];
+    const numericFamily=f=>familySerials(f)[0]||'';
     const familyKey=f=>numericFamily(f)||norm(f?.name);
     const active=f=>f&&f.recordStatus!=='historical';
     const rows=()=>{const s=readState()||{};return {hives:Array.isArray(s.hives)?s.hives:[],families:Array.isArray(s.families)?s.families:[]}};
@@ -136,8 +137,8 @@
       return h.length===1&&validId(h[0].id)&&rows().hives.filter(x=>x?.id===h[0].id).length===1?h[0]:null;};
     const familyByName=(h,name)=>{
       const numeric=/^с-[1-9]\d{0,5}$/u.test(name);
-      const f=rows().families.filter(x=>(numeric||x?.hive===h.id)&&familyKey(x)===name);
-      if(f.length!==1||!active(f[0])||f[0].hive!==h.id||!validId(f[0].id)||rows().families.filter(x=>x?.id===f[0].id).length!==1)return null;
+      const f=rows().families.filter(x=>numeric?familySerials(x).includes(name):x?.hive===h.id&&familyKey(x)===name);
+      if(f.length!==1||familySerials(f[0]).length>1||!active(f[0])||f[0].hive!==h.id||!validId(f[0].id)||rows().families.filter(x=>x?.id===f[0].id).length!==1)return null;
       if(numeric){
         const found=window.PasekaLabels?.lookupMarking?.(readState(),'family',name.slice(2));
         if(found?.status!=='found'||found.target?.id!==f[0].id||found.target?.hiveId!==h.id)return null;
@@ -236,13 +237,13 @@
       for(const i of familyMarks){
         mark(i);
         let start=i+1;if(w[start]==='номер'){mark(start);start++;}
-        const prefixed=w[start]==='с';if(prefixed){mark(start);start++;}
+        const prefixed=['с','эс'].includes(w[start]);if(prefixed){mark(start);start++;}
         const span=numberAt(w,start);
         const legacy=candidates.filter(f=>!numericFamily(f)&&tokens(f.name).length&&tokens(f.name).every((x,k)=>w[i+1+k]===x));
         if(span){
           const key='с-'+span.n,found=candidates.filter(f=>familyKey(f)===key);
           if(prefixed||found.length||!legacy.length){
-            if(multi(w,span.end)||['или','либо'].includes(w[span.end])||legacy.length||found.length!==1){reset();return reply('Семья с таким номером не найдена однозначно. Назови один номер и повтори наблюдение.');}
+            if(multi(w,span.end)||['или','либо'].includes(w[span.end])||w[span.end]==='и'&&rows().families.some(f=>{const name=tokens(f.name);return name.length&&name.every((x,k)=>w[span.end+1+k]===x);})||legacy.length||found.length!==1){reset();return reply('Семья с таким номером не найдена однозначно. Назови один номер и повтори наблюдение.');}
             matches.push(found[0]);for(let k=start;k<span.end;k++)mark(k);
             continue;
           }
@@ -253,9 +254,11 @@
         }
         else {reset();return reply('Не нашёл семью по этому имени. Назови её точное имя и повтори наблюдение.');}
       }
-      if(ask==='family'&&hive&&!familyMarks.length&&!none){
-        const short=key.replace(/^(?:номер\s+|с[-\s]+)/u,''),number=sharedNumber(short),wanted=number===null?key:'с-'+number;
+      const explicitCode=/^(?:с[-‐‑‒–—―−]|эс\s+)(.+)$/u.exec(key);
+      if(!familyMarks.length&&!none&&(explicitCode||ask==='family'&&hive)){
+        const short=explicitCode?explicitCode[1]:key.replace(/^(?:номер\s+|с[-\s]+)/u,''),number=sharedNumber(short),wanted=number===null?key:'с-'+number;
         const exact=candidates.filter(f=>familyKey(f)===wanted||!numericFamily(f)&&norm(f.name)===key);
+        if(explicitCode&&(number===null||exact.length!==1)){reset();return reply('Семья с таким номером не найдена однозначно. Назови один номер и повтори наблюдение.');}
         if(exact.length){matches.push(...exact);w.forEach((v,i)=>mark(i));}
       }
       if(none){if(family||deferredName){reset();return reply('Старый черновик отменён. Начни общую заметку заново.');}noFamily=true;w.forEach((v,i)=>mark(i));}

@@ -360,3 +360,22 @@ test('actual QA bridge answers local marking lookup aloud without opening or sav
  assert.match(h.speech[0].text,/Р-137.*К-24/);assert.equal(e.recordDlg.open,false);
  await h.done();assert.equal(h.starts.length,2);assert.equal(JSON.stringify(h.context.S),before);
 });
+
+test('explicit short family code cannot become narrative or change the prior journal target silently',async()=>{
+ const {naturalSession}=await localDomain();const state=numberedState();
+ state.families.push({id:'f14',hive:'h137',name:'С-14'});
+ for(const first of ['С-12','эс двенадцать']){
+  const s=naturalSession(()=>state);assert.match(s.receive(first).message,/Какой улей/);
+  const p=s.receive('улей сто тридцать семь осмотрел матка есть').pending;assert.equal(p.familyId,'f12');
+  assert.equal(s.receive('С-14').pending,undefined);assert.equal(s.receive('да').draft,undefined);
+ }
+});
+test('mixed numeric and legacy alternative names and conflicting stored family codes fail closed',async()=>{
+ const {naturalSession}=await localDomain();const state=numberedState();
+ state.families.push({id:'old',hive:'h137',name:'Альфа'});
+ for(const text of ['улей сто тридцать семь семья двенадцать и Альфа матка есть','улей сто тридцать семь семья двенадцать или Альфа матка есть']){
+  const s=naturalSession(()=>state);assert.equal(s.receive(text).pending,undefined);assert.equal(s.receive('да').draft,undefined);
+ }
+ state.families[0].code='С-99';
+ const s=naturalSession(()=>state);assert.equal(s.receive('улей сто тридцать семь семья двенадцать матка есть').pending,undefined);
+});
