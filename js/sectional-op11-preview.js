@@ -38,7 +38,11 @@ function inspect(state,request){
   .map(o=>({bodyId:o.bodyId,openingId:o.id}));
  if(openings.length===0||new Set(openings.map(o=>o.openingId)).size!==openings.length)
   return reject('op11_unique_upper_openings_required');
- return {ok:true,layout,sections,stacks,items,kept,all,openings};
+ // Never return mutable aliases into an IndexedDB-backed live state, even in inspect().
+ let detached;
+ try{detached=structuredClone({layout,items,kept,all,openings});}
+ catch{return reject('op11_snapshot_clone_failed');}
+ return {ok:true,...detached,sections:detached.layout.sections,stacks:detached.layout.stacks};
 }
 function preview(state,request){
  const source=inspect(state,request);
