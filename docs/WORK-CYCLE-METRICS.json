@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "FROZEN_B_MEASURED_A_SOURCE_MISMATCH",
+    "stage": "FROZEN_ROI_PAIRED_MEASURED_ONNX_TRIAL",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -376,9 +376,55 @@
         }
       },
       "artifactId": 15253913663,
-      "julyARetry": "pinned_source_diagnostics_only_no_B_replay",
-      "productAdmission": false
-    }
+      "julyARetry": {
+        "run": 46129548587,
+        "codeSha": "19f824d5da58c9b210f26c1d7e43f356ca974970",
+        "conclusion": "success",
+        "testsPassed": 6,
+        "frames": 24,
+        "baseline": {
+          "tp": 302,
+          "fp": 87,
+          "fn": 51,
+          "tiles": 504,
+          "msPerFrame": 4971.241774374998
+        },
+        "reduced": {
+          "tp": 300,
+          "fp": 38,
+          "fn": 53,
+          "tiles": 240,
+          "msPerFrame": 2381.1945290416716
+        },
+        "speedup": 2.087709220622017,
+        "tracking": {
+          "baselineSwitches": 2,
+          "motionSwitches": 4,
+          "transitions": 265
+        },
+        "artifactId": 15256419178
+      },
+      "productAdmission": false,
+      "combined": {
+        "frames": 72,
+        "gt": 1100,
+        "baseline": {
+          "tp": 812,
+          "fp": 411,
+          "fn": 288,
+          "tiles": 1512
+        },
+        "reduced": {
+          "tp": 832,
+          "fp": 293,
+          "fn": 268,
+          "tiles": 720
+        },
+        "researchCandidate": true,
+        "productAdmission": false
+      }
+    },
+    "onnxTrial": "implemented_pending_actual_run"
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
