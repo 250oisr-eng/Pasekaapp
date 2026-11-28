@@ -2480,5 +2480,42 @@
     "physicalDeviceVerified": false,
     "releaseAuthorized": false,
     "mainCI": "PENDING"
+  },
+  "uxDeviceFeedback20261127": {
+    "stage": "READY_FOR_MERGE_REVIEW",
+    "pr": 648,
+    "codeSha": "a922cf3b6fa597d1e360ba012657c95ee5b24bba",
+    "previousQa": {
+      "pr": 646,
+      "run": 46057173507,
+      "artifact": 15228280916,
+      "apkSha256": "6d1141e35037ed4bbeb0260827f488bec64506e9c7490b56bcf1db5875e620bd",
+      "userReportedPass": 9,
+      "userReportedNotTested": 2
+    },
+    "nodeTests": 1096,
+    "ci": {
+      "fast": 46061936051,
+      "chromium": 46061936096,
+      "android": 46061941186,
+      "governance": 46061941115,
+      "result": "PASS"
+    },
+    "honeyPairDomainPr": 649,
+    "deviceRetest": "NOT_TESTED",
+    "productionMutation": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
+  },
+  "uxReconciliation20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 648,
+    "previousHead": "21933ef67846f84fedeb5853e7fd86e92b5a29d1",
+    "baseSha": "1b5ccf3d9084d6270976b6af2e9112faa3b49347",
+    "scope": "UX onboarding, seasonal navigation, four interactive metrics, keyboard/media, frame status correction, SW v328",
+    "ci": "PENDING",
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false
   }
 }

@@ -13,12 +13,12 @@ function fixture(type='foundation',status='foundation'){
  const api=new Function('$','layoutFor','selectedStructureHive','frameArray','PasekaLabels','logAudit','alert',constants+'\n'+helpers+'\n'+sync+'\n'+commit+'\nlet editingBox="1",editingFrame=0;return {allowedFrameStatuses,isFrameStatusAllowed,frameStatusOptions,syncFrameType,syncFrameStatus,commitFrameEdit,FRAME_STATUSES};')(id=>fields[id],()=>({}),()=> 'h1',()=>[frame],{appendFrameEvent:(x,action,data)=>x.history.push({action,...data})},(...x)=>events.push(x),x=>alerts.push(x));
  return {frame,fields,api,events,alerts};
 }
-test('foundation and strip permit only foundation; comb permits all eleven statuses',()=>{
+test('foundation and strip permit only foundation; comb permits all statuses except foundation',()=>{
  const {api}=fixture();
  for(const type of ['foundation','strip'])assert.deepEqual(api.allowedFrameStatuses(type).map(x=>x[0]),['foundation']);
- assert.deepEqual(api.allowedFrameStatuses('comb'),api.FRAME_STATUSES);
+ assert.deepEqual(api.allowedFrameStatuses('comb'),api.FRAME_STATUSES.filter(x=>x[0]!=='foundation'));
  for(const type of ['foundation','strip','comb','unknown'])for(const [id] of api.FRAME_STATUSES)
-  assert.equal(api.isFrameStatusAllowed(type,id),type==='comb'||(['foundation','strip'].includes(type)&&id==='foundation'));
+  assert.equal(api.isFrameStatusAllowed(type,id),(type==='comb'&&id!=='foundation')||(['foundation','strip'].includes(type)&&id==='foundation'));
  assert.equal(api.isFrameStatusAllowed('comb','invented'),false);
 });
 test('switching from comb with honey or brood to either foundation type resets status and options',()=>{
@@ -31,12 +31,12 @@ test('switching from comb with honey or brood to either foundation type resets s
   assert.equal(frame.type,type);assert.equal(frame.status,'foundation');assert.equal(frame.history.length,1);
  }
 });
-test('switch to comb restores every status and changing status never silently changes type',()=>{
+test('switch to comb restores every non-foundation status and changing status never silently changes type',()=>{
  const {api,fields,frame}=fixture('strip','foundation');
  fields.frameType.value='comb';api.syncFrameType();
  assert.equal(fields.frameStatus.value,'drawn');
- assert.equal((fields.frameStatus.innerHTML.match(/<option/g)||[]).length,11);
- for(const [id] of api.FRAME_STATUSES){
+ assert.equal((fields.frameStatus.innerHTML.match(/<option/g)||[]).length,10);
+ for(const [id] of api.allowedFrameStatuses('comb')){
   fields.frameStatus.value=id;api.syncFrameStatus();assert.equal(fields.frameType.value,'comb');assert.equal(api.commitFrameEdit(),true);assert.equal(frame.status,id);
  }
 });
@@ -75,3 +75,5 @@ test('unknown editor frame type is rejected before recording audit or changing a
  assert.deepEqual(events,[]);
  assert.equal(alerts.length,1);
 });
+
+test('comb with forbidden foundation status is never silently accepted',()=>{const {api,fields,frame}=fixture('comb','drawn');const before=structuredClone(frame);fields.frameStatus.value='foundation';assert.equal(api.commitFrameEdit(),false);assert.deepEqual(frame,before);});
