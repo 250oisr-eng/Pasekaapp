@@ -131,3 +131,21 @@ test('B07 absent latest backup cannot be treated as evidence of independent reco
  assert.equal(await read(target,'main','state'),undefined);
  source.close();target.close();
 });
+
+test('B07 checksum-valid archive missing one frame history fails before touching existing data or video',async()=>{
+ const idb=new IDBFactory(),source=await db(idb,'source-broken-frame'),target=await db(idb,'target-protected-frame');
+ const invalid=sectionalState();
+ invalid.equipmentInventory.bodies.b1.frames[0].history=null;
+ await put(source,{main:invalid});
+ const live=sectionalState();live.meta.revisionId='unchanged-live';
+ const video=new Blob([Uint8Array.of(9,8,7,6)],{type:'video/mp4'});
+ await put(target,{main:live,video});
+ const before=structuredClone(await read(target,'main','state'));
+ const archive=await Archive.exportArchive(source);
+ assert.equal(JSON.parse(archive).manifest.counts.main,1);
+ await assert.rejects(Archive.inspectArchive(archive,target,validateSource),/sectional original frame history missing/);
+ assert.deepEqual(await read(target,'main','state'),before);
+ const original=await read(target,'entrance_media','original-video');
+ assert.deepEqual([...new Uint8Array(await original.blob.arrayBuffer())],[9,8,7,6]);
+ source.close();target.close();
+});
