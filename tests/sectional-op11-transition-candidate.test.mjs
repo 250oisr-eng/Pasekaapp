@@ -126,7 +126,7 @@ test('OP11 candidate does not assume a valid result from a failed ID generator',
  assert.equal(out.ok,false);
  assert.deepEqual(state,before);
 });
-test('OP11 candidate source remains a standalone non-runtime module with no persistence access',()=>{
+test('OP11 candidate source remains a standalone non-runtime module with no persistence access',async()=>{
  const src=await readFile(new URL('../js/sectional-op11-transition-candidate.js',import.meta.url),'utf8');
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
