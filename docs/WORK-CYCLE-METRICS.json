@@ -2565,7 +2565,11 @@
     "sourceHead": "6f6967f871f044fe17147b1b9bc9cb9331b580b5",
     "stage": "IMPLEMENTED_DRAFT",
     "historicalNodeTestsPassed": 1103,
-    "newTests": 2,
+    "newTests": 4,
+    "additionalCodeSha": "73df120983767ae7671446aec0f2acd43bd1f7ca",
+    "nodeCodeSha": "73df120983767ae7671446aec0f2acd43bd1f7ca",
+    "nodeStatus": "PASS",
+    "governanceStatus": "PASS",
     "exactHeadCi": "PENDING",
     "physicalDeviceVerified": false
   }
