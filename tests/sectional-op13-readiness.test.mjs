@@ -157,3 +157,87 @@ test('OP13 accepts absent first-flight date but rejects invalid calendar dates w
  }
  assert.deepEqual(s,before);
 });
+
+function withEarlyStock(){
+ const s=fixture();
+ for(const bodyId of ['spare1','spare2']){
+  s.equipmentInventory.bodies[bodyId]={
+   id:bodyId,kind:'brood',condition:'good',storageLocation:'Склад',
+   spec:{profileId:PROFILE,framesPerBox:6,frame:{heightMm:180}},
+   frames:Array.from({length:6},(_,n)=>({frameId:bodyId+'-'+n,history:[]}))
+  };
+ }
+ return s;
+}
+const earlyRequest=()=>({...request(),scenario:'EARLY_HONEY',
+ expansionBodyIds:{f2:'spare1',f3:'spare2'},
+ emptyBodyObserved:{f2:true,f3:true}});
+
+test('OP13 early-honey branch independently plans one spare brood body per relocated family',()=>{
+ const s=withEarlyStock(),before=structuredClone(s);
+ const regular=OP13.preview(s,earlyRequest());
+ assert.equal(regular.ok,true);
+ assert.equal(regular.additionalBroodBodiesNotAutomaticallyInstalled,true);
+ assert.deepEqual(regular.moves.map(row=>row.bodyIdsAfterMove),[['b3'],['b4']]);
+ const early=OP13.previewEarlyHoneySetup(s,earlyRequest());
+ assert.equal(early.ok,true,JSON.stringify(early));
+ assert.equal(early.operationId,'OP-14');assert.equal(early.scenario,'EARLY_HONEY');
+ assert.deepEqual(early.proposedSecondBroodBodies.map(row=>row.spareBodyId),['spare1','spare2']);
+ assert.deepEqual(early.proposedSecondBroodBodies.map(row=>row.bodyCountIfConfirmed),[2,2]);
+ assert.equal(early.connectedTechnicalOpeningsVerified,false);
+ assert.equal(early.honeyBodyCountInstalled,0);
+ assert.equal(early.physicalExpansionConfirmed,false);
+ assert.equal(early.completionRecorded,false);assert.equal(early.readyForPersistence,false);
+ assert.deepEqual(s,before);
+ early.oneBodyMoves[0].bodyIdsAfterMove.push('forged');
+ assert.deepEqual(s,before,'caller cannot mutate original state through early-honey preview');
+});
+test('OP13 early-honey branch requires explicit choice and explicit empty-body observations',()=>{
+ const s=withEarlyStock(),before=structuredClone(s);
+ for(const patch of [
+  {scenario:'REGULAR'},
+  {scenario:null},
+  {emptyBodyObserved:null},
+  {emptyBodyObserved:{f2:true}},
+  {emptyBodyObserved:{f2:true,f3:false}}
+ ]){
+  const out=OP13.previewEarlyHoneySetup(s,{...earlyRequest(),...patch});
+  assert.equal(out.ok,false,JSON.stringify(patch));
+ }
+ assert.deepEqual(s,before);
+});
+test('OP13 early-honey rejects duplicate, installed, incompatible and unconfirmed 180mm brood bodies',()=>{
+ const modifications=[
+  (s,r)=>{r.expansionBodyIds.f3='spare1'},
+  (s,r)=>{r.expansionBodyIds.f3='missing'},
+  (s,r)=>{r.expansionBodyIds.f3='b1'},
+  (s,r)=>{s.equipmentInventory.bodies.spare1.spec.frame.heightMm=195},
+  (s,r)=>{delete s.equipmentInventory.bodies.spare1.spec.frame.heightMm},
+  (s,r)=>{s.equipmentInventory.bodies.spare1.kind='honey'},
+  (s,r)=>{s.equipmentInventory.bodies.spare1.condition='needs_repair'},
+  (s,r)=>{s.equipmentInventory.bodies.spare1.spec.framesPerBox=10},
+  (s,r)=>{s.equipmentInventory.bodies.spare1.frames.pop()},
+  (s,r)=>{s.equipmentInventory.bodies.spare1.storageLocation=''},
+  (s,r)=>{r.expansionBodyIds.f1='spare1'},
+  (s,r)=>{delete r.expansionBodyIds.f2}
+ ];
+ for(const mutate of modifications){
+  const s=withEarlyStock(),r=earlyRequest();
+  mutate(s,r);const before=structuredClone(s);
+  const out=OP13.previewEarlyHoneySetup(s,r);
+  assert.equal(out.ok,false,JSON.stringify(r)+' / '+JSON.stringify(out));
+  assert.deepEqual(s,before);
+ }
+});
+test('OP13 early-honey cannot bypass stale revision, profile, or already recorded OP13',()=>{
+ for(const bad of [
+  s=>{s.meta.revisionId='later'},
+  s=>{s.hives[0].profileId='farrar'},
+  s=>{s.familyEvents.push({type:'placement_changed',operationId:'OP-13',hiveId:'h1',techProcessId:'season'})}
+ ]){
+  const s=withEarlyStock();bad(s);const before=structuredClone(s);
+  const out=OP13.previewEarlyHoneySetup(s,earlyRequest());
+  assert.equal(out.ok,false);
+  assert.deepEqual(s,before);
+ }
+});
