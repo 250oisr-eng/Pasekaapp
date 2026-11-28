@@ -41,7 +41,6 @@ function inspect(state,request){
  if(d.length!==2||e.length!==2||new Set(d).size!==2||new Set(e).size!==2||
   !d.every(id=>e.includes(id)))
   return reject('op12_diaphragm_history_diverges');
- const allFamilyIds=new Set(source.map(x=>x.familyId));
  if(source.some(section=>{
   const family=arr(state.families).find(f=>f.id===section.familyId);
   return !family||family.hive!==request.hiveId||family.recordStatus==='historical';
@@ -55,7 +54,7 @@ function inspect(state,request){
     existingBroodBodyIds:[...s.broodBodyIds]
   })),
   installedMeshDiaphragmIds:[...d],
-  strongestFamilyId:source[0].familyId,selectedByBeekeeper:true,
+  strongestFamilyId:source[0].familyId,strongestSelectionConfirmed:false,
   physicalWorkConfirmed:false,storageWrites:0};
 }
 window.PasekaSectionalOP12CrossCheck=Object.freeze({inspect});
