@@ -1,21 +1,21 @@
 {
   "b07Op11ReadOnlyPreflight20261128": {
-    "stage": "CI_VERIFIED_READONLY_UI_DRAFT",
+    "stage": "CI_VERIFIED_DETACHED_TRANSITION_CANDIDATE_AND_READONLY_UI_DRAFT",
     "pr": 663,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "426f67836dcb4315b67942dfe18b4f425cb73ffd",
+    "codeSha": "8e7616ef629692d9c10d37599f4a721f7b5874a8",
     "contract": "read-only OP11 UI for selected sectional hive: manual original upper bodies, real accessories, ventilation and unknown queen",
     "nodeTests": {
-      "total": 1113,
-      "passed": 1113,
+      "total": 1121,
+      "passed": 1121,
       "failed": 0,
       "skipped": 0,
-      "run": 46121697920
+      "run": 46130245948
     },
     "earlierFailedTestRun": 46110558095,
     "earlierFailure": "negative fixture lacked modify(state), corrected in current codeSha",
-    "androidRun": 46121697920,
-    "governanceRun": 46121697981,
+    "androidRun": 46130245948,
+    "governanceRun": 46130245962,
     "ci": "NODE_ANDROID_BROWSER_GOVERNANCE_PASS",
     "device": "NOT_TESTED",
     "userFacingUI": true,
@@ -27,13 +27,40 @@
     "completedVerifiedUserScenarios": 0,
     "additionalFailedTestRun": 46117946261,
     "additionalFailedReason": "ventilation select not included in submitted controls, corrected on codeSha",
-    "browserE2eRun": 46121697916,
+    "browserE2eRun": 46130245996,
     "browserOp11PhysicalFixture": "SYNTHETIC_CHROMIUM_READONLY_OP11_FORM_NO_IDB_OR_BACKUP_WRITE_PASS",
     "offlineOnePlus": "NOT_TESTED",
     "userFacingScope": "sectional-hive read-only QA preview, no B07 profile activation",
     "offlineCacheVersion": 328,
     "realOnePlusOp11": "NOT_TESTED",
-    "browserE2eNotes": "OP11 form selects 3 registered upper bodies, 4 plugs, feeder and ventilation; verifies S/readMain/readAutoBackup unchanged"
+    "browserE2eNotes": "OP11 form selects 3 registered upper bodies, 4 plugs, feeder and ventilation; verifies S/readMain/readAutoBackup unchanged",
+    "simulation": {
+      "mode": "DETACHED_ONLY",
+      "script": "js/sectional-op11-transition-candidate.js",
+      "exposedToUI": false,
+      "writesToIndexedDB": false,
+      "validated": "sectional physical SINGLE_FAMILY; lineage merge; equipment item placements and item-event ledger",
+      "physicalBodyFrameJournal": false,
+      "techProcessAudit": false,
+      "casPersistence": false,
+      "backupRestore": false,
+      "deviceOnePlus": false,
+      "completion": false
+    },
+    "roofPair": {
+      "singleFamily": true,
+      "alternativeWintering": true,
+      "validWhenBothPresent": true,
+      "invalidWhenOnlyOne": true,
+      "allMissingRoofDisallowed": false,
+      "requiresMergeReconcilationWithPr662": true
+    },
+    "newTests": {
+      "candidate": 7,
+      "physicalRoofPair": 1
+    },
+    "firstCandidateFailedRun": 46130110059,
+    "firstCandidateRootCause": "physical validator ignored topRiser in combined stack, corrected"
   },
   "b07Op12LineageLower20261128": {
     "stage": "CI_VERIFIED_NARROW_LINEAGE_GUARD_DRAFT",
@@ -57,25 +84,33 @@
     "releaseAuthorized": false
   },
   "b07Op13ReadOnlySpring20261128": {
-    "stage": "CI_VERIFIED_READONLY_DOMAIN_DRAFT",
+    "stage": "CI_VERIFIED_TWO_SOURCE_BRANCHES_READONLY_DOMAIN_DRAFT",
     "pr": 665,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "0c5f9a681613eca0dbbeee81fba166562b43afca",
+    "codeSha": "04dde07cc67a8cb64b4178b3674bca73a0488658",
     "nodeTests": {
-      "total": 1109,
-      "passed": 1109,
+      "total": 1113,
+      "passed": 1113,
       "failed": 0,
       "skipped": 0,
-      "run": 46121776951
+      "run": 46130069823
     },
-    "androidRun": 46121776951,
-    "governanceRun": 46121776985,
+    "androidRun": 46130069823,
+    "governanceRun": 46130069841,
     "source": "DOCX paras 73-77; one-body spring transfers to two independent bottoms; 1.5 months guidance only",
     "scope": "read-only OP13 check; no UI; no IndexedDB write or physical completion",
     "blockedWriteEngine": "Existing recordPlacementChanged requires 2 destination bodies in immediate OP13 move; incompatible with source sequencing",
     "actualMove": false,
     "profileActivated": false,
-    "releaseAuthorized": false
+    "releaseAuthorized": false,
+    "earlyHoney": {
+      "explicitScenario": true,
+      "eachSideHasManuallySelectedCompatibleBroodBody": true,
+      "heightMm": 180,
+      "productionExecution": false,
+      "confirmsConnections": false,
+      "honeyBodyCountInstalled": 0
+    }
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
