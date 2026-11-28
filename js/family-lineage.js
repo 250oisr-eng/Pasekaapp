@@ -246,7 +246,12 @@ function inspect(state) {
    const eventIndex=events.indexOf(event),winterEvent=events.slice(0,eventIndex).reverse().find(row=>row?.type==='alternative_wintering_configured'&&row.hiveId===event.hiveId&&row.familyIds?.includes(event.familyId));
    const sourceRow=winterEvent?.layout?.find(row=>row?.familyId===event.familyId);
    if (!sourceRow||sourceRow.bodyCount!==1||sourceRow.position!==event.from?.position) add('family_placement_event_source_mismatch',{eventId:event.id});
-   if (!uniqueStrings(event.from?.bodyIds) || event.from.bodyIds.length!==1 || !uniqueStrings(event.to?.bodyIds) || event.to.bodyIds.length!==2) add('family_placement_event_body_refs_invalid',{eventId:event.id});
+   // Existing 2-body OP13 records are historical snapshots; keep them readable.
+   // New normal OP13 writes only the original one-body family; expansion is later.
+   if (!uniqueStrings(event.from?.bodyIds) || event.from.bodyIds.length!==1 ||
+       !uniqueStrings(event.to?.bodyIds) || ![1,2].includes(event.to.bodyIds.length) ||
+       !event.to.bodyIds.includes(event.from.bodyIds[0]))
+    add('family_placement_event_body_refs_invalid',{eventId:event.id});
    const bodyMap=state.equipmentInventory?.bodies||{};
    for (const bodyId of [...(Array.isArray(event.from?.bodyIds)?event.from.bodyIds:[]),...(Array.isArray(event.to?.bodyIds)?event.to.bodyIds:[])]) if (!bodyMap[bodyId] || bodyMap[bodyId].id!==bodyId) add('family_placement_event_body_missing',{eventId:event.id,bodyId});
    const itemMap=state.equipmentInventory?.items||{},bottom=itemMap[event.to?.bottomItemId];
@@ -611,7 +616,7 @@ function recordPlacementChanged(state, request, makeId, now) {
    return {ok:false,error:'placement_already_recorded'};
   const fromBodyIds=Array.isArray(request?.from?.bodyIds)?request.from.bodyIds:[];
   const toBodyIds=Array.isArray(request?.to?.bodyIds)?request.to.bodyIds:[];
-  if (!uniqueStrings(fromBodyIds)||fromBodyIds.length!==1||!uniqueStrings(toBodyIds)||toBodyIds.length!==2)
+  if (!uniqueStrings(fromBodyIds)||fromBodyIds.length!==1||!uniqueStrings(toBodyIds)||toBodyIds.length!==1)
    return {ok:false,error:'placement_body_references_invalid'};
   if (!toBodyIds.includes(fromBodyIds[0]))
    return {ok:false,error:'placement_existing_body_not_preserved'};
@@ -721,9 +726,15 @@ function validateOperationEvidence(state, record, operationId) {
      add('OP13_TWO_BODY_FAMILY_REMAINS',{techProcessId});
     for (const move of moves) {
      const sourceRow=winterLayout.find(row=>row?.familyId===move.familyId),section=sections.find(row=>row?.familyId===move.familyId);
-     if (!sourceRow||move.from?.position!==sourceRow.position||move.from?.bodyIds?.length!==1||move.to?.bodyIds?.length!==2)
+     const movedBodies=move.to?.bodyIds;
+     if (!sourceRow||move.from?.position!==sourceRow.position||move.from?.bodyIds?.length!==1||
+         ![1,2].includes(movedBodies?.length)||!movedBodies.includes(move.from.bodyIds[0]))
       add('OP13_MOVE_SOURCE_OR_BODY_COUNT_MISMATCH',{familyId:move.familyId});
-     if (!section||section.winteringPosition!=='separate_bottom'||section.bodyIds?.length!==2)
+     // Backward compatible: older already-recorded OP13 places 2 bodies at
+     // once; source-aligned new OP13 places 1. Never silently add body #2.
+     if (!section||section.winteringPosition!=='separate_bottom'||
+         ![1,2].includes(section.bodyIds?.length)||
+         !movedBodies?.every(id=>section.bodyIds.includes(id)))
       add('OP13_SEPARATE_BOTTOM_STATE_MISMATCH',{familyId:move.familyId});
     }
    }
