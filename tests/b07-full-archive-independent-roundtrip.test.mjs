@@ -149,3 +149,19 @@ test('B07 checksum-valid archive missing one frame history fails before touching
  assert.deepEqual([...new Uint8Array(await original.blob.arrayBuffer())],[9,8,7,6]);
  source.close();target.close();
 });
+
+test('B07 archive checksum tampering cannot change existing separate database or original video',async()=>{
+ const idb=new IDBFactory(),source=await db(idb,'source-bad-sha'),target=await db(idb,'target-bad-sha');
+ await put(source,{main:sectionalState()});
+ const live=sectionalState();live.meta.revisionId='live-untouched';
+ const video=new Blob([Uint8Array.of(1,11,21,31)],{type:'video/mp4'});
+ await put(target,{main:live,video});
+ const before=structuredClone(await read(target,'main','state'));
+ const archive=JSON.parse(await Archive.exportArchive(source));
+ archive.manifest.sha256='0'.repeat(64);
+ await assert.rejects(Archive.inspectArchive(JSON.stringify(archive),target,validateSource),/SHA-256 mismatch/);
+ assert.deepEqual(await read(target,'main','state'),before);
+ const remaining=await read(target,'entrance_media','original-video');
+ assert.deepEqual([...new Uint8Array(await remaining.blob.arrayBuffer())],[1,11,21,31]);
+ source.close();target.close();
+});
