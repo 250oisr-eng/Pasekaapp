@@ -85,7 +85,7 @@ function inspectPesticideIncidentIntegrity(state){
    }
    for(const snapshot of row.affectedHiveSnapshots){
     const id=snapshot?.id;
-    if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||typeof id!=='string'||!id.trim()||snapshots.has(id))
+    if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||typeof id!=='string'||!id.trim()||typeof snapshot.label!=='string'||!snapshot.label.trim()||snapshots.has(id))
      add('pesticide_incident_invalid_or_duplicate_hive_snapshot',{id:row.id});
     else snapshots.add(id);
    }
