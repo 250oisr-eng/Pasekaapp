@@ -203,6 +203,104 @@ function planItemMoves(state,oldLayout,newLayout,suppliedMoves){
  if(moves.length!==required.size)errors.push({code:'operation_item_move_count_mismatch',details:{required:required.size,provided:moves.length}});
  return {errors,moves};
 }
+
+
+ // A full-harvest journal is append-only. Current inventory ownership is
+ // validated by the physical inspectors; old events prove historical moves.
+// Recover historical pair membership by reversing only corroborated stock
+// regroup events. Identity of a body is never reassigned. Old OP07 records
+// without snapshots remain readable; corrupted chains fail closed.
+function pairAt(state,bodyId,at){
+ const inventory=state.equipmentInventory||{},b=inventory.bodies?.[bodyId];
+ if(!b||!validDate(at))return {ok:false};
+ let pair=b.pairId||null,last=Infinity;
+ const events=rows(b.events).filter(e=>e?.type==='sectional_stock_pair_regrouped').slice().reverse();
+ for(const event of events){
+  const time=Date.parse(event.at);
+  if(!Number.isFinite(time)||time>last||event.bodyId!==bodyId||!nonEmpty(event.id)||event.fromPairId!=null&&!nonEmpty(event.fromPairId)||event.toPairId!=null&&!nonEmpty(event.toPairId))return {ok:false};
+  last=time;
+  if(time<=Date.parse(at))break;
+  const matches=rows(inventory.events).filter(e=>e?.type===event.type&&e.bodyId===bodyId&&e.at===event.at&&e.fromPairId===event.fromPairId&&e.toPairId===event.toPairId);
+  if(matches.length!==1||!nonEmpty(matches[0].id)||matches[0].id===event.id||pair!==event.toPairId)return {ok:false};
+  pair=event.fromPairId;
+ }
+ return {ok:true,pairId:pair};
+}
+
+function inspectHoneyCycles(state,record,layout,initialIds,initialExcluderIds,purpose,startedAt){
+ const errors=[],bad=(reason,transitionId)=>errors.push({code:'sectional_full_honey_cycle_invalid',details:{id:record.id,reason,transitionId:transitionId??null}});
+ const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b),sorted=a=>rows(a).slice().sort();
+ const allUnique=a=>Array.isArray(a)&&a.every(nonEmpty)&&new Set(a).size===a.length;
+ const inventory=state.equipmentInventory||{},source=record.state.honeyTransitions;
+ const linked=rows(state.extractions).flatMap(e=>rows(e?.items).filter(i=>i?.hiveId===record.hiveId&&i.sectional!=null).map(i=>({e,i})));
+ if(source==null&&!linked.length)return {errors,hasCycles:false};
+ if(!Array.isArray(source)||!source.length){bad('journal_missing');return {errors,hasCycles:false};}
+ let current={purpose,bodyIds:initialIds.slice(),excluderIds:sorted(initialExcluderIds)},last=Date.parse(startedAt),closed=null;
+ const seen=new Set(),extractionIds=new Set(),moveIds=new Set();
+ const stack=s=>s==null?null:{purpose:s.purpose,bodyIds:rows(s.bodyIds),excluderIds:sorted(rows(s.excluders).map(x=>x?.itemId))};
+ const validStack=s=>isObject(s)&&['early','main'].includes(s.purpose)&&allUnique(s.bodyIds)&&[2,4].includes(s.bodyIds.length)&&allUnique(s.excluderIds)&&s.excluderIds.length===2;
+ const slotRows=()=>rows(layout?.stacks);
+ const actualClosed=()=>slotRows().map(s=>({stackId:s.id,coverItemId:s.coverItemId,topRiserItemId:s.topRiserItemId}));
+ const validClosure=a=>Array.isArray(a)&&a.length===3&&allUnique(a.flatMap(x=>[x?.coverItemId,x?.topRiserItemId]))&&eq(a.map(x=>x.stackId),slotRows().map(x=>x.id));
+ if(!validStack(current)||!Number.isFinite(last))bad('initial_state_invalid');
+ for(const t of source){
+  if(!isObject(t)||!nonEmpty(t.transitionId)||seen.has(t.transitionId)||t.hiveId!==record.hiveId||t.techProcessId!==record.id||t.layoutId!==layout?.id||!validDate(t.occurredAt)||Date.parse(t.occurredAt)<last||!['extract','install'].includes(t.kind)){bad('transition_invalid',t?.transitionId);continue}
+  const id=t.transitionId,at=t.occurredAt,extract=t.kind==='extract',prior=stack(t.priorHoneyStack),next=stack(t.nextHoneyStack);
+  seen.add(id);last=Date.parse(at);
+  if(!eq(prior,current)||!(extract?validStack(prior)&&next===null:prior===null&&validStack(next))){bad('chain_mismatch',id);continue}
+  const active=extract?prior:next,bodyIds=active.bodyIds;
+  const historicalPairs=bodyIds.map(id=>pairAt(state,id,at));
+  if(historicalPairs.some(x=>!x.ok)||!eq(historicalPairs.map(x=>x.pairId),rows(t.pairIds).flatMap(id=>[id,id])))bad('historical_pair_evidence_invalid',id);
+  if(!eq(t.bodyIds,bodyIds)||!allUnique(t.pairIds)||t.pairIds.length!==bodyIds.length/2||!validClosure(t.closedStacks)||!eq(t.closedAccessoryIds,t.closedStacks.flatMap(s=>[s.coverItemId,s.topRiserItemId])))bad('physical_evidence_invalid',id);
+  if(!extract&&!eq(closed,t.closedStacks))bad('closure_chain_mismatch',id);
+  const op=(extract?'OP-08-EXTRACT:':'OP-08-INSTALL:')+id,storageMoves=rows(t.bodyStorageMoves);
+  if(extract?storageMoves.length!==bodyIds.length||!allUnique(storageMoves.map(x=>x?.bodyId))||storageMoves.some(x=>!bodyIds.includes(x.bodyId)||!nonEmpty(x.storageLocation)):storageMoves.length!==0)bad('storage_evidence_invalid',id);
+  for(const bodyId of bodyIds){
+   const b=inventory.bodies?.[bodyId],loc={type:'sectional',hiveId:record.hiveId,layoutId:layout.id,bodyRole:'honey',position:'shared-honey-stack'};
+   const moves=rows(b?.events).filter(x=>x?.operationId===op&&x.at===at&&x.type===(extract?'moved_to_storage':'placed'));
+   const globals=rows(inventory.events).filter(x=>x?.operationId===op&&x.at===at&&x.bodyId===bodyId&&x.type===(extract?'sectional_body_moved_to_storage':'sectional_body_placed'));
+   const e=moves[0],g=globals[0],stored=extract?e?.to:e?.from;
+   if(!b||b.kind!=='honey'||moves.length!==1||globals.length!==1||!nonEmpty(e?.id)||!nonEmpty(g?.id)||moveIds.has(e.id)||moveIds.has(g.id)||!eq(e.from,g.from)||!eq(e.to,g.to)||!eq(extract?e.from:e.to,loc)||stored?.type!=='storage'||!nonEmpty(stored.label)||extract&&stored.label!==storageMoves.find(x=>x.bodyId===bodyId)?.storageLocation)bad('body_move_missing',id);
+   if(e?.id)moveIds.add(e.id);if(g?.id)moveIds.add(g.id);
+  }
+  const coverTargets=new Map(rows(t.closedStacks).flatMap(s=>[[s.coverItemId,{kind:'cover',location:{type:'hive',hiveId:record.hiveId,stackId:s.stackId}}],[s.topRiserItemId,{kind:'topRiser',location:{type:'hive',hiveId:record.hiveId,stackId:s.stackId}}]]));
+  const historicalLayout={...layout,honeyStack:extract?t.priorHoneyStack:t.nextHoneyStack,stacks:slotRows().map(s=>({...s,coverItemId:undefined,topRiserItemId:undefined}))};
+  const exTargets=newLayoutTargets(historicalLayout).targets;
+  const expectedItems=[...coverTargets.keys(),...active.excluderIds],itemEvidence=rows(t.itemEvents);
+  if(expectedItems.length!==8||!allUnique(expectedItems)||!allUnique(itemEvidence.map(e=>e?.itemId))||!eq(sorted(itemEvidence.map(e=>e?.itemId)),sorted(expectedItems)))bad('accessory_count_invalid',id);
+  for(const entry of itemEvidence){
+   const item=inventory.items?.[entry?.itemId],local=rows(item?.events).filter(x=>x?.id===entry?.eventId),global=rows(inventory.itemEvents).filter(x=>x?.id===entry?.eventId&&x.itemId===entry?.itemId);
+   const ev=local[0],isCover=coverTargets.has(entry.itemId),toHive=isCover?extract:!extract,expected=isCover?coverTargets.get(entry.itemId).location:exTargets.get(entry.itemId);
+   const storage=toHive?ev?.from:ev?.to;
+   if(!nonEmpty(entry.eventId)||moveIds.has(entry.eventId)||!item||item.kind!==(isCover?coverTargets.get(entry.itemId).kind:'honeyQueenExcluder')||local.length!==1||global.length!==1||!eq(ev,global[0])||ev?.at!==at||ev?.type!==(toHive?'moved':'moved_to_storage')||!expected||!sameLocation(toHive?ev.to:ev.from,expected)||storage?.type!=='storage'||!nonEmpty(storage.label))bad('accessory_move_missing',id);
+   if(entry?.eventId)moveIds.add(entry.eventId);
+  }
+  const frameEvents=rows(t.frameEvents);
+  if(extract){
+   extractionIds.add(id);
+   if(!Number.isFinite(t.kilograms)||t.kilograms<=0||frameEvents.length!==bodyIds.length*10||!allUnique(frameEvents.map(f=>f?.frameId))||!allUnique(frameEvents.map(f=>f?.eventId)))bad('harvest_evidence_invalid',id);
+   for(const bodyId of bodyIds)if(frameEvents.filter(f=>f?.bodyId===bodyId).length!==10)bad('harvest_frame_count_invalid',id);
+   for(const f of frameEvents){
+    const matches=rows(inventory.bodies?.[f?.bodyId]?.frames).flatMap(frame=>frame?.frameId===f?.frameId?rows(frame.history).filter(e=>e?.id===f.eventId&&e.action==='extraction'&&e.extractionId===id&&e.at===at&&e.from==='sealed'&&e.to==='extracted'):[]);
+    if(!bodyIds.includes(f?.bodyId)||matches.length!==1||moveIds.has(f?.eventId))bad('harvest_frame_event_missing',id);
+    if(f?.eventId)moveIds.add(f.eventId);
+   }
+   const matches=linked.filter(x=>x.e.id===id);
+   if(matches.length!==1)bad('extraction_record_missing',id);
+   else{
+    const {e,i}=matches[0];
+    if(e.date!==at.slice(0,10)||i.kilograms!==t.kilograms||!eq(i.boxes,bodyIds)||!eq(i.frameIds,frameEvents.map(f=>f.frameId))||i.sectional?.kind!=='full-cycle-v1'||i.sectional?.transitionId!==id||i.sectional?.layoutId!==layout.id||!eq(i.sectional?.bodyIds,bodyIds)||!eq(i.sectional?.pairIds,t.pairIds)||i.returnedAt!=null||i.returned===true)bad('extraction_record_mismatch',id);
+   }
+   closed=t.closedStacks;
+  }else if(t.kilograms!=null||frameEvents.length)bad('installation_must_not_record_harvest',id);
+  current=next;
+ }
+ if(linked.some(x=>!extractionIds.has(x.e.id)))bad('orphan_or_legacy_partial_extraction');
+ if(!eq(current,stack(layout?.honeyStack)))bad('current_stack_mismatch');
+ if(current===null&&!eq(closed,actualClosed()))bad('current_closure_mismatch');
+ return {errors,hasCycles:true};
+}
+
 function inspect(state,deps={}){
  const errors=[],records=state?.sectionalTechProcesses;
  const add=(code,details={})=>errors.push({code,details});
@@ -275,7 +373,7 @@ function inspect(state,deps={}){
    if(!completed||op06.status!=='DONE'||!validDate(op06.completedAt))add('sectional_tech_process_op06_status_invalid',{id:record.id});
    if(validDate(op06.completedAt)&&validDate(operation?.startedAt)){
     const days=calendarDayDifference(op06.completedAt,operation.startedAt);
-    if(days==null||days<20)add('sectional_tech_process_op06_timing_invalid',{id:record.id,days});
+    if(days!==20&&days!==21)add('sectional_tech_process_op06_timing_invalid',{id:record.id,days});
     if(op06.evidence?.daysAfterDivision!==days)add('sectional_tech_process_op06_timing_evidence_mismatch',{id:record.id,days});
    }
    const families=sections.map(section=>state.families?.find(row=>row?.id===section.familyId));
@@ -300,13 +398,36 @@ function inspect(state,deps={}){
    if(removed.length!==rows(op06.evidence?.itemMovementEventIds).length)add('sectional_tech_process_op06_movement_evidence_count_invalid',{id:record.id});
    if(rows(layout?.temporaryQueenIsolation).length)add('sectional_tech_process_op06_plugs_still_installed',{id:record.id});
   }
+  const lateRows=operations.filter(row=>row?.operationId==='OP-07-HONEY-PAIR-ADD'),late=lateRows[0];
+  if(lateRows.length>1)add('sectional_late_honey_pair_duplicate',{id:record.id,count:lateRows.length});
+  if(late&&!operations.some(row=>row?.operationId==='OP-07'))add('sectional_late_honey_pair_op07_missing',{id:record.id});
   const op07Rows=operations.filter(row=>row?.operationId==='OP-07'),op07=op07Rows[0];
   if(op07Rows.length>1)add('sectional_tech_process_op07_duplicate',{id:record.id,count:op07Rows.length});
   if(op07Rows.length===1){
    if(!completed||op07.status!=='DONE'||!validDate(op07.completedAt))add('sectional_tech_process_op07_status_invalid',{id:record.id});
    const honey=layout?.honeyStack,bodyIds=rows(honey?.bodyIds).slice().sort(),excluders=rows(honey?.excluders);
-   if(!honey||JSON.stringify(bodyIds)!==JSON.stringify(rows(op07.evidence?.honeyBodyIds).slice().sort())||JSON.stringify(excluders.map(row=>row?.itemId).sort())!==JSON.stringify(rows(op07.evidence?.excluderItemIds).slice().sort()))add('sectional_tech_process_op07_layout_evidence_mismatch',{id:record.id});
-   if(honey&&JSON.stringify(honeyFrameCompositionEvidence(Object.fromEntries(rows(honey.bodyIds).map(bodyId=>[bodyId,rows(state.equipmentInventory?.bodies?.[bodyId]?.frames)]))))!==JSON.stringify(op07.evidence?.frameComposition))add('sectional_tech_process_op07_frame_composition_evidence_invalid',{id:record.id});
+   const initialHoneyIds=rows(op07.evidence?.honeyBodyIds);
+   const addedHoneyIds=late?rows(late.evidence?.addedBodyIds):[];
+   const expectedHoneyIds=late?[...initialHoneyIds,...addedHoneyIds]:initialHoneyIds;
+   const cycles=inspectHoneyCycles(state,record,layout,expectedHoneyIds,op07.evidence?.excluderItemIds,op07.evidence?.honeyPurpose,late?.completedAt||op07.completedAt);
+   errors.push(...cycles.errors);
+   if(!cycles.hasCycles&&(!honey||JSON.stringify(bodyIds)!==JSON.stringify(expectedHoneyIds.slice().sort())||JSON.stringify(excluders.map(row=>row?.itemId).sort())!==JSON.stringify(rows(op07.evidence?.excluderItemIds).slice().sort())))add('sectional_tech_process_op07_layout_evidence_mismatch',{id:record.id});
+   if(JSON.stringify(honeyFrameCompositionEvidence(Object.fromEntries(initialHoneyIds.map(bodyId=>[bodyId,rows(state.equipmentInventory?.bodies?.[bodyId]?.frames)]))))!==JSON.stringify(op07.evidence?.frameComposition))add('sectional_tech_process_op07_frame_composition_evidence_invalid',{id:record.id});
+   if(late){
+    if(late.status!=='DONE'||!validDate(late.completedAt)||Date.parse(late.completedAt)<Date.parse(op07.completedAt))add('sectional_late_honey_pair_timestamp_invalid',{id:record.id});
+    if((!cycles.hasCycles&&(honey?.purpose!=='main'||bodyIds.length!==4||JSON.stringify(rows(honey?.bodyIds))!==JSON.stringify(expectedHoneyIds)))||op07.evidence?.honeyPurpose!=='main'||initialHoneyIds.length!==2||addedHoneyIds.length!==2||new Set(expectedHoneyIds).size!==4||JSON.stringify(rows(late.evidence?.previousBodyIds))!==JSON.stringify(initialHoneyIds)||JSON.stringify(rows(late.evidence?.honeyBodyIds))!==JSON.stringify(expectedHoneyIds))add('sectional_late_honey_pair_evidence_invalid',{id:record.id});
+    const addedFrames=Object.fromEntries(addedHoneyIds.map(bodyId=>[bodyId,rows(state.equipmentInventory?.bodies?.[bodyId]?.frames)]));
+    if(JSON.stringify(honeyFrameCompositionEvidence(addedFrames))!==JSON.stringify(late.evidence?.frameComposition))add('sectional_late_honey_pair_frame_composition_invalid',{id:record.id});
+    const historicalAdded=addedHoneyIds.map(id=>pairAt(state,id,late.completedAt)),historicalInitial=initialHoneyIds.map(id=>pairAt(state,id,late.completedAt));
+    const pairIds=historicalAdded.map(x=>x.pairId);
+    if(historicalAdded.some(x=>!x.ok)||historicalInitial.some(x=>!x.ok)||!pairIds.every(nonEmpty)||pairIds[0]!==pairIds[1]||historicalInitial.some(x=>x.pairId===pairIds[0]))add('sectional_late_honey_pair_inventory_pair_invalid',{id:record.id});
+    for(const bodyId of addedHoneyIds){
+     const body=state.equipmentInventory?.bodies?.[bodyId];
+     const local=rows(body?.events).filter(event=>event?.operationId==='OP-07-HONEY-PAIR-ADD'&&event?.type==='placed'&&event?.at===late.completedAt);
+     const global=rows(state.equipmentInventory?.events).filter(event=>event?.bodyId===bodyId&&event?.operationId==='OP-07-HONEY-PAIR-ADD'&&event?.type==='sectional_body_placed'&&event?.at===late.completedAt);
+     if(local.length!==1||global.length!==1||local[0]?.from?.type!=='storage'||local[0]?.to?.bodyRole!=='honey'||JSON.stringify(local[0]?.from)!==JSON.stringify(global[0]?.from)||JSON.stringify(local[0]?.to)!==JSON.stringify(global[0]?.to))add('sectional_late_honey_pair_body_history_invalid',{id:record.id,bodyId});
+    }
+   }
    if(honey?.purpose==='early'){
     for(const bodyId of rows(honey.bodyIds)){
      const frameErrors=earlyHoneyFrameCompositionErrors(state.equipmentInventory?.bodies?.[bodyId]?.frames);
@@ -327,7 +448,7 @@ function inspect(state,deps={}){
    for(const row of removedAccessories){
     const item=state.equipmentInventory?.items?.[row?.itemId];
     const count=accessoryKinds.get(row?.kind)||0;accessoryKinds.set(row?.kind,count+1);
-    if(!nonEmpty(row?.itemId)||!['cover','topRiser'].includes(row?.kind)||!item||item.kind!==row.kind||item.location?.type!=='storage')add('sectional_tech_process_op07_removed_accessory_invalid',{id:record.id,itemId:row?.itemId??null,kind:row?.kind??null});
+    if(!nonEmpty(row?.itemId)||!['cover','topRiser'].includes(row?.kind)||!item||item.kind!==row.kind||(!cycles.hasCycles&&item.location?.type!=='storage'))add('sectional_tech_process_op07_removed_accessory_invalid',{id:record.id,itemId:row?.itemId??null,kind:row?.kind??null});
    }
    if(expectedRemoved.length!==6||new Set(expectedRemoved).size!==6||accessoryKinds.get('cover')!==3||accessoryKinds.get('topRiser')!==3||excluderIds.length!==2||new Set(excluderIds).size!==2||JSON.stringify(expectedMovementIds)!==JSON.stringify(evidenceIds)||removedEvidence.length!==8||new Set(eventIds).size!==8||eventIds.some(id=>!nonEmpty(id)))add('sectional_tech_process_op07_movement_evidence_count_invalid',{id:record.id});
    const layoutTargets=newLayoutTargets(layout).targets;
@@ -338,14 +459,14 @@ function inspect(state,deps={}){
     if(accessory){
      const stackId=event?.from?.stackId,counts=stackAccessoryCounts.get(stackId)||{cover:0,topRiser:0};
      if(accessory.kind==='cover')counts.cover++;if(accessory.kind==='topRiser')counts.topRiser++;stackAccessoryCounts.set(stackId,counts);
-     valid=valid&&item.kind===accessory.kind&&item.location?.type==='storage'&&event.type==='moved_to_storage'&&event.from?.type==='hive'&&event.from?.hiveId===record.hiveId&&stackIds.has(stackId)&&event.to?.type==='storage'&&nonEmpty(event.to?.label);
+     valid=valid&&item.kind===accessory.kind&&(cycles.hasCycles||item.location?.type==='storage')&&event.type==='moved_to_storage'&&event.from?.type==='hive'&&event.from?.hiveId===record.hiveId&&stackIds.has(stackId)&&event.to?.type==='storage'&&nonEmpty(event.to?.label);
     }else{
-     valid=valid&&excluderIds.includes(evidence?.itemId)&&item.kind==='honeyQueenExcluder'&&target?.type==='hive'&&item.location?.type==='hive'&&sameLocation(item.location,target)&&event.type==='moved'&&event.from?.type==='storage'&&event.to?.type==='hive'&&sameLocation(event.to,target);
+     valid=valid&&excluderIds.includes(evidence?.itemId)&&item.kind==='honeyQueenExcluder'&&event.type==='moved'&&event.from?.type==='storage'&&event.to?.type==='hive'&&event.to?.hiveId===record.hiveId&&(cycles.hasCycles?Array.isArray(event.to?.footprint)&&event.to.footprint.length===2:target?.type==='hive'&&item.location?.type==='hive'&&sameLocation(item.location,target)&&sameLocation(event.to,target));
     }
     if(!valid)add('sectional_tech_process_op07_item_movement_evidence_invalid',{id:record.id,itemId:evidence?.itemId??null});
    }
    if(stackAccessoryCounts.size!==3||[...stackIds].some(stackId=>{const count=stackAccessoryCounts.get(stackId);return !count||count.cover!==1||count.topRiser!==1}))add('sectional_tech_process_op07_stack_accessory_history_invalid',{id:record.id});
-   const honeyBodies=rows(honey?.bodyIds);
+   const honeyBodies=initialHoneyIds;
    for(const bodyId of honeyBodies){
     const body=state.equipmentInventory?.bodies?.[bodyId],bodyEvent=rows(body?.events).find(row=>row?.operationId==='OP-07'&&row?.type==='placed'&&row?.at===op07.completedAt),event=rows(state.equipmentInventory?.events).find(row=>row?.bodyId===bodyId&&row?.operationId==='OP-07'&&row?.type==='sectional_body_placed'&&row?.at===op07.completedAt);
     if(!body||body.kind!=='honey'||!bodyEvent||bodyEvent.from?.type!=='storage'||bodyEvent.to?.bodyRole!=='honey'||!event||event.from?.type!=='storage'||event.to?.bodyRole!=='honey'||JSON.stringify(bodyEvent.from)!==JSON.stringify(event.from)||JSON.stringify(bodyEvent.to)!==JSON.stringify(event.to))add('sectional_tech_process_op07_honey_body_history_invalid',{id:record.id,bodyId});
@@ -609,7 +730,7 @@ function completeOP06(state,request,deps={}){
  if(!validDate(op04.startedAt)||!validDate(op04.completedAt)||Date.parse(request.occurredAt)<Date.parse(op04.completedAt))return fail('op06_precedes_op04_completion');
  if(operations.some(row=>row?.operationId==='OP-06'))return fail('op06_already_recorded');
  const daysAfterDivision=calendarDayDifference(request.occurredAt,op04.startedAt);
- if(daysAfterDivision==null||daysAfterDivision<20)return fail('op06_before_safe_observation_window',{daysAfterDivision,earliestConservativeDay:20,sourceOrientation:'approximately 20–21 days; actual laying confirmation required'});
+ if(daysAfterDivision!==20&&daysAfterDivision!==21)return fail('op06_outside_source_window',{daysAfterDivision,requiredDayRange:[20,21]});
  const hive=rows(state.hives).find(row=>row?.id===request.hiveId);
  if(!hive||hive.profileId!==PROFILE_ID)return fail('sectional_profile_not_active_or_hive_missing');
  const sourceLayouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
@@ -630,8 +751,6 @@ function completeOP06(state,request,deps={}){
  }else if(op05||installed.length!==0||request.noPlugsInstalledConfirmed!==true)return fail('op06_op05_absence_not_confirmed');
  const splitEvent=rows(state.familyEvents).find(event=>event?.id===op04.evidence?.familyEventId&&event.type==='split'&&event.operationId==='OP-04'&&event.techProcessId===record.id);
  if(!splitEvent||splitEvent.resultFamilyIds?.length!==3)return fail('op06_split_event_missing');
- const unresolvedConfirmedAbsence=rows(state.familyEvents).find(event=>event?.type==='queen_absence_confirmed'&&event?.userConfirmed===true&&event?.outcome==='not_returned_from_mating_flight'&&event?.splitEventId===splitEvent.id&&splitEvent.resultFamilyIds.includes(event.familyId)&&!rows(state.familyEvents).some(later=>later?.type==='queen_identity_confirmed'&&later?.resolvesAbsenceEventId===event.id));
- if(unresolvedConfirmedAbsence)return fail('op06_two_queen_mesh_removal_procedure_unconfirmed',{familyId:unresolvedConfirmedAbsence.familyId,absenceEventId:unresolvedConfirmedAbsence.id});
  for(const section of rows(record.state.sections)){
   const family=rows(state.families).find(row=>row?.id===section.familyId);
   if(!family||family.recordStatus==='historical'||family.hive!==request.hiveId||family.queenIdentityStatus!=='identified'||!family.currentQueenId)return fail('op06_three_identified_queens_required',{familyId:section.familyId});
@@ -657,7 +776,7 @@ function completeOP06(state,request,deps={}){
  const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
  const removed=installed.map(row=>({itemId:row.itemId,bodyId:row.bodyId,openingId:row.openingId})).sort((a,b)=>a.itemId.localeCompare(b.itemId));
  const itemMovementEventIds=removed.map(plug=>({itemId:plug.itemId,eventId:rows(draft.equipmentInventory?.items?.[plug.itemId]?.events).at(-1)?.id??null}));
- nextRecord.state.operations.push({operationId:'OP-06',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,daysAfterDivision,timingBeyondSourceOrientation:daysAfterDivision>21,removedPlugs:removed,removedItemIds:removed.map(row=>row.itemId),noPlugsInstalledConfirmed:removed.length===0,itemMovementEventIds}});
+ nextRecord.state.operations.push({operationId:'OP-06',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,daysAfterDivision,removedPlugs:removed,removedItemIds:removed.map(row=>row.itemId),noPlugsInstalledConfirmed:removed.length===0,itemMovementEventIds}});
  nextRecord.updatedAt=request.occurredAt;
  const validationErrors=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...deps.PasekaFamilyLineage.inspect(draft),...inspect(draft,deps)];
  if(validationErrors.length)return fail('op06_transaction_validation_failed',validationErrors);
@@ -717,7 +836,7 @@ function completeOP07(state,request,deps={}){
  if(JSON.stringify(normalizeBase(oldLayout))!==JSON.stringify(normalizeBase(nextLayout)))return fail('op07_must_not_change_unrelated_physical_layout');
  for(const stack of rows(nextLayout.stacks))if(stack.coverItemId||stack.topRiserItemId)return fail('op07_stack_covers_and_top_risers_must_be_removed',{stackId:stack.id});
  const honey=nextLayout.honeyStack,bodyIds=rows(honey.bodyIds),excluders=rows(honey.excluders);
- if(!['early','main'].includes(honey.purpose)||![2,4].includes(bodyIds.length)||(honey.purpose==='early'&&bodyIds.length!==2)||new Set(bodyIds).size!==bodyIds.length)return fail('op07_honey_body_configuration_invalid',{purpose:honey.purpose??null,bodyIds});
+ if(!['early','main'].includes(honey.purpose)||![2,4].includes(bodyIds.length)||new Set(bodyIds).size!==bodyIds.length)return fail('op07_honey_body_configuration_invalid',{purpose:honey.purpose??null,bodyIds});
  if(excluders.length!==2||new Set(excluders.map(row=>row?.side)).size!==2||!['left','right'].every(side=>excluders.some(row=>row?.side===side)))return fail('op07_two_large_excluders_required');
  if(rows(oldLayout.temporaryQueenIsolation).length!==rows(nextLayout.temporaryQueenIsolation).length||rows(oldLayout.temporaryQueenIsolation).some(old=>!rows(nextLayout.temporaryQueenIsolation).some(row=>row?.itemId===old.itemId&&row?.openingId===old.openingId&&row?.bodyId===old.bodyId)))return fail('op07_temporary_isolation_must_be_preserved');
  for(const bodyId of bodyIds){
@@ -774,5 +893,217 @@ function completeOP07(state,request,deps={}){
  commit(state,draft);
  return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===request.techProcessId),layout:state.sectionalLayouts.find(row=>row?.id===nextLayout.id)};
 }
-window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06,completeOP07});
+
+// Source P37: during the main nectar flow, a second COMPLETE honey pair
+// may be installed after the initial two. This is a separate confirmed
+// transaction: OP-07's original evidence is never rewritten.
+function completeOP07AdditionalHoneyPair(state,request,deps={}){
+ const fail=(error,details)=>({ok:false,error,details:details??null});
+ if(!isObject(state)||!isObject(request))return fail('invalid_request');
+ if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ // The UI must submit the revision it reviewed before confirmation. Legacy
+ // schema-15 fixtures may have no revision yet; do not assign one here.
+ const storedRevision=state.meta?.revisionId;
+ if(nonEmpty(storedRevision)&&request.expectedRevisionId!==storedRevision)return fail('late_honey_pair_state_revision_changed');
+ if(request.expectedRevisionId!=null&&request.expectedRevisionId!==storedRevision)return fail('late_honey_pair_state_revision_changed');
+ if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
+ if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(timestampIsFuture(request.occurredAt,deps))return fail('operation_timestamp_in_future');
+ if(typeof deps.makeId!=='function')return fail('id_generator_required');
+ const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
+ for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
+ if(typeof deps.PasekaFamilyLineage.inspect!=='function'||typeof deps.PasekaSectionalPhysicalLayout.inspect!=='function'||typeof deps.PasekaEquipmentItems.inspect!=='function'||typeof deps.PasekaEquipmentItems.validateReferences!=='function'||typeof deps.PasekaInventory.inspect!=='function'||typeof deps.PasekaLabels.appendFrameEvent!=='function')return fail('dependency_api_incomplete');
+ if(!Array.isArray(state.sectionalTechProcesses)||Number(state.meta?.schemaVersion||0)<15)return fail('sectional_tech_process_schema_not_ready');
+ if(rows(request.bodyStorageMoves).length||rows(request.itemMoves).length||request.layout!=null)return fail('late_honey_pair_unrelated_changes_forbidden');
+ const hiveMatches=rows(state.hives).filter(row=>row?.id===request.hiveId),hive=hiveMatches[0];
+ if(hiveMatches.length!==1||hive.profileId!==PROFILE_ID)return fail('sectional_profile_not_active_or_hive_missing');
+ const processMatches=rows(state.sectionalTechProcesses).filter(row=>row?.id===request.techProcessId&&row?.hiveId===request.hiveId),record=processMatches[0];
+ if(processMatches.length!==1)return fail('late_honey_pair_process_missing');
+ const operations=rows(record.state?.operations),op07=operations.find(row=>row?.operationId==='OP-07');
+ if(!op07||op07.status!=='DONE'||!validDate(op07.completedAt))return fail('late_honey_pair_requires_completed_op07');
+ if(operations.some(row=>row?.operationId==='OP-07-HONEY-PAIR-ADD'))return fail('late_honey_pair_already_recorded');
+ if(Date.parse(request.occurredAt)<Date.parse(op07.completedAt))return fail('late_honey_pair_precedes_op07');
+ const layouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
+ if(layouts.length!==1)return fail('late_honey_pair_layout_missing');
+ const oldLayout=layouts[0],honey=oldLayout?.honeyStack,oldIds=rows(honey?.bodyIds);
+ if(oldLayout?.id!==record.state?.layoutId||oldLayout?.profileId!==PROFILE_ID||oldLayout?.mode!=='SIDE_BY_SIDE'||(oldLayout.broodRows??2)!==2||honey?.purpose!=='main'||op07.evidence?.honeyPurpose!=='main'||oldIds.length!==2||JSON.stringify(oldIds)!==JSON.stringify(rows(op07.evidence?.honeyBodyIds)))return fail('late_honey_pair_main_two_body_layout_required');
+ if(!Array.isArray(request.addedBodyIds)||request.addedBodyIds.length!==2||request.addedBodyIds.some(id=>!nonEmpty(id))||new Set(request.addedBodyIds).size!==2||request.addedBodyIds.some(id=>oldIds.includes(id)))return fail('late_honey_pair_exactly_two_new_bodies_required');
+ const addedIds=request.addedBodyIds.slice(),inventory=state.equipmentInventory?.bodies||{};
+ const candidateErrors=inspectSecondHoneyPairCandidate(state,{hiveId:request.hiveId,techProcessId:request.techProcessId,bodyIds:addedIds});
+ if(candidateErrors.length)return fail('late_honey_pair_candidate_invalid',candidateErrors);
+ const pairIds=addedIds.map(id=>inventory[id]?.pairId);
+ if(!pairIds.every(nonEmpty)||pairIds[0]!==pairIds[1]||oldIds.some(id=>inventory[id]?.pairId===pairIds[0]))return fail('late_honey_pair_same_unused_pair_required');
+ for(const bodyId of addedIds){
+  const body=inventory[bodyId],frames=body?.frames;
+  if(!isObject(body)||body.kind!=='honey'||body.condition!=='good'||body.spec?.profileId!==PROFILE_ID||body.spec?.framesPerBox!==10||!nonEmpty(body.storageLocation))return fail('late_honey_pair_body_unavailable_in_storage',{bodyId});
+  if(!Array.isArray(frames)||frames.length!==10||frames.some(frame=>!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history)))return fail('late_honey_pair_frame_inventory_invalid',{bodyId});
+  if(rows(state.sectionalLayouts).some(layout=>rows(layout?.honeyStack?.bodyIds).includes(bodyId)||rows(layout?.sections).some(section=>rows(section?.broodBodyIds).includes(bodyId))))return fail('late_honey_pair_body_already_used',{bodyId});
+  for(const legacy of Object.values(state.layouts||{}))if(Object.values(legacy?.boxes||{}).some(box=>box?.bodyId===bodyId||box?.id===bodyId))return fail('late_honey_pair_legacy_body_in_use',{bodyId});
+ }
+ const before=[...deps.PasekaInventory.inspect(state,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(state),...deps.PasekaEquipmentItems.validateReferences(state),...deps.PasekaSectionalPhysicalLayout.inspect(state),...deps.PasekaFamilyLineage.inspect(state),...inspect(state,deps)];
+ if(before.length)return fail('late_honey_pair_initial_state_invalid',before);
+ let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
+ const nextLayout=draft.sectionalLayouts.find(row=>row?.id===oldLayout.id);
+ nextLayout.honeyStack.bodyIds.push(...addedIds);
+ const history=appendBodyMovementHistory(draft,oldLayout,nextLayout,new Map(),request.occurredAt,deps.makeId,'OP-07-HONEY-PAIR-ADD',deps.PasekaLabels);
+ if(!history.ok)return fail(history.error,history.details);
+ for(const bodyId of addedIds)delete draft.equipmentInventory.bodies[bodyId].storageLocation;
+ const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
+ nextRecord.state.operations.push({operationId:'OP-07-HONEY-PAIR-ADD',status:'DONE',completedAt:request.occurredAt,evidence:{
+  previousBodyIds:oldIds.slice(),addedBodyIds:addedIds.slice(),honeyBodyIds:nextLayout.honeyStack.bodyIds.slice(),
+  frameComposition:honeyFrameCompositionEvidence(Object.fromEntries(addedIds.map(id=>[id,draft.equipmentInventory.bodies[id].frames])))
+ }});
+ nextRecord.updatedAt=request.occurredAt;
+ const after=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...deps.PasekaFamilyLineage.inspect(draft),...inspect(draft,deps)];
+ if(after.length)return fail('late_honey_pair_transaction_validation_failed',after);
+ const audit=appendStageOperationAudit(draft,nextRecord,'OP-07-HONEY-PAIR-ADD',deps.makeId);
+ if(!audit.ok)return fail(audit.error,audit.details);
+ commit(state,draft);
+ return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===request.techProcessId),layout:state.sectionalLayouts.find(row=>row?.id===oldLayout.id)};
+}
+
+// Read-only candidate check for the optional main-harvest second honey pair.
+// This is NOT a completion API, physical operation, or authorization to mutate.
+// The separate committed operation must still validate revisions, movements,
+// history, backups and the complete state before changing any records.
+function inspectSecondHoneyPairCandidate(state,request){
+ const errors=[],add=(code,details={})=>errors.push({code,details});
+ if(!isObject(state)||!isObject(request))return [{code:'second_pair_invalid_request',details:{}}];
+ if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return [{code:'second_pair_identifiers_required',details:{}}];
+ if(Number(state.meta?.schemaVersion||0)<15||!Array.isArray(state.sectionalTechProcesses))add('second_pair_schema_not_ready');
+ const hiveRows=rows(state.hives).filter(hive=>hive?.id===request.hiveId);
+ if(hiveRows.length!==1||hiveRows[0]?.profileId!==PROFILE_ID)add('second_pair_requires_sectional_hive');
+ const processRows=rows(state.sectionalTechProcesses).filter(row=>row?.id===request.techProcessId&&row?.hiveId===request.hiveId);
+ if(processRows.length!==1)add('second_pair_process_missing_or_ambiguous');
+ const process=processRows[0],op07Rows=rows(process?.state?.operations).filter(row=>row?.operationId==='OP-07'),op07=op07Rows[0];
+ if(op07Rows.length!==1||op07?.status!=='DONE'||!validDate(op07?.completedAt))add('second_pair_requires_completed_op07');
+ const layouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
+ if(layouts.length!==1)add('second_pair_layout_missing_or_ambiguous');
+ const layout=layouts[0],stack=layout?.honeyStack,oldIds=rows(stack?.bodyIds);
+ if(layout?.profileId!==PROFILE_ID||layout?.mode!=='SIDE_BY_SIDE'||(layout?.broodRows??2)!==2||stack?.purpose!=='main'||oldIds.length!==2||new Set(oldIds).size!==2||layout?.id!==process?.state?.layoutId)add('second_pair_requires_initial_main_honey_pair');
+ if(op07&&op07.evidence?.honeyPurpose!=='main')add('second_pair_original_op07_not_main');
+ if(op07&&JSON.stringify(oldIds)!==JSON.stringify(rows(op07.evidence?.honeyBodyIds)))add('second_pair_original_op07_bodies_changed');
+ const existingFrames=Object.fromEntries(oldIds.map(id=>[id,rows(state.equipmentInventory?.bodies?.[id]?.frames)]));
+ if(op07&&JSON.stringify(honeyFrameCompositionEvidence(existingFrames))!==JSON.stringify(op07.evidence?.frameComposition))add('second_pair_original_op07_frames_changed');
+ const inventory=state.equipmentInventory?.bodies||{},oldPairIds=oldIds.map(id=>inventory[id]?.pairId);
+ if(oldPairIds.some(id=>!nonEmpty(id))||oldPairIds[0]!==oldPairIds[1])add('second_pair_original_pair_invalid');
+ const candidates=request.bodyIds;
+ if(!Array.isArray(candidates)||candidates.length!==2||candidates.some(id=>!nonEmpty(id))||new Set(candidates).size!==2){
+  add('second_pair_two_distinct_body_ids_required');
+ }else{
+  const pairIds=[];
+  for(const bodyId of candidates){
+   const body=inventory[bodyId];pairIds.push(body?.pairId);
+   if(oldIds.includes(bodyId))add('second_pair_body_already_installed',{bodyId});
+   if(!isObject(body)||body.id!==bodyId||body.kind!=='honey'||body.condition!=='good'||body.spec?.profileId!==PROFILE_ID||body.spec?.framesPerBox!==10||!nonEmpty(body.storageLocation)||!nonEmpty(body.pairId))add('second_pair_body_unavailable',{bodyId});
+   if(!Array.isArray(body?.frames)||body.frames.length!==10||body.frames.some(frame=>!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history)))add('second_pair_frame_inventory_invalid',{bodyId});
+   const reused=rows(state.sectionalLayouts).some(row=>rows(row?.sections).some(section=>rows(section?.broodBodyIds).includes(bodyId))||rows(row?.honeyStack?.bodyIds).includes(bodyId));
+   if(reused)add('second_pair_body_already_in_layout',{bodyId});
+  }
+  if(!nonEmpty(pairIds[0])||pairIds[0]!==pairIds[1]||oldPairIds.includes(pairIds[0]))add('second_pair_inventory_pair_mismatch');
+ }
+ if(rows(process?.state?.honeyTransitions).length)add('second_pair_requires_initial_installation');
+ if(inspect(state).length)add('second_pair_existing_tech_process_invalid');
+ return errors;
+}
+// Candidate pairs for a future supported UI. No candidate means no offer.
+function availableSecondHoneyPairs(state,request){
+ if(!isObject(state)||!isObject(request)||!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return [];
+ const groups=new Map();for(const body of Object.values(state.equipmentInventory?.bodies||{})){if(body?.kind!=='honey'||!nonEmpty(body.pairId))continue;if(!groups.has(body.pairId))groups.set(body.pairId,[]);groups.get(body.pairId).push(body.id);}
+ return [...groups.entries()].filter(([,ids])=>ids.length===2&&!inspectSecondHoneyPairCandidate(state,{...request,bodyIds:ids}).length).map(([pairId,bodyIds])=>({pairId,bodyIds:bodyIds.slice()}));
+}
+
+
+ // Owner-confirmed full removal / independent installation. The draft must
+ // pass physical checks and history replay before becoming an unsaved candidate.
+function prepareFullHoneyPhysicalTransition(state,request,deps={}){
+ const fail=(error,details)=>({ok:false,error,details:details??null});
+ try{
+  if(!isObject(state)||!isObject(request)||request.userConfirmed!==true||!nonEmpty(state.meta?.revisionId)||request.expectedRevisionId!==state.meta.revisionId)return fail('confirmation_or_revision_required');
+  if(!validDate(request.occurredAt)||timestampIsFuture(request.occurredAt,deps)||typeof deps.makeId!=='function')return fail('invalid_operation_time_or_id_source');
+  if(typeof deps.PasekaLabels?.appendFrameEvent!=='function'||typeof deps.PasekaInventory?.inspect!=='function'||typeof deps.PasekaInventory?.locateAll!=='function'||typeof deps.PasekaEquipmentItems?.inspect!=='function'||typeof deps.PasekaEquipmentItems?.validateReferences!=='function'||typeof deps.PasekaEquipmentItems?.place!=='function'||typeof deps.PasekaSectionalPhysicalLayout?.inspect!=='function'||typeof deps.PasekaFamilyLineage?.inspect!=='function')return fail('operation_dependencies_missing');
+  const validatePhysical=s=>[...deps.PasekaInventory.inspect(s,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(s),...deps.PasekaEquipmentItems.validateReferences(s),...deps.PasekaSectionalPhysicalLayout.inspect(s),...deps.PasekaFamilyLineage.inspect(s)];
+  const initialErrors=[...validatePhysical(state),...inspect(state,deps)];if(initialErrors.length)return fail('invalid_initial_physical_state',initialErrors);
+  const hive=rows(state.hives).filter(h=>h?.id===request.hiveId&&h.profileId===PROFILE_ID),records=rows(state.sectionalTechProcesses).filter(r=>r?.id===request.techProcessId&&r.hiveId===request.hiveId);
+  if(hive.length!==1||records.length!==1)return fail('sectional_context_missing');
+  const record=records[0],oldLayouts=rows(state.sectionalLayouts).filter(l=>l?.id===record.state?.layoutId&&l.hiveId===request.hiveId);
+  if(oldLayouts.length!==1)return fail('sectional_layout_missing');
+  const old=oldLayouts[0],target=clone(request.layout);
+  if(!isObject(target)||old.mode!=='SIDE_BY_SIDE'||(old.broodRows??2)!==2||!rows(record.state?.operations).some(x=>x?.operationId==='OP-07'&&x.status==='DONE'))return fail('completed_sectional_op07_required');
+  const base=l=>{const x=clone(l);delete x.honeyStack;for(const stack of rows(x.stacks)){delete stack.coverItemId;delete stack.topRiserItemId}return x};
+  if(JSON.stringify(base(old))!==JSON.stringify(base(target)))return fail('unrelated_layout_change');
+  const extract=request.kind==='extract',install=request.kind==='install';
+  if(!extract&&!install)return fail('unknown_operation');
+  const honey=extract?old.honeyStack:target.honeyStack;
+  if(!isObject(honey)||!['early','main'].includes(honey.purpose)||![2,4].includes(rows(honey.bodyIds).length)||new Set(honey.bodyIds).size!==honey.bodyIds.length||!Array.isArray(honey.excluders)||honey.excluders.length!==2||!['left','right'].every(side=>honey.excluders.filter(e=>e?.side===side).length===1))return fail('complete_honey_stack_required');
+  if(extract&&(target.honeyStack!=null||!Number.isFinite(request.kilograms)||request.kilograms<=0))return fail('full_removal_and_weight_required');
+  if(install&&old.honeyStack!=null)return fail('zero_honey_layout_required');
+  const closed=extract?target:old,open=extract?old:target;
+  const accessories=rows(closed.stacks).flatMap(s=>[s.coverItemId,s.topRiserItemId]);
+  if(rows(closed.stacks).length!==3||accessories.length!==6||accessories.some(id=>!nonEmpty(id))||new Set(accessories).size!==6||rows(open.stacks).some(s=>s.coverItemId||s.topRiserItemId))return fail('three_complete_cover_pairs_required');
+  const bodies=state.equipmentInventory?.bodies||{},ids=honey.bodyIds,framesSeen=new Set(),pairs=new Map();
+  for(const id of ids){
+   const b=bodies[id];
+   if(!isObject(b)||b.id!==id||b.kind!=='honey'||b.condition!=='good'||b.spec?.profileId!==PROFILE_ID||b.spec?.framesPerBox!==10||!nonEmpty(b.pairId)||!Array.isArray(b.frames)||b.frames.length!==10)return fail('compatible_full_honey_body_required',{bodyId:id});
+   const locations=deps.PasekaInventory.locateAll(state,id);
+   if(extract&&(locations.length!==1||locations[0].type!=='sectional'||locations[0].hiveId!==old.hiveId||locations[0].layoutId!==old.id||locations[0].bodyRole!=='honey'))return fail('installed_body_location_mismatch',{bodyId:id});
+   if(install&&(locations.length||!nonEmpty(b.storageLocation)))return fail('stock_body_unavailable',{bodyId:id});
+   for(const f of b.frames){
+    if(!isObject(f)||!nonEmpty(f.frameId)||framesSeen.has(f.frameId)||f.history!=null&&!Array.isArray(f.history))return fail('invalid_frame_identity',{bodyId:id});
+    framesSeen.add(f.frameId);
+    if(extract&&f.status!=='sealed')return fail('all_frames_must_be_ready',{bodyId:id,frameId:f.frameId});
+   }
+   if(install&&honey.purpose==='early'&&earlyHoneyFrameCompositionErrors(b.frames).length)return fail('early_frame_composition_invalid',{bodyId:id});
+   if(!pairs.has(b.pairId))pairs.set(b.pairId,[]);pairs.get(b.pairId).push(id);
+  }
+  if([...pairs.values()].some(p=>p.length!==2)||JSON.stringify([...pairs.values()].flat())!==JSON.stringify(ids))return fail('complete_contiguous_pairs_required');
+  const bodyPlan=planBodyMoves(state,old,target,request.bodyStorageMoves||[]);
+  if(bodyPlan.errors.length)return fail('body_moves_invalid',bodyPlan.errors);
+  const itemPlan=planItemMoves(state,old,target,request.itemMoves);
+  if(itemPlan.errors.length)return fail('item_moves_invalid',itemPlan.errors);
+  if(itemPlan.moves.length!==8)return fail('eight_accessory_moves_required');
+  const draft=clone(state),at=request.occurredAt,used=collectEventIds(draft);
+  for(const row of [...rows(draft.extractions),...rows(draft.records)])if(nonEmpty(row?.id))used.add(row.id);
+  const transitionId=nextUniqueId(deps.makeId,used);if(!transitionId)return fail('transition_id_unavailable');
+  const opId=(extract?'OP-08-EXTRACT:':'OP-08-INSTALL:')+transitionId,frameEvents=[];
+  if(extract)for(const id of ids)for(const f of draft.equipmentInventory.bodies[id].frames){
+   const eventId=nextUniqueId(deps.makeId,used);if(!eventId)return fail('frame_history_id_unavailable');
+   deps.PasekaLabels.appendFrameEvent(f,'extraction',{from:'sealed',to:'extracted',extractionId:transitionId},at,eventId);
+   f.status='extracted';frameEvents.push({bodyId:id,frameId:f.frameId,eventId});
+  }
+  const index=draft.sectionalLayouts.findIndex(l=>l.id===old.id);
+  draft.sectionalLayouts[index]=clone(target);
+  const moved=appendBodyMovementHistory(draft,old,target,bodyPlan.storageById,at,deps.makeId,opId,deps.PasekaLabels);
+  if(!moved.ok)return moved;
+  for(const id of ids){
+   const b=draft.equipmentInventory.bodies[id];
+   if(extract)b.storageLocation=bodyPlan.storageById.get(id);else delete b.storageLocation;
+  }
+  // Remove old accessories before placing the new ones to avoid overlapping
+  // footprints. All moves are still only on the detached copy.
+  const itemEvents=[];
+  for(const move of itemPlan.moves.slice().sort((a,b)=>Number(b.location.type==='storage')-Number(a.location.type==='storage'))){
+   const result=deps.PasekaEquipmentItems.place(draft,{itemId:move.itemId,location:move.location},deps.makeId,at);
+   if(!result?.ok)return fail('accessory_move_rejected',{itemId:move.itemId,cause:result?.error});
+   itemEvents.push({itemId:move.itemId,eventId:rows(draft.equipmentInventory.items[move.itemId].events).at(-1)?.id??null});
+  }
+  const after=validatePhysical(draft);if(after.length)return fail('physical_candidate_invalid',after);
+  const evidence={transitionId,kind:request.kind,hiveId:request.hiveId,techProcessId:request.techProcessId,layoutId:old.id,occurredAt:at,priorHoneyStack:clone(old.honeyStack??null),nextHoneyStack:clone(target.honeyStack??null),bodyIds:ids.slice(),pairIds:[...pairs.keys()],frameEvents,itemEvents,closedAccessoryIds:accessories,closedStacks:rows(closed.stacks).map(s=>({stackId:s.id,coverItemId:s.coverItemId,topRiserItemId:s.topRiserItemId})),bodyStorageMoves:clone(request.bodyStorageMoves||[]),kilograms:extract?request.kilograms:null};
+  const nextRecord=draft.sectionalTechProcesses.find(r=>r.id===record.id);
+  if(nextRecord.state.honeyTransitions==null)nextRecord.state.honeyTransitions=[];
+  if(!Array.isArray(nextRecord.state.honeyTransitions)||!Array.isArray(draft.extractions)||!Array.isArray(draft.records)||!Array.isArray(draft.auditLog))return fail('journal_missing');
+  nextRecord.state.honeyTransitions.push(clone(evidence));nextRecord.updatedAt=at;
+  if(extract){
+   draft.extractions.push({id:transitionId,date:at.slice(0,10),createdAt:at,items:[{hiveId:request.hiveId,boxes:ids.slice(),kilograms:request.kilograms,frameIds:frameEvents.map(f=>f.frameId),returnedAt:null,sectional:{kind:'full-cycle-v1',transitionId,layoutId:old.id,bodyIds:ids.slice(),pairIds:[...pairs.keys()]}}]});
+   const journalId=nextUniqueId(deps.makeId,used);if(!journalId)return fail('journal_id_unavailable');
+   draft.records.push({id:journalId,date:at.slice(0,10),type:'Откачка мёда',hive:request.hiveId,family:'',text:request.kilograms+' кг · '+ids.length+' медовых корпусов',extractionId:transitionId,media:[]});
+  }
+  const auditId=nextUniqueId(deps.makeId,used);if(!auditId)return fail('audit_id_unavailable');
+  draft.auditLog.push({id:auditId,type:extract?'sectional_honey_extracted':'sectional_honey_installed',at,hiveId:request.hiveId,transitionId,bodyIds:ids.slice()});
+  const replayErrors=inspect(draft,deps);if(replayErrors.length)return fail('historical_replay_invalid',replayErrors);
+  return {ok:true,kind:'unsaved_candidate',expectedRevisionId:request.expectedRevisionId,draft,evidence};
+ }catch(error){return fail('full_honey_physical_candidate_failed',{message:error?.message||String(error)});}
+}
+
+window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06,completeOP07,completeOP07AdditionalHoneyPair,inspectSecondHoneyPairCandidate,availableSecondHoneyPairs,prepareFullHoneyPhysicalTransition});
 })();

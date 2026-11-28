@@ -64,13 +64,12 @@ test('OP01 observation survives an isolated IndexedDB close/reopen without auto 
  assert.equal(loaded.sectionalLayouts[0].sections[0].broodBodyIds.length,3);
  db.close();
 });
-test('OP01 all three integrity gates, offline module and explicit UI are present',()=>{
- assert.match(html,/PasekaSectionalEntranceOperations\.inspect\(S\)/);
- assert.match(html,/PasekaSectionalEntranceOperations\.inspect\(state\)/);
- assert.match(html,/sectionalEntranceObservations:S\.sectionalEntranceObservations\|\|\[\]/);
- assert.match(html,/id="sectionalOp01Flight"/);
- assert.match(html,/id="sectionalOp01Confirm"/);
- assert.match(html,/async function saveSectionalOp01\(\)/);
- assert.match(sw,/sectional-entrance-operations\.js/);
+test('OP01 rejects ambiguous hive and aliased bodies without state changes',()=>{
+ const s=state();s.hives.push({...s.hives[0]});const before=structuredClone(s);
+ assert.equal(api.recordOP01(s,request(),()=> 'x',now).error,'hive_missing_or_ambiguous');assert.deepEqual(s,before);
+ s.hives.pop();s.sectionalLayouts[0].sections[0].broodBodyIds=['b1','b1','b3'];assert.equal(api.recordOP01(s,request(),()=> 'x',now).ok,false);
+});
+test('OP01 remains detached until durable commit and profile gates exist',()=>{
+ assert.doesNotMatch(html,/sectional-entrance-operations\.js/);assert.doesNotMatch(sw,/sectional-entrance-operations\.js/);
  assert.doesNotMatch(src,/\.put\(|\.delete\(|completeOP0[1-9]\(/);
 });

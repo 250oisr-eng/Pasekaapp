@@ -1,0 +1,54 @@
+name: Journal real-browser E2E (synthetic only)
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'tests/e2e/**'
+      - '.github/workflows/e2e-journal.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'tests/e2e/**'
+      - '.github/workflows/e2e-journal.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: journal-e2e-synthetic-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  journal-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install local-only browser dependency
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.55.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Real browser journal persistence (mobile and desktop)
+        run: node tests/e2e/journal-browser.e2e.cjs
+      - name: Real browser everyday accounting (queen, feeding, inspection, stock, winter)
+        run: node tests/e2e/accounting-workflows.e2e.cjs
+      - name: Real browser navigation geometry (responsive, synthetic only)
+        run: node tests/e2e/navigation-layout.e2e.cjs
+      - name: Real browser inventory filtered CSV, offline, zero-write (mobile and desktop)
+        run: node tests/e2e/inventory-csv.e2e.cjs
+      - name: Real browser B07 sectional honey (isolated QA gate)
+        run: node tests/e2e/sectional-honey.e2e.cjs
+      - name: Synthetic screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journal-e2e-synthetic-failure
+          path: |
+            e2e-journal-*-failure.png
+            e2e-nav-*-failure.png
+            e2e-accounting-synthetic-failure.png
+            inventory-csv-*-failure.png
+            e2e-sectional-synthetic-failure.png
+          if-no-files-found: ignore
+          retention-days: 2

@@ -1,0 +1,71 @@
+{
+  "schema": "paseka-b06-licensed-model-candidate-v1",
+  "asOf": "2026-11-26",
+  "mainSha": "346b35035861257be45dae93ee0573cbd4de9082",
+  "issue": 442,
+  "phase": "RESEARCH_ONLY",
+  "feature": "entrance_bee_detection",
+  "inferenceAvailable": false,
+  "trainedBeeCheckpointAvailable": false,
+  "cleanupAuthorized": false,
+  "deleteAllowed": false,
+  "restoreAuthorized": false,
+  "chosenModel": {
+    "id": "rfdetr-nano-detection",
+    "vendor": "Roboflow",
+    "family": "RF-DETR",
+    "variant": "Nano",
+    "license": "Apache-2.0",
+    "licenseScope": "official Nano detection code and model-family weights",
+    "evidence": [
+      "https://roboflow.com/model-licenses/rf-detr",
+      "https://rfdetr.roboflow.com/latest/learn/pretrained/",
+      "https://github.com/roboflow/rf-detr"
+    ],
+    "checkpointUrl": null,
+    "checkpointFilename": null,
+    "checkpointCommit": null,
+    "checkpointSha256": null,
+    "checkpointDownloaded": false,
+    "beeFineTuned": false,
+    "beeMetrics": null,
+    "onnxVerified": false,
+    "androidVerified": false
+  },
+  "dataset": {
+    "id": "mendeley-v6-sledevic",
+    "doi": "10.17632/8gb9r2yhfc.6",
+    "license": "CC-BY-4.0",
+    "licenseEvidenceUrl": "https://data.mendeley.com/datasets/compare/8gb9r2yhfc",
+    "datasetUrl": "https://data.mendeley.com/datasets/8gb9r2yhfc/6",
+    "author": "Tomyslav Sledevic",
+    "frameDescriptionCount": 7200,
+    "annotatedHiveCount": 8,
+    "pilotJpgTxtBinaryVerified": 0,
+    "trainTestByHiveConfirmed": false,
+    "articleLicenseSeparate": "CC-BY-NC-ND-4.0"
+  },
+  "tracker": {
+    "name": "ByteTrack",
+    "license": "MIT",
+    "source": "https://github.com/FoundationVision/ByteTrack",
+    "installed": false
+  },
+  "gates": {
+    "V0": "PARTIAL_MODEL_FAMILY_LICENSE_CONFIRMED_WEIGHTS_NOT_PINNED",
+    "V1": "BLOCKED_REAL_BINARIES_AND_GROUND_TRUTH",
+    "V2": "BLOCKED_NO_REAL_BEE_INFERENCE",
+    "V3": "BLOCKED_MEDIA_COPY_INVENTORY",
+    "V4": "BLOCKED_INDEPENDENT_FULL_RESTORE",
+    "V5": "FROZEN_NO_DELETE",
+    "V6": "BLOCKED_REAL_DEVICE_FAILURES"
+  },
+  "outOfScope": [
+    "production deployment",
+    "automatic video deletion",
+    "paid API",
+    "third-party user video upload",
+    "unverified model weights",
+    "queen/Varroa diagnosis"
+  ]
+}

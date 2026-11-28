@@ -1,0 +1,45 @@
+{
+  "schema": "paseka-video-v0-license-evidence-v1",
+  "checkedAt": "2026-11-26",
+  "scope": "research-only-no-training-no-model-release",
+  "dataset": {
+    "name": "Labeled dataset for bee detection and direction estimation on beehive landing boards",
+    "author": "Tomyslav Sledevic",
+    "version": 6,
+    "doi": "10.17632/8gb9r2yhfc.6",
+    "url": "https://data.mendeley.com/datasets/8gb9r2yhfc/6",
+    "officialLicenseSource": "https://data.mendeley.com/datasets/compare/8gb9r2yhfc",
+    "officialDisplayedLicense": "Creative Commons Attribution 4.0 International",
+    "licenseCode": "CC-BY-4.0",
+    "licenseEvidence": "VERIFIED_OFFICIAL_VERSION_6_COMPARISON_TEXT",
+    "detectionImagesDeclared": 7200,
+    "trackingTracksDeclared": 17162,
+    "trackingFramesDeclared": 21946,
+    "previousIndependentOriginalShaCheckedPairs": 93,
+    "previousRejectedInvalidYoloPairs": 3,
+    "allOriginalFilesShaVerified": false,
+    "independentTrainTestSessionSplitVerified": false,
+    "directionalInOutLabelsVerified": false
+  },
+  "candidate": {
+    "name": "EfficientDet-Lite0 TFLite int8 COCO baseline (not bee trained)",
+    "metadataUrl": "https://huggingface.co/litert-community/MediaPipe-ObjectDetector-EfficientDet-Lite0",
+    "claimedLicense": "Apache-2.0",
+    "claimedSha256": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb",
+    "claimedBytes": 4602795,
+    "shaIndependentlyVerified": false,
+    "upstreamCheckpointRightsIndependentlyVerified": false,
+    "trainableModelCheckpointVerified": false,
+    "beeClass": false,
+    "inferenceOnRealBeeVideo": false
+  },
+  "gates": {
+    "datasetLicenseVerified": true,
+    "modelWeightsApproved": false,
+    "trainingAuthorized": false,
+    "recognitionSucceeded": false,
+    "cleanupAuthorized": false,
+    "realOnePlusValidated": false
+  },
+  "provenanceNote": "Declared model SHA and Apache license are from community model card; no model binary downloaded, do not infer legal approval or bee class. Unmodified Google inference TFLite need not be trainable base."
+}

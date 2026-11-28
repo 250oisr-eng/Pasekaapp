@@ -630,7 +630,7 @@ test('OP-06 rejects missing queen laying evidence, wrong day and partial plug re
  prepareOP06Queens(wrongFixture.state,wrongDeps);
  before=structuredClone(wrongFixture.state);
  result=Coordinator.completeOP06(wrongFixture.state,op06Request(wrong,{occurredAt:'2026-12-06T10:00:00.000Z'}),wrongDeps);
- assert.equal(result.ok,false);assert.equal(result.error,'op06_before_safe_observation_window');
+ assert.equal(result.ok,false);assert.equal(result.error,'op06_outside_source_window');
  assert.deepEqual(wrongFixture.state,before);
 
  const partial=prepareOP05Fixture(),{fixture:partialFixture,deps:partialDeps}=partial;
@@ -914,47 +914,213 @@ test('OP-04 staged first-row to second-row sequence composes with OP-05, OP-06 a
  assert.deepEqual(fixture.state.sectionalTechProcesses[0].state.operations.map(row=>row.operationId),['OP-04','OP-05','OP-06','OP-07']);
 });
 
-test('OP-06 refuses all mesh removal when one split family has a still-unresolved confirmed absence',()=>{
- const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
- assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
- prepareOP06Queens(fixture.state,deps);
- const process=fixture.state.sectionalTechProcesses[0],splitEvent=fixture.state.familyEvents.find(e=>e.id===process.state.operations.find(o=>o.operationId==='OP-04').evidence.familyEventId);
- assert.ok(splitEvent);
- fixture.state.familyEvents.push({id:'confirmed-missing-queen-p0',type:'queen_absence_confirmed',userConfirmed:true,
-  outcome:'not_returned_from_mating_flight',familyId:splitEvent.resultFamilyIds[2],splitEventId:splitEvent.id,
-  operationId:'OP-04',techProcessId:process.id,hiveId:process.hiveId,occurredAt:'2026-12-06T08:00:00.000Z'});
- const before=structuredClone(fixture.state);
- const result=Coordinator.completeOP06(fixture.state,op06Request(prepared),deps);
- assert.equal(result.ok,false);
- assert.equal(result.error,'op06_two_queen_mesh_removal_procedure_unconfirmed');
- assert.deepEqual(fixture.state,before);
- assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,8);
- assert.equal(process.state.operations.some(op=>op.operationId==='OP-06'),false);
+
+function preparedSecondHoneyPair(){
+ const prepared=prepareOP07Fixture();
+ prepared.layout.honeyStack.purpose='main';
+ const completed=Coordinator.completeOP07(prepared.fixture.state,op07Request(prepared),prepared.deps);
+ assert.equal(completed.ok,true,JSON.stringify(completed.details||completed));
+ const bodies=prepared.fixture.state.equipmentInventory.bodies;
+ for(const id of ['honey3','honey4']){
+  bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},
+    pairId:'honey-pair-2',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
+ }
+ return prepared.fixture.state;
+}
+const candidateRequest=()=>({hiveId:'h1',techProcessId:'tp-h1',bodyIds:['honey3','honey4']});
+const candidateCodes=(state,request=candidateRequest())=>
+ Coordinator.inspectSecondHoneyPairCandidate(state,request).map(row=>row.code);
+
+test('second honey-pair candidate inspector accepts only an available second complete pair, without mutation',()=>{
+ const state=preparedSecondHoneyPair(),before=structuredClone(state);
+ assert.deepEqual(candidateCodes(state),[]);
+ assert.deepEqual(state,before,'preflight must never mutate state or mark any operation complete');
+ assert.equal(state.sectionalLayouts[0].honeyStack.bodyIds.length,2);
+ assert.equal(state.sectionalTechProcesses[0].state.operations.filter(op=>op.operationId==='OP-07').length,1);
 });
 
-test('OP-06 later than the day 20–21 orientation is allowed only with all three confirmed laying queens',()=>{
- const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
- assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
- prepareOP06Queens(fixture.state,deps);
- const result=Coordinator.completeOP06(fixture.state,op06Request(prepared,{occurredAt:'2026-12-10T10:00:00.000Z'}),deps);
+test('second-pair inspector rejects incomplete/duplicate/wrong inventory pair bodies without mutation',()=>{
+ const scenarios=[
+  {name:'one body',change:(state,req)=>req.bodyIds=['honey3'],error:'second_pair_two_distinct_body_ids_required'},
+  {name:'duplicate body',change:(state,req)=>req.bodyIds=['honey3','honey3'],error:'second_pair_two_distinct_body_ids_required'},
+  {name:'existing body',change:(state,req)=>req.bodyIds=['honey1','honey4'],error:'second_pair_body_already_installed'},
+  {name:'wrong pair',change:state=>state.equipmentInventory.bodies.honey4.pairId='other-pair',error:'second_pair_inventory_pair_mismatch'},
+  {name:'not in storage',change:state=>delete state.equipmentInventory.bodies.honey3.storageLocation,error:'second_pair_body_unavailable'},
+  {name:'wrong kind',change:state=>state.equipmentInventory.bodies.honey3.kind='brood',error:'second_pair_body_unavailable'},
+  {name:'wrong capacity',change:state=>state.equipmentInventory.bodies.honey4.frames.pop(),error:'second_pair_frame_inventory_invalid'},
+  {name:'invalid history',change:state=>state.equipmentInventory.bodies.honey4.frames[0].history='bad',error:'second_pair_frame_inventory_invalid'}
+ ];
+ for(const scenario of scenarios){
+  const state=preparedSecondHoneyPair(),req=candidateRequest();scenario.change(state,req);
+  const before=structuredClone(state),errors=candidateCodes(state,req);
+  assert.ok(errors.includes(scenario.error),scenario.name+': '+JSON.stringify(errors));
+  assert.deepEqual(state,before,scenario.name+' mutated the live state');
+ }
+});
+
+test('second-pair inspector refuses early harvest and missing/changed OP-07 evidence',()=>{
+ const cases=[
+  {name:'early',change:state=>state.sectionalLayouts[0].honeyStack.purpose='early',error:'second_pair_requires_initial_main_honey_pair'},
+  {name:'original OP-07 was early',change:state=>state.sectionalTechProcesses[0].state.operations.find(op=>op.operationId==='OP-07').evidence.honeyPurpose='early',error:'second_pair_original_op07_not_main'},
+  {name:'OP-07 removed',change:state=>state.sectionalTechProcesses[0].state.operations.splice(-1),error:'second_pair_requires_completed_op07'},
+  {name:'first pair changed',change:state=>state.sectionalLayouts[0].honeyStack.bodyIds[0]='honey3',error:'second_pair_original_op07_bodies_changed'},
+  {name:'original evidence changed',change:state=>state.sectionalTechProcesses[0].state.operations.find(op=>op.operationId==='OP-07').evidence.honeyBodyIds=['honey3','honey4'],error:'second_pair_original_op07_bodies_changed'},
+  {name:'original frames altered',change:state=>state.equipmentInventory.bodies.honey1.frames[0].combType='wax_foundation',error:'second_pair_original_op07_frames_changed'},
+  {name:'wrong hive',change:state=>state.hives[0].profileId='farrar-6x6-v1',error:'second_pair_requires_sectional_hive'}
+ ];
+ for(const scenario of cases){
+  const state=preparedSecondHoneyPair();scenario.change(state);const before=structuredClone(state);
+  const errors=candidateCodes(state);
+  assert.ok(errors.includes(scenario.error),scenario.name+': '+JSON.stringify(errors));
+  assert.deepEqual(state,before,scenario.name+' mutated the live state');
+ }
+});
+
+
+function preparedMainHoneyForLatePair(){
+ const prepared=prepareOP07Fixture();
+ prepared.layout.honeyStack.purpose='main';
+ const result=Coordinator.completeOP07(prepared.fixture.state,op07Request(prepared),prepared.deps);
+ assert.equal(result.ok,true,'initial main-flow OP-07 must succeed: '+JSON.stringify(result));
+ for(const [index,id] of ['honey3','honey4'].entries()){
+  prepared.fixture.state.equipmentInventory.bodies[id]={
+   id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},
+   pairId:'honey-pair-2',storageLocation:'Склад',events:[],frames:honeyFrames(id)
+  };
+  prepared.fixture.state.equipmentLabels.bodies[id]=index===0?'ААЧ':'ААШ';
+ }
+ return prepared;
+}
+function lateHoneyRequest(overrides={}){
+ return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',
+  occurredAt:'2026-11-18T10:00:00.000Z',addedBodyIds:['honey3','honey4'],...overrides};
+}
+
+test('late honey pair is an atomic confirmed 2-to-4 addition with independent history',()=>{
+ const prepared=preparedMainHoneyForLatePair(),{state}=prepared.fixture;
+ const originalEvidence=structuredClone(state.sectionalTechProcesses[0].state.operations.find(x=>x.operationId==='OP-07').evidence);
+ const beforeFamilies=structuredClone(state.families);
+ const result=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps);
  assert.equal(result.ok,true,JSON.stringify(result));
- const stage=fixture.state.sectionalTechProcesses[0].state.operations.find(o=>o.operationId==='OP-06');
- assert.equal(stage.evidence.daysAfterDivision,23);
- assert.equal(stage.evidence.timingBeyondSourceOrientation,true);
- assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,0);
- assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+ assert.deepEqual(state.sectionalLayouts[0].honeyStack.bodyIds,['honey1','honey2','honey3','honey4']);
+ assert.deepEqual(state.sectionalTechProcesses[0].state.operations.find(x=>x.operationId==='OP-07').evidence,originalEvidence);
+ const late=state.sectionalTechProcesses[0].state.operations.filter(x=>x.operationId==='OP-07-HONEY-PAIR-ADD');
+ assert.equal(late.length,1);
+ assert.deepEqual(late[0].evidence.addedBodyIds,['honey3','honey4']);
+ assert.equal(state.auditLog.at(-1).operationId,'OP-07-HONEY-PAIR-ADD');
+ assert.deepEqual(state.families,beforeFamilies);
+ for(const id of ['honey3','honey4']){
+  assert.equal(state.equipmentInventory.bodies[id].storageLocation,undefined);
+  assert.ok(state.equipmentInventory.bodies[id].events.some(event=>event.operationId==='OP-07-HONEY-PAIR-ADD'&&event.type==='placed'));
+  assert.ok(state.equipmentInventory.bodies[id].frames.every(frame=>frame.history.some(e=>e.action==='corpus_from_storage')));
+ }
+ assert.deepEqual(Coordinator.inspect(state,prepared.deps),[]);
+ const saved=structuredClone(state);
+ const repeated=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps);
+ assert.equal(repeated.error,'late_honey_pair_already_recorded');
+ assert.deepEqual(state,saved);
 });
-test('OP-06 late observation cannot bypass missing laying evidence',()=>{
- const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
- assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
- prepareOP06Queens(fixture.state,deps);
- fixture.state.queenEvents=fixture.state.queenEvents.filter(e=>!(e.type==='laying_observed'&&e.familyId==='f2'));
- const before=structuredClone(fixture.state);
- const result=Coordinator.completeOP06(fixture.state,op06Request(prepared,{occurredAt:'2026-12-10T10:00:00.000Z'}),deps);
- assert.equal(result.ok,false);
- assert.equal(result.error,'op06_queen_laying_observation_required');
- assert.deepEqual(fixture.state,before);
+
+test('late honey pair rejects missing confirmation, bad timestamps and mismatched pairs without any writes',()=>{
+ const attempts=[
+  {request:{userConfirmed:false},error:'user_confirmation_required'},
+  {request:{occurredAt:'2026-11-16T10:00:00.000Z'},error:'late_honey_pair_precedes_op07'},
+  {request:{occurredAt:'2027-01-01T00:00:00.000Z'},error:'operation_timestamp_in_future'},
+  {request:{addedBodyIds:['honey3']},error:'late_honey_pair_exactly_two_new_bodies_required'},
+  {request:{addedBodyIds:['honey3','honey3']},error:'late_honey_pair_exactly_two_new_bodies_required'},
+  {request:{addedBodyIds:['honey1','honey3']},error:'late_honey_pair_exactly_two_new_bodies_required'},
+  {request:{layout:{}},error:'late_honey_pair_unrelated_changes_forbidden'},
+  {request:{itemMoves:[{itemId:'ex-left'}]},error:'late_honey_pair_unrelated_changes_forbidden'}
+ ];
+ for(const example of attempts){
+  const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state,before=structuredClone(state);
+  const response=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(example.request),prepared.deps);
+  assert.equal(response.error,example.error,JSON.stringify(example));
+  assert.deepEqual(state,before,example.error+' mutated state');
+ }
+ for(const change of [
+  state=>{state.equipmentInventory.bodies.honey4.pairId='unrelated'},
+  state=>{state.equipmentInventory.bodies.honey4.frames.pop()},
+  state=>{delete state.equipmentInventory.bodies.honey4.storageLocation},
+  state=>{state.equipmentInventory.bodies.honey3.condition='damaged'}
+ ]){
+  const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+  change(state);
+  const before=structuredClone(state);
+  assert.equal(Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps).ok,false);
+  assert.deepEqual(state,before,'failed preflight must leave all state untouched');
+ }
 });
+
+test('late pair cannot extend the early honey flow or bypass OP-07 evidence integrity',()=>{
+ const early=prepareOP07Fixture();
+ assert.equal(Coordinator.completeOP07(early.fixture.state,op07Request(early),early.deps).ok,true);
+ const first=structuredClone(early.fixture.state);
+ const response=Coordinator.completeOP07AdditionalHoneyPair(early.fixture.state,lateHoneyRequest(),early.deps);
+ assert.equal(response.error,'late_honey_pair_main_two_body_layout_required');
+ assert.deepEqual(early.fixture.state,first);
+ const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+ const evidence=state.sectionalTechProcesses[0].state.operations.find(x=>x.operationId==='OP-07').evidence;
+ evidence.honeyBodyIds=['honey2','honey1'];
+ const before=structuredClone(state);
+ const tampered=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps);
+ assert.equal(tampered.ok,false);
+ assert.deepEqual(state,before,'tampered evidence must never be silently rewritten');
+});
+
+test('late honey evidence and physical body history are validated on read-back',()=>{
+ const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+ assert.equal(Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps).ok,true);
+ const tamperCases=[
+  s=>s.sectionalTechProcesses[0].state.operations.find(x=>x.operationId==='OP-07-HONEY-PAIR-ADD').evidence.addedBodyIds.reverse(),
+  s=>s.equipmentInventory.bodies.honey3.events=s.equipmentInventory.bodies.honey3.events.filter(x=>x.operationId!=='OP-07-HONEY-PAIR-ADD'),
+  s=>s.sectionalLayouts[0].honeyStack.bodyIds.pop()
+ ];
+ for(const tamper of tamperCases){
+  const altered=structuredClone(state);tamper(altered);
+  assert.notDeepEqual(Coordinator.inspect(altered,prepared.deps),[],'tampering must be detectable');
+ }
+});
+
+test('late honey pair survives JSON backup-style roundtrip without schema migration',()=>{
+ const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+ const originalOp07=structuredClone(state.sectionalTechProcesses[0].state.operations.find(x=>x.operationId==='OP-07'));
+ const result=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps);
+ assert.equal(result.ok,true,JSON.stringify(result));
+ const restored=JSON.parse(JSON.stringify({app:'Paseka',state})).state;
+ assert.equal(restored.meta.schemaVersion,state.meta.schemaVersion);
+ assert.deepEqual(restored.sectionalTechProcesses[0].state.operations.find(x=>x.operationId==='OP-07'),originalOp07);
+ assert.deepEqual(restored.sectionalLayouts[0].honeyStack.bodyIds,['honey1','honey2','honey3','honey4']);
+ assert.deepEqual(Coordinator.inspect(restored,prepared.deps),[]);
+ assert.deepEqual(Layout.inspect(restored),[]);
+ assert.deepEqual(Inventory.inspect(restored,Labels,prepared.deps.profileForHive),[]);
+});
+
+test('late honey pair rejects stale save revision, requiring revision present at confirmation',()=>{
+ const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+ state.meta.revisionId='revision-current';
+ const before=structuredClone(state);
+ for (const expectedRevisionId of [undefined,'revision-stale','']) {
+  const result=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest({expectedRevisionId}),prepared.deps);
+  assert.equal(result.error,'late_honey_pair_state_revision_changed');
+  assert.deepEqual(state,before,'stale revision must not mutate state');
+ }
+ const current=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest({expectedRevisionId:'revision-current'}),prepared.deps);
+ assert.equal(current.ok,true,JSON.stringify(current));
+ assert.deepEqual(Coordinator.inspect(state,prepared.deps),[]);
+});
+
+test('late honey pair handles legacy states without revision and rejects invented tokens',()=>{
+ const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+ delete state.meta.revisionId;
+ const before=structuredClone(state);
+ assert.equal(Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest({expectedRevisionId:'unverified'}),prepared.deps).error,
+  'late_honey_pair_state_revision_changed');
+ assert.deepEqual(state,before);
+ assert.equal(Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps).ok,true);
+});
+
+test('offer is available only after first complete pair, disappears after four; app profile remains isolated',()=>{const p=preparedMainHoneyForLatePair(),state=p.fixture.state,request={hiveId:'h1',techProcessId:'tp-h1'};const before=structuredClone(state);assert.deepEqual(Coordinator.availableSecondHoneyPairs(state,request),[{pairId:'honey-pair-2',bodyIds:['honey3','honey4']}]);assert.deepEqual(state,before);const other=structuredClone(state);other.hives[0].profileId='farrar-6x6-v1';assert.deepEqual(Coordinator.availableSecondHoneyPairs(other,request),[]);const early=structuredClone(state);early.sectionalLayouts[0].honeyStack.purpose='early';assert.deepEqual(Coordinator.availableSecondHoneyPairs(early,request),[]);assert.equal(Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),p.deps).ok,true);assert.deepEqual(Coordinator.availableSecondHoneyPairs(state,request),[]);});
 
 test('OP-03 physically swaps top and bottom brood bodies, keeps middle and original frames',()=>{
  const fixture=makeFixture(),original=structuredClone(fixture.state),deps=dependencies();
@@ -1014,18 +1180,9 @@ test('OP-03 physical layout and complete frame histories survive isolated Indexe
  assert.equal(saved.equipmentInventory.bodies.b3.frames[0].history.at(-1).action,'sectional_body_reordered');
  db.close();
 });
-test('OP-03 UI integrates confirmed durable swap without enabling premature profile activation',async()=>{
- const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
- const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
- assert.match(html,/js\/sectional-op03-body-swap\.js/);
- assert.match(html,/id="sectionalOp03Confirmed"/);
- assert.match(html,/async function saveSectionalOp03\(\)/);
- assert.match(html,/PasekaSectionalOP03BodySwap\.inspect\(S\)/);
- assert.match(html,/PasekaSectionalOP03BodySwap\.inspect\(state\)/);
- assert.match(html,/sectionalBodyReorders:S\.sectionalBodyReorders\|\|\[\]/);
- assert.match(sw,/sectional-op03-body-swap\.js/);
+test('OP03 remains detached from runtime and offline shell',async()=>{
+ for(const path of ['../index.html','../sw.js'])assert.doesNotMatch(await readFile(new URL(path,import.meta.url),'utf8'),/sectional-op03-body-swap\.js/);
 });
-
 test('OP-03 backup integrity rejects forged global or body movement evidence',()=>{
  const f=makeFixture(),deps=dependencies();
  const result=OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...deps,now:'2026-11-17T10:01:00.000Z'});

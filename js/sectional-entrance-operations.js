@@ -31,10 +31,12 @@ function recordOP01(state,request,makeId,now){
  const fail=error=>({ok:false,error});
  if(!object(state)||!object(request)||typeof makeId!=='function')return fail('invalid_request');
  if(request.userConfirmed!==true||request.firstFlightObserved!==true)return fail('flight_and_physical_confirmation_required');
- const hive=rows(state.hives).find(x=>x?.id===request.hiveId);
+ const matches=rows(state.hives).filter(x=>x?.id===request.hiveId);
+ if(matches.length!==1)return fail('hive_missing_or_ambiguous');
+ const hive=matches[0];
  if(!hive||hive.profileId!==PROFILE)return fail('sectional_profile_required');
  const layouts=rows(state.sectionalLayouts).filter(x=>x?.hiveId===hive.id);
- if(layouts.length!==1||layouts[0].mode!=='SINGLE_FAMILY'||rows(layouts[0].sections).length!==1||rows(layouts[0].sections[0]?.broodBodyIds).length!==3)return fail('three_body_single_family_layout_required');
+ if(layouts.length!==1||layouts[0].mode!=='SINGLE_FAMILY'||rows(layouts[0].sections).length!==1||rows(layouts[0].sections[0]?.broodBodyIds).length!==3||new Set(rows(layouts[0].sections[0]?.broodBodyIds)).size!==3)return fail('three_body_single_family_layout_required');
  const entrances=request.entrances;
  if(!object(entrances)||keys.some(k=>entrances[k]!==EXPECTED[k])||Object.keys(entrances).length!==keys.length)return fail('confirmed_source_configuration_required');
  const at=request.occurredAt,recordedAt=now;

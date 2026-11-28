@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const appWindow={};
-for(const path of ['../js/family-lineage.js','../js/sectional-queen-outcome.js']){
+for(const path of ['../js/equipment-labels.js','../js/family-lineage.js','../js/sectional-queen-outcome.js']){
  const source=await readFile(new URL(path,import.meta.url),'utf8');
  new Function('window',source)(appWindow);
 }
@@ -91,27 +91,9 @@ test('two-queen evidence persists in isolated IndexedDB and survives database re
  assert.equal(loaded.familyEvents.filter(x=>x.type==='queen_absence_confirmed').length,1);
  db.close();
 });
-test('UI requires explicit absence evidence and never exposes an OP06 mesh-removal action',async()=>{
- const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
- assert.match(html,/id="twoQueenConfirmAbsence"/);
- assert.match(html,/recordTwoQueenAbsence\(\)/);
- assert.match(html,/readMain\(\)/);
- assert.match(html,/PasekaSectionalQueenOutcome/);
- assert.match(html,/Снятие сеток и OP-06 по-прежнему заблокированы/);
- const start=html.indexOf('async function recordTwoQueenAbsence()'),end=html.indexOf('async function downloadBackup()',start);
- assert.ok(start>=0);
- assert.doesNotMatch(html.slice(start,end>start?end:start+6500),/completeOP06\(/);
+test('OP06 evidence module remains isolated and cannot expose mesh-removal UI',async()=>{
+ for(const path of ['../index.html','../sw.js'])assert.doesNotMatch(await readFile(new URL(path,import.meta.url),'utf8'),/sectional-queen-outcome\.js/);
 });
-
-test('laying UI remains an observation-only operation requiring user evidence',async()=>{
- const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
- assert.match(html,/id="twoQueenConfirmLaying"/);
- assert.match(html,/recordTwoQueenLayingObservation\(\)/);
- assert.match(html,/PasekaFamilyLineage\.recordQueenLayingObserved\(draft/);
- assert.match(html,/userConfirmed:true,occurredAt:new Date\(at\)\.toISOString\(\)/);
- assert.match(html,/Двухматочная ветвь: <b>снятие сеток и OP-06 заблокированы<\/b>/);
-});
-
 test('fabricated laying observation without identity evidence cannot promote two-queen outcome',()=>{
  const {state,split}=fixture();
  const confirmed=api.recordConfirmedAbsence(state,{userConfirmed:true,familyId:'section-3',processId:'tp1',occurredAt:'2026-04-20T10:00:00.000Z'},lineage,makeId,now);

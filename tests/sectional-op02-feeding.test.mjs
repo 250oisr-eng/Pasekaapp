@@ -43,6 +43,8 @@ test('duplicate OP02 per family per day is blocked but another date permitted',(
  assert.equal(first.ok,true);state.tasks.push(first.task);
  assert.equal(api.buildDailyPlan(state,request(),id).error,'daily_plan_already_recorded');
  assert.equal(api.buildDailyPlan(state,request({date:'2026-04-16'}),id).ok,true);
+ state.families.push({id:'f3',hive:'h1',recordStatus:'active'});
+ assert.equal(api.buildDailyPlan(state,request({familyId:'f3'}),id).ok,true);
 });
 test('existing generic feeding and Farrar entries remain unmodified',()=>{
  const state=base();state.tasks.push({id:'legacy-task',hive:'farrar',type:'Подкормка',plannedFeedingAmount:'1 л',status:'pending'});
@@ -51,13 +53,9 @@ test('existing generic feeding and Farrar entries remain unmodified',()=>{
  assert.deepEqual(state,snapshot);
  assert.ok(!('gramsPerColonyPerDay' in state.tasks[0]));
 });
-test('OP02 UI is linked only as confirmed day plan, not physical automatic completion',()=>{
- assert.match(html,/js\/sectional-op02-feeding\.js/);
- assert.match(html,/id="sectionalOp02Grams"/);
- assert.match(html,/gramsPerColonyPerDay:grams/);
- assert.match(html,/proteinActuallyFedConfirmed=true/);
- assert.match(html,/Подтверждаете фактическую выдачу сегодня жидкой подкормки 2:1/);
- assert.match(sw,/sectional-op02-feeding\.js/);
+test('OP02 model is isolated from the app shell and background worker',()=>{
+ assert.doesNotMatch(html,/sectional-op02-feeding\.js|PasekaSectionalOP02Feeding/);
+ assert.doesNotMatch(sw,/sectional-op02-feeding\.js/);
 });
 
 test('OP02 completion rechecks family/profile and never accepts stale or altered daily plans',()=>{
@@ -71,6 +69,9 @@ test('OP02 completion rechecks family/profile and never accepts stale or altered
  state.families[0].recordStatus='historical';
  assert.equal(api.validateDailyCompletion(state,state.tasks[0]).error,'active_family_required');
  state.families[0].recordStatus='active';
+ state.families[0].hive='farrar';
+ assert.equal(api.validateDailyCompletion(state,state.tasks[0]).error,'active_family_required');
+ state.families[0].hive='h1';
  state.tasks[0].gramsPerColonyPerDay=999;
  assert.equal(api.validateDailyCompletion(state,state.tasks[0]).error,'daily_plan_parameters_invalid');
  state.tasks[0].gramsPerColonyPerDay=150;
@@ -91,5 +92,57 @@ test('OP02 rejects ambiguous physical hive and family IDs without changing the p
   assert.equal(api.buildDailyPlan(state,request({date:'2026-04-16'}),id).ok,false);
   assert.equal(api.validateDailyCompletion(state,plan.task).ok,false);
   assert.deepEqual(state,before);
+ }
+});
+
+test('OP02 preflight rejects stale tasks and duplicate factual records without mutation',()=>{
+ const cases=[
+  [state=>state.tasks.push({...state.tasks[0]}),'task_not_current'],
+  [state=>{state.tasks[0].type='Осмотр'},'invalid_or_completed_daily_task'],
+  [state=>{state.tasks[0].completedAt='2026-04-15'},'invalid_or_completed_daily_task'],
+  [state=>{state.tasks[0].completedRecordId='record'},'invalid_or_completed_daily_task'],
+  [state=>state.records.push({id:'record',taskId:state.tasks[0].id,archivedAt:'2026-04-16'}),'invalid_or_completed_daily_task']
+ ];
+ for(const [mutate,error] of cases){
+  const state=base();
+  const {task}=api.buildDailyPlan(state,request(),id);
+  state.tasks.push(task);
+  mutate(state);
+  const before=structuredClone(state);
+  assert.deepEqual(api.validateDailyCompletion(state,task),{ok:false,error});
+  assert.deepEqual(state,before);
+ }
+});
+
+test('OP02 accepts both confirmed endpoints and keeps legacy fields outside the new plan',()=>{
+ for(const grams of [100,200]){
+  const state=base();
+  state.families[0].recordStatus=undefined;
+  state.tasks.push({id:'legacy',hive:'h1',type:'Подкормка',portionGrams:150,status:'pending'});
+  const before=structuredClone(state);
+  const {task}=api.buildDailyPlan(state,request({gramsPerColonyPerDay:grams}),id);
+  assert.equal(task.plannedFeedingAmount,grams+' г');
+  assert.equal(task.gramsPerColonyPerDay,grams);
+  assert.deepEqual(state,before);
+  assert.equal(api.validateDailyCompletion(state,task).error,'task_not_current');
+  state.tasks.push(task);
+  assert.equal(api.validateDailyCompletion(state,{...task}).error,'task_not_current');
+  assert.deepEqual(api.validateDailyCompletion(state,task),{ok:true});
+ }
+});
+
+
+test('OP02 fails closed if tasks or factual-record index is unavailable',()=>{
+ for(const field of ['tasks','records']){
+  const state=base();
+  delete state[field];
+  const before=structuredClone(state);
+  assert.deepEqual(api.buildDailyPlan(state,request(),id),{ok:false,error:'incomplete_accounting_state'});
+  assert.deepEqual(state,before);
+ }
+ for(const field of ['tasks','records']){
+  const state=base();
+  state[field]={};
+  assert.deepEqual(api.buildDailyPlan(state,request(),id),{ok:false,error:'incomplete_accounting_state'});
  }
 });

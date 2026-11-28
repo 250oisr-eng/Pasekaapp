@@ -16,6 +16,7 @@ function buildDailyPlan(state,request,makeId,now){
  const fail=(error)=>({ok:false,error});
  if(!state||typeof state!=='object'||!request||typeof request!=='object'||typeof makeId!=='function')return fail('invalid_request');
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ if(!Array.isArray(state.tasks)||!Array.isArray(state.records))return fail('incomplete_accounting_state');
  const hive=findUniqueById(state.hives,request.hiveId);
  if(!hive||hive.profileId!==PROFILE)return fail('sectional_profile_required');
  const family=findUniqueById(state.families,request.familyId);
@@ -40,13 +41,14 @@ function buildDailyPlan(state,request,makeId,now){
 }
 function validateDailyCompletion(state,task){
  const fail=error=>({ok:false,error});
- if(!state||!task||task.operationId!==OP||task.op02Scope!=='daily_plan'||task.status!=='pending')return fail('invalid_or_completed_daily_task');
+ if(!state||!task||task.operationId!==OP||task.op02Scope!=='daily_plan'||task.type!=='Подкормка'||task.status!=='pending'||task.completedAt||task.completedRecordId)return fail('invalid_or_completed_daily_task');
+ if(findUniqueById(state.tasks,task.id)!==task)return fail('task_not_current');
+ if(Array.isArray(state.records)&&state.records.some(row=>row?.taskId===task.id))return fail('invalid_or_completed_daily_task');
  const hive=findUniqueById(state.hives,task.hive);
  if(hive?.profileId!==PROFILE)return fail('sectional_profile_required');
  const family=findUniqueById(state.families,task.familyId);
  if(family?.hive!==hive.id||family.recordStatus==='historical')return fail('active_family_required');
  if(!validDate(task.date)||typeof task.gramsPerColonyPerDay!=='number'||task.gramsPerColonyPerDay<100||task.gramsPerColonyPerDay>200||!Number.isFinite(task.gramsPerColonyPerDay)||task.syrupRatio!=='2:1'||task.proteinFeedingDaily!==true)return fail('daily_plan_parameters_invalid');
- if(!Array.isArray(state.tasks)||!state.tasks.includes(task))return fail('task_not_current');
  return {ok:true};
 }
 root.PasekaSectionalOP02Feeding=Object.freeze({PROFILE,OP,buildDailyPlan,validateDailyCompletion});

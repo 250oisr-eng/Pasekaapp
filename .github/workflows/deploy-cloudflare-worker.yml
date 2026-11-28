@@ -2,6 +2,15 @@ name: Deploy Cloudflare Worker
 
 on:
   workflow_dispatch:
+    inputs:
+      release_sha:
+        description: 'Full 40-character main commit SHA explicitly approved for production deployment'
+        required: true
+        type: string
+      confirmation:
+        description: 'Type PUBLISH-CLOUDFLARE after separately obtaining release approval'
+        required: true
+        type: string
 
 concurrency:
   group: cloudflare-worker-production
@@ -12,11 +21,43 @@ permissions:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout
+      - name: Checkout current main for release authorization
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require an approved exact main commit and explicit confirmation
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$CONFIRMATION" = 'PUBLISH-CLOUDFLARE' || {
+            echo '::error::Explicit production-release confirmation missing'
+            exit 1
+          }
+          [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]] || {
+            echo '::error::An exact lowercase 40-character main commit SHA is required'
+            exit 1
+          }
+          git fetch --no-tags origin main
+          test "$(git cat-file -t "$RELEASE_SHA")" = commit || {
+            echo '::error::Release SHA does not identify a commit'
+            exit 1
+          }
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main || {
+            echo '::error::Release SHA must be in verified main history'
+            exit 1
+          }
+          echo "Manual Cloudflare release gate verified for commit $RELEASE_SHA"
+      - name: Checkout exactly the approved release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
       - name: Check deployment secrets
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

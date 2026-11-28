@@ -255,7 +255,7 @@ function validateHoneyStack(stack,sections,add,checkBody,checkItem,state){
  if(!isObject(stack)){add('honey_stack_invalid');return}
  if(!['early','main'].includes(stack.purpose))add('honey_stack_purpose_invalid',{purpose:stack.purpose??null});
  const bodyIds=rows(stack.bodyIds);
- if(![2,4].includes(bodyIds.length)||(stack.purpose==='early'&&bodyIds.length!==2))add('honey_stack_body_count_invalid',{expected:stack.purpose==='early'?2:'2 or 4',actual:bodyIds.length});
+ if(![2,4].includes(bodyIds.length))add('honey_stack_body_count_invalid',{expected:'2 or 4',actual:bodyIds.length});
  if(new Set(bodyIds).size!==bodyIds.length)add('honey_stack_body_duplicate',{bodyIds});
  bodyIds.forEach(id=>checkBody(id,'honey','shared-honey-stack'));
  for(const bodyId of bodyIds){

@@ -1,0 +1,17 @@
+ANDROID DEBUG CI ARTIFACT — NOT FOR ONEPLUS / NOT A RELEASE
+
+This app-debug.apk may have package ID ru.paseka.journal, the same package ID
+as the installed beekeeping application. The signature is a CI DEBUG signer.
+DO NOT INSTALL or use it as an update to any working phone.
+
+DEBUG-ONLY-provenance.json gives the SHA-256 of these exact APK bytes,
+checked-out Git commit and PUBLIC certificate fingerprint. It proves that
+the test artifact was signed and identified, not that the signing key is
+durable or matches the actual installed OnePlus package.
+
+Key custody: NOT PROVEN. Installed APK signer: NOT TESTED.
+Production rollback: NOT TESTED. Production restore: NOT TESTED.
+Production upgrade authorized: FALSE. Publication authorized: FALSE.
+
+No signing keystore or private key is included. Use synthetic Android
+emulator proof only. B05 remains BLOCKED and #442 video cleanup FROZEN.

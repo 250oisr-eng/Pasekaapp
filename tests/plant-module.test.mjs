@@ -16,7 +16,7 @@ test('schema 3 backup requires plant sections while schema 2 stays compatible',(
 
 test('schema 3 migrates through schema 15 and schema 16 is rejected as a future version',()=>{const s={meta:{schemaVersion:3,nextHiveNumber:2},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};const migrate=loadFunction('migrateState',{S:s,uid:()=> 'id'});assert.equal(migrate(),true);assert.equal(s.meta.schemaVersion,15);const future={meta:{schemaVersion:16},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};const futureMigrate=loadFunction('migrateState',{S:future,uid:()=> 'id'});assert.throws(()=>futureMigrate(),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');});
 
-test('forage module exposes text, voice and AI discussion without auto-confirming AI output',async()=>{const {readFile}=await import('node:fs/promises');const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');assert.match(html,/data-tab="forage"/);assert.match(html,/id="plantObservationForm"/);assert.match(html,/onclick="dictatePlantObservation\(\)"/);assert.match(html,/onclick="askPlantAI\(\)"/);assert.match(html,/не подтвердит вид автоматически/i);assert.match(sw,/paseka-shell-v\d+/);});
+test('forage module exposes text, voice and AI discussion without auto-confirming AI output',async()=>{const {readFile}=await import('node:fs/promises');const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');assert.match(html,/data-subtab="forage"/);assert.match(html,/id="plantObservationForm"/);assert.match(html,/onclick="dictatePlantObservation\(\)"/);assert.match(html,/onclick="askPlantAI\(\)"/);assert.match(html,/не подтвердит вид автоматически/i);assert.match(sw,/paseka-shell-v\d+/);});
 
 test('photo-only observation does not invent a catalogue species and can retain optional coordinates',()=>{const build=loadFunction('buildPlantObservationDraft');const media=[{kind:'image',name:'flower.jpg',type:'image/jpeg',data:'data:image/jpeg;base64,AAAA'}];const r=build({plantName:'',observedAt:'2026-06-12',media,latitude:'53.2',longitude:'45.1',locationAccuracy:'25',shareConsent:true},[],()=> 'id-1','2026-06-12T10:00:00.000Z');assert.equal(r.plant,null);assert.equal(r.observation.plantId,null);assert.equal(r.observation.plantName,'Растение по фотографии — требуется определение');assert.equal(r.observation.source,'photo');assert.equal(r.observation.latitude,53.2);assert.equal(r.observation.longitude,45.1);assert.equal(r.observation.locationAccuracyM,25);assert.equal(r.observation.shareStatus,'awaiting_cloud_sync');});
 test('photo plus dictated observation is marked mixed and existing plant links are retained',()=>{const build=loadFunction('buildPlantObservationDraft');const r=build({plantName:'Липа',observedAt:'2026-06-12',source:'voice',media:[{kind:'image',name:'lipa.jpg',type:'image/jpeg',data:'data:image/jpeg;base64,AAAA'}]},[{id:'p1',commonName:'Липа',identificationStatus:'unverified'}],()=> 'unused','now');assert.equal(r.plant.id,'p1');assert.equal(r.observation.source,'mixed');assert.equal(r.observation.plantId,'p1');});
@@ -27,3 +27,23 @@ test('photo capture, optional GPS and explicit shared-catalog consent are presen
 test('shared plant atlas migration separates species, regional risk, private observations and photos',()=>{for(const table of ['plant_species','plant_regional_assessments','plant_observations','plant_observation_media'])assert.match(migration,new RegExp('CREATE TABLE public\\.'+table+'\\b'));assert.match(migration,/UNIQUE \(species_id, region_code\)/);assert.match(migration,/contribution_consent boolean NOT NULL DEFAULT false/);assert.match(migration,/visibility <> 'public' OR \(contribution_consent = true AND moderation_status = 'approved'\)/);assert.match(migration,/latitude numeric\(9,6\)/);assert.match(migration,/storage_key text NOT NULL UNIQUE/);assert.match(migration,/cultivation_advice text NOT NULL DEFAULT 'unknown'/);assert.match(migration,/invasive_status text NOT NULL DEFAULT 'unknown'/);});
 
 test('schema 9 repairs a missing inventory section once without repeating migration',()=>{const s={meta:{schemaVersion:9},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],equipmentLabels:{bodies:{}}};const migrate=loadFunction('migrateState',{S:s,uid:()=> 'repair-id'});assert.equal(migrate(),true);assert.deepEqual(s.equipmentInventory,{bodies:{},events:[]});assert.equal(migrate(),false)});
+
+test('flowering observation history reaches older records and applies search, phase and year without mutation',()=>{
+ const filter=loadFunction('filterPlantObservationHistory');
+ const observations=Array.from({length:91},(_,i)=>({id:String(i),plantName:i===90?'Старое растение':'Липа',locationLabel:'Луг',observedAt:i===90?'2025-06-01':'2026-07-01',phase:i===90?'beginning':'mass'}));
+ const before=JSON.stringify(observations);
+ assert.equal(filter(observations,'','all','').length,91);
+ assert.deepEqual(filter(observations,'старое','beginning','2025').map(r=>r.id),['90']);
+ assert.equal(filter(observations,'луг','mass','2026').length,90);
+ assert.equal(filter(observations,'','finished','').length,0);
+ assert.equal(JSON.stringify(observations),before);
+});
+
+test('flowering history skips corrupted non-object records without modifying source',()=>{
+ const filter=loadFunction('filterPlantObservationHistory');
+ const rows=[null,'legacy garbage',17,[],{id:'safe',plantName:'Клевер',observedAt:'2026-08-11',phase:'mass'}];
+ const before=JSON.stringify(rows);
+ assert.deepEqual(filter(rows,'','all','').map(x=>x.id),['safe']);
+ assert.deepEqual(filter(rows,'клевер','mass','2026').map(x=>x.id),['safe']);
+ assert.equal(JSON.stringify(rows),before);
+});

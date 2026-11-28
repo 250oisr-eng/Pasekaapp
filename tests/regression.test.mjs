@@ -12,8 +12,6 @@ const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', 
 const sectionalPhysicalLayoutSource = await readFile(new URL('../js/sectional-physical-layout.js', import.meta.url), 'utf8');
 const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
 const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');
-const sectionalEntranceOperationsSource = await readFile(new URL('../js/sectional-entrance-operations.js', import.meta.url), 'utf8');
-const sectionalOP03Source = await readFile(new URL('../js/sectional-op03-body-swap.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -27,8 +25,6 @@ new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', sectionalPhysicalLayoutSource)(appWindow);
 new Function('window', familyLineageSource)(appWindow);
 new Function('window', sectionalOperationCoordinatorSource)(appWindow);
-new Function('window', sectionalEntranceOperationsSource)(appWindow);
-new Function('window', sectionalOP03Source)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -38,6 +34,11 @@ function extractFunction(name) {
   const match = re.exec(html);
   assert.ok(match, 'Function not found: ' + name);
   const start = match.index;
+  if (name === 'saveExtractionOnce') {
+    const end=html.indexOf('\n/* B07: main-screen/real-store binding.',start);
+    assert.ok(end>start,'extraction handler ends before sectional runtime bindings');
+    return html.slice(start,end).trim();
+  }
   if (name === 'defaultHive') {
     const end = html.indexOf("\n$('hiveForm').onsubmit=defaultHive;", start);
     assert.ok(end > start, 'defaultHive form binding follows the handler');
@@ -51,8 +52,17 @@ function extractFunction(name) {
 function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
   const deps = globals;
+  // Standalone regression handlers represent a previously verified bootstrap.
+  // Dedicated first-launch tests exercise ready=false and abort paths separately.
+  deps.startupWriteGate ||= {ready:true};
+  deps.rejectWhileStartupNotReady ||= ()=>deps.startupWriteGate.ready?null:Object.assign(new Error('Startup not complete'),{name:'PasekaStartupBlockedError'});
+  deps.showStartupFailure ||= ()=>{};
   if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
   deps.window ||= appWindow;
+  // Execute actual profile/evidence predicates, not stubs.
+  deps.SECTIONAL_HONEY_QA_WRITE_ENABLED ??= false;
+  deps.isSectionalHive ||= new Function('deps','with (deps) { return ('+extractFunction('isSectionalHive')+'); }')(deps);
+  deps.sectionalExtractionHasEvidence ||= new Function('deps','with (deps) { return ('+extractFunction('sectionalExtractionHasEvidence')+'); }')(deps);
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
@@ -60,8 +70,6 @@ function loadFunction(name, globals = {}) {
   deps.PasekaSectionalPhysicalLayout ||= appWindow.PasekaSectionalPhysicalLayout;
   deps.PasekaFamilyLineage ||= appWindow.PasekaFamilyLineage;
   deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;
-  deps.PasekaSectionalEntranceOperations ||= appWindow.PasekaSectionalEntranceOperations;
-  deps.PasekaSectionalOP03BodySwap ||= appWindow.PasekaSectionalOP03BodySwap;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -149,7 +157,9 @@ test('queen registry renders chronological event timelines, unknown dates and pr
  const escapeHtml=value=>String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
  const render=loadFunction('renderQueenRegistry',{
   $:id=>id==='queenRegistryList'?host:null,
+  queenRegistryFamily:loadFunction('queenRegistryFamily'),
   S:{
+   hives:[{id:'h1'}],
    families:[{id:'f1',name:'Семья 1',hive:'h1',currentQueenId:'q2'}],
    queens:[
     {id:'q1',familyId:'f1',code:'Q-OLD',status:'replaced',createdAt:'2026-05-01T00:00:00Z'},
@@ -609,12 +619,12 @@ test('AI frame move completes the full preview-confirmation-persistence flow ato
  assert.equal(saved.aiMessages[0].commandStatus,'applied');
  assert.deepEqual(saved.layouts.h1.boxes[3].frames.map(frame=>frame.frameId),['A']);
 });
-test('AI assistant has a dedicated central navigation control and a themed workspace',()=>{
+test('AI assistant has a dedicated navigation control and a themed workspace',()=>{
   assert.match(html,/<button data-tab="ai" class="nav-ai-button"[^>]*aria-label="Открыть ИИ-помощника"/);
   assert.match(html,/class="ai-hero"/);
   assert.match(html,/class="ai-hero-orb"/);
   assert.match(html,/class="card ai-console-card"/);
-  assert.ok(html.includes('main>nav[aria-label="Основные разделы"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 66px'));
+  assert.match(html,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
 });
 
 test('inline application JavaScript remains syntactically valid',()=>{
@@ -655,15 +665,24 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 });
 
 
-test('hybrid workspace exposes eleven clear navigation destinations and home AI entry points',()=>{
+test('workspace exposes five primary sections, five grouped routes and one canonical AI entry',()=>{
   const navStart=html.indexOf('<nav aria-label="Основные разделы">');
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
   const nav=html.slice(navStart,navEnd);
-  assert.equal((nav.match(/data-tab=/g)||[]).length,11);
-  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','План','Потери','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
-  assert.match(nav,/<span class="nav-ai-label">ИИ<\/span>/);
-  assert.ok(html.includes('id="homeAIQuestion"'));
+  assert.equal((nav.match(/data-tab=/g)||[]).length,6);
+  for(const label of ['Главная','Пасека','Журнал','Аналитика','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
+  for(const route of ['entrance','varroa','forage','incidents','deadout']){
+    assert.ok(!nav.includes('data-tab="'+route+'"'));
+    assert.ok(html.includes('data-subtab="'+route+'"'));
+  }
+  assert.match(nav,/data-tab="ai"[^>]*>ИИ<\/button>/);
+  assert.match(nav,/data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"/);
+  assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
+  assert.equal((nav.match(/data-tab="ai"/g)||[]).length,1);
+  assert.ok(!html.includes('id="homeAIQuestion"'));
+  assert.match(html,/<button type="button" onclick="openWorkspaceRecord\(''\)">＋ Записать событие<\/button>/);
+  assert.ok(html.includes('id="aiQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
   assert.ok(html.includes('class="ai-prompt-chips"'));
 });
@@ -693,17 +712,15 @@ test('AI command confirmation can be explicitly confirmed by voice without remov
  assert.equal((html.match(/if\(!voiceConfirmed&&!confirm\(/g)||[]).length,2);
  assert.match(html,/handleApiaryVoiceTranscript\(transcript\)/);
 });
-test('home AI entry copies the chosen prompt into chat without sending it',()=>{
-  let activeTab='',focused=false;
-  const nodes={homeAIQuestion:{value:'  Проверь состояние семей  '},aiQuestion:{value:'',focus(){focused=true}}};
-  const ask=loadFunction('askAIFromHome',{$:id=>nodes[id],showTab:tab=>{activeTab=tab}});
-  ask();
-  assert.equal(activeTab,'ai');
-  assert.equal(nodes.aiQuestion.value,'Проверь состояние семей');
-  assert.equal(focused,true);
-  const helper=loadFunction('useAIPrompt',{$:id=>nodes[id]});
+test('canonical AI prompt chip fills the AI draft without sending it',()=>{
+  let focused=false,sent=false;
+  const nodes={aiQuestion:{value:'',focus(){focused=true}}};
+  const helper=loadFunction('useAIPrompt',{$:id=>nodes[id],sendAIQuestion:()=>{sent=true}});
   helper('Составь план работ');
   assert.equal(nodes.aiQuestion.value,'Составь план работ');
+  assert.equal(focused,true);
+  assert.equal(sent,false);
+  assert.ok(!html.includes('askAIFromHome('));
 });
 
 
@@ -863,7 +880,8 @@ test('journal draft from AI workspace maps explicit inspection values and keeps 
     showTab:tab=>tabs.push(tab),
     newRecord:()=>{opened=true},
     toggleOccupancy:()=>{toggled=true},
-    extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
+    extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText'),
+    journalBroodCapacity:()=>6
   });
   prepare();
   assert.equal(opened,true);
@@ -963,7 +981,7 @@ test('batch frame move never treats winter-forbidden boxes as installed even in 
 });
 
 test('journal draft validator accepts a complete and correctly linked inspection',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[{id:'f1',hive:'h1'}],records:[]};
  const result=validate({id:'r1',date:'2024-02-29',type:'Осмотр',hive:'h1',family:'f1',occupancy:5,broodFrames:3,freeDrawn:1},state);
  assert.equal(result.ok,true);
@@ -971,7 +989,7 @@ test('journal draft validator accepts a complete and correctly linked inspection
 });
 
 test('journal draft validator rejects impossible calendar dates and unsupported record types',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[]};
  const result=validate({id:'r1',date:'2026-02-30',type:'Неизвестный тип',hive:'h1',family:''},state);
  assert.equal(result.ok,false);
@@ -980,7 +998,7 @@ test('journal draft validator rejects impossible calendar dates and unsupported 
 });
 
 test('journal draft validator rejects missing hives and cross-hive family links',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'},{id:'h2'}],families:[{id:'f1',hive:'h1'}],records:[]};
  const result=validate({id:'r1',date:'2026-11-12',type:'Заметка',hive:'h2',family:'f1'},state);
  assert.ok(result.errors.some(error=>error.code==='journal_family_mismatch'));
@@ -989,7 +1007,7 @@ test('journal draft validator rejects missing hives and cross-hive family links'
 });
 
 test('journal draft validator accepts an archived family link only while editing its original record',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[]};
  const archived={id:'r1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
  const draft={id:'r1',date:'2026-11-12',type:'Заметка',hive:'h1',family:'old-family'};
@@ -998,7 +1016,7 @@ test('journal draft validator accepts an archived family link only while editing
 });
 
 test('journal draft validator rejects duplicate record identifiers',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[{id:'existing'}]};
  const result=validate({id:'existing',date:'2026-11-12',type:'Заметка',hive:'h1',family:''},state);
  assert.ok(result.errors.some(error=>error.code==='journal_duplicate_id'));
@@ -1006,14 +1024,14 @@ test('journal draft validator rejects duplicate record identifiers',()=>{
 });
 
 test('journal inspection metrics must be whole numbers within the six-frame capacity',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[]};
  const result=validate({id:'r1',date:'2026-11-12',type:'Осмотр',hive:'h1',family:'',occupancy:6.5,broodFrames:-1,freeDrawn:7},state);
  assert.equal(result.errors.filter(error=>error.code==='journal_invalid_frame_count').length,3);
 });
 
 test('journal treatment follow-up date is validated as a real date',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[]};
  const result=validate({id:'r1',date:'2026-11-12',type:'Обработка',hive:'h1',family:'',treatmentCheck:'2026-02-30'},state);
  assert.ok(result.errors.some(error=>error.code==='journal_invalid_treatment_check_date'));
@@ -1808,10 +1826,10 @@ test('profile assembly rejects removing a brood box that still owns a family',()
 });
 
 
-test('mobile navigation includes all eleven sections and is positioned as a safe-area-aware bottom bar',()=>{
+test('mobile navigation includes five primary sections and is positioned as a safe-area-aware bottom bar',()=>{
  const nav=html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/);
  assert.ok(nav);
- assert.equal((nav[1].match(/data-tab=/g)||[]).length,11);
+ assert.equal((nav[1].match(/data-tab=/g)||[]).length,6);
  assert.match(html,/main>nav\[aria-label="Основные разделы"\][\s\S]*?position:fixed!important/);
  assert.match(html,/env\(safe-area-inset-bottom,0px\)/);
 });
@@ -1874,12 +1892,14 @@ test('journal supports family filtering and inline attachment previews',()=>{
  const source=extractFunction('renderJournalRecords');
  assert.match(source,/familySelect/);
  assert.match(source,/mediaHtml\(r\.media\)/);
- assert.match(source,/mediaNames/);
+ const selection=extractFunction('filteredJournalRows');
+ assert.match(source,/filteredJournalRows\(familyById\)/);
+ assert.match(selection,/mediaNames/);
 });
 
 test('hive detail keeps the hives navigation destination active',()=>{
  const paint=extractFunction('paintTab');
- assert.match(paint,/tab==='hiveDetail'&&x\.dataset\.tab==='hives'/);
+ assert.match(paint,/hiveDetail:'hives'/);assert.match(paint,/entrance:'hives',forage:'planning',varroa:'settings'/);assert.match(paint,/x\.dataset\.tab===parent/);
  assert.doesNotMatch(paint,/tab==='hiveDetail'&&x\.dataset\.tab==='home'/);
 });
 
@@ -2741,6 +2761,35 @@ test('IndexedDB open rejects a blocked upgrade and closes a late connection',asy
  assert.equal(deps.db,null);
 });
 
+test('legacy current-version IndexedDB with a missing required store is rejected without mutation',async()=>{
+ const request={},calls=[];
+ const fakeDb={
+  objectStoreNames:{contains(name){return name!=='entrance_media'}},
+  close(){this.closed=true},
+  transaction(){calls.push('transaction');throw new Error('should not open a transaction')},
+  createObjectStore(){calls.push('create');throw new Error('should not mutate schema')}
+ };
+ const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'full_backup',db:null,indexedDB:{open(name,version){assert.equal(version,3);return request}}};
+ const pending=loadFunction('openDB',deps)();
+ request.result=fakeDb;
+ request.onsuccess();
+ await assert.rejects(pending,/Неполная структура локальной базы.*entrance_media/);
+ assert.equal(fakeDb.closed,true);
+ assert.equal(deps.db,null);
+ assert.deepEqual(calls,[]);
+});
+
+test('complete current-version IndexedDB opens without changing its schema',async()=>{
+ const request={},visited=[];
+ const fakeDb={objectStoreNames:{contains(name){visited.push(name);return ['main','full_backup','entrance_media'].includes(name)}},close(){}};
+ const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'full_backup',db:null,indexedDB:{open(){return request}}};
+ const pending=loadFunction('openDB',deps)();
+ request.result=fakeDb;request.onsuccess();
+ assert.equal(await pending,false);
+ assert.deepEqual(visited,['main','full_backup','entrance_media']);
+ assert.equal(deps.db,fakeDb);
+});
+
 test('IndexedDB connection closes on versionchange so another tab can upgrade',async()=>{
  const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
  const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}}};
@@ -2856,7 +2905,8 @@ test('voice inspection fills only empty fields, preserves the source note and ne
  };
  const apply=loadFunction('applyVoiceInspectionFieldsToOpenRecord',{
   $:id=>nodes[id]||null,
-  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
+  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText'),
+  journalBroodCapacity:()=>6
  });
  const result=apply('Матка обнаружена, свежие яйца есть, расплод на 3 рамках, занято 5 рамок.');
  assert.equal(result.ok,true);
@@ -2874,7 +2924,8 @@ test('voice inspection refuses an oversized note before changing any field',()=>
  const nodes={rtext:{value:'x'.repeat(12000)},roccupancy:{value:''}};
  const apply=loadFunction('applyVoiceInspectionFieldsToOpenRecord',{
   $:id=>nodes[id]||null,
-  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
+  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText'),
+  journalBroodCapacity:()=>6
  });
  const result=apply('Занято 5 рамок.');
  assert.equal(result.reason,'note_limit');
@@ -3111,7 +3162,7 @@ test('family transfer targets follow each hive profile keys and winter restricti
 
 
 test('Varroa journal is integrated as a phone-only offline section with migration and backup support',()=>{
- assert.match(html,/data-tab="varroa"/);
+ assert.match(html,/data-subtab="varroa"/);
  assert.match(html,/id="varroaForm"/);
  assert.match(html,/id="varroaHive"/);
  assert.match(html,/id="varroaType"/);
@@ -3135,7 +3186,7 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
 
 
 test('pesticide incident dossier is integrated with smartphone capture, local state, backup and migration',()=>{
- assert.match(html,/data-tab="incidents"/);
+ assert.match(html,/data-subtab="incidents"/);
  assert.match(html,/id="incidentForm"/);
  assert.match(html,/capture="environment"/);
  assert.match(html,/captureIncidentLocation\(\)/);
@@ -3606,7 +3657,8 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v319/);
+ assert.match(sw,/\.\/js\/p0-source-inventory\.js/);
+ assert.match(sw,/paseka-shell-v332/);
 });
 
 
@@ -3732,7 +3784,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v319/);
+  assert.match(source,/paseka-shell-v332/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
@@ -3742,7 +3794,7 @@ test('service worker caches the sectional layout validator and increments its sh
 
 test('all application integrity gates pass the physical layout validator to sectional operation inspection',()=>{
  const calls=html.split('\n').filter(line=>line.includes('PasekaSectionalOperationCoordinator.inspect('));
- assert.ok(calls.length>=3,'save, virtual-apiary and raw-backup integrity gates must all inspect sectional operations');
+ assert.equal(calls.length,3,'save, virtual-apiary and raw-backup integrity gates must all inspect sectional operations');
  assert.ok(calls.every(call=>call.includes('PasekaFamilyLineage')&&call.includes('PasekaSectionalPhysicalLayout')),'every inspection call must receive both required domain validators');
 });
 
@@ -3752,4 +3804,333 @@ test('save integrity gate validates physical body inventory before persisting',(
  const saveSource=html.slice(start,end);
  assert.match(saveSource,/PasekaInventory\.inspect\(S,PasekaLabels,profileForHive\)/);
  assert.match(saveSource,/if\(physicalLayoutErrors\.length\)/);
+});
+
+test('feeding ledger attributes historical snapshot-only family and quarantines conflicting identity',()=>{
+ const build=loadFunction('buildFeedingLedger');
+ const rows=[
+  {id:'legacy',type:'Подкормка',hive:'h',familySnapshotAtTime:{id:'f1',name:'Семья в момент выдачи'},date:'2026-10-10',feedingAmount:'200 г'},
+  {id:'normal',type:'Подкормка',hive:'h',family:'f1',date:'2026-10-11',feedingAmount:'100 г'},
+  {id:'conflict',type:'Подкормка',hive:'h',family:'f1',familySnapshotAtTime:{id:'f2'},date:'2026-10-12',feedingAmount:'999 г'},
+  {id:'no-family',type:'Подкормка',hive:'h',date:'2026-10-13',feedingAmount:'50 г'},
+  {id:'archived',type:'Подкормка',hive:'h',family:'f2',date:'2026-10-14',feedingAmount:'20 г',archivedAt:'2026-10-15'}
+ ];
+ const original=structuredClone(rows);
+ const groups=build(rows,[{id:'f1',name:'Первая'},{id:'f2',name:'Вторая'}],'h');
+ const linked=groups.find(g=>g.familyId==='f1');
+ assert.equal(linked.count,2);
+ assert.deepEqual(linked.totals,[{unit:'г',amount:300,count:2}]);
+ assert.equal(linked.name,'Семья в момент выдачи','keep historical family name');
+ const conflict=groups.find(g=>g.familyId==='__conflicted__');
+ assert.equal(conflict.count,1);
+ assert.equal(conflict.ambiguousCount,1);
+ assert.deepEqual(conflict.totals,[],'conflicting family identity cannot silently inflate totals');
+ const unknown=groups.find(g=>g.familyId==='__unassigned__');
+ assert.deepEqual(unknown.totals,[{unit:'г',amount:50,count:1}]);
+ assert.equal(groups.some(g=>g.familyId==='f2'),false,'archived record is excluded');
+ assert.deepEqual(rows,original,'feeding ledger remains read-only');
+});
+
+test('queen actual introduction or replacement rejects future dates before any state mutation',()=>{
+ const apply=loadFunction('applyQueenChange');
+ const state={families:[{id:'family',hive:'h',currentQueenId:'queen-old',queen:{code:'old'}}],
+  queens:[{id:'queen-old',familyId:'family',status:'current',code:'old'}],queenEvents:[]};
+ const before=structuredClone(state);
+ for(const draft of [
+  {familyId:'family',code:'new',date:'2099-12-31'},
+  {familyId:'family',queenId:'queen-old',code:'edited',date:'2099-12-31'}
+ ]){
+  assert.throws(()=>apply(state,draft,()=> 'must-not-be-called'),/будущем/);
+  assert.deepEqual(state,before,'future event cannot replace/modify queen or append an audit event');
+ }
+ const valid=apply(state,{familyId:'family',code:'new',date:null},(()=>{let n=0;return()=> 'valid-'+(++n)})());
+ assert.equal(valid.replaced,true);
+ assert.equal(state.queenEvents[0].date,null,'unknown historical introduction day is not invented');
+});
+
+test('honey-pair double activation produces one physical change while persistence is pending',async()=>{
+ let finishWrite, writes=0;
+ const deps={
+  S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[],meta:{}},
+  selectedStructureHive:()=> 'h',honeyPairSaving:false,alert(){},render(){},
+  save(){writes++;return new Promise(resolve=>{finishWrite=resolve})}
+ };
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ const toggle=loadFunction('toggleHoneyPair',deps);
+ const first=toggle();
+ const repeated=toggle();
+ assert.equal(writes,1);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[true,true]);
+ finishWrite(false);
+ assert.equal(await first,false);
+ assert.equal(await repeated,false);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+ assert.deepEqual(deps.S.auditLog,[]);
+ const retry=toggle();
+ finishWrite(true);
+ assert.equal(await retry,true);
+ assert.equal(writes,2);
+ assert.deepEqual(deps.S.auditLog.map(event=>event.type),['honey_pair_installed']);
+});
+
+test('honey-pair state and audit both roll back when storage fails or rejects',async()=>{
+ for(const failure of ['return_false','throws']){
+  const deps={
+   S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[],meta:{}},
+   selectedStructureHive:()=> 'h',honeyPairSaving:false,renders:0,messages:[],
+   alert(text){this.messages.push(text)},render(){this.renders++},
+   save:async()=>{if(failure==='throws')throw new Error('test interrupted write');return false}
+  };
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction('toggleHoneyPair',deps)(),false);
+  assert.deepEqual(deps.S.layouts,old.layouts,'never display installed boxes after failed commit');
+  assert.deepEqual(deps.S.auditLog,old.auditLog,'unsaved physical event must be removed');
+  assert.equal(deps.renders,1,'restore UI from durable state');
+  assert.equal(deps.messages.length,1);
+ }
+});
+test('honey-pair pre-commit audit rejection restores old layout without persisting',async()=>{
+ let called=0;
+ const deps={S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[]},
+  selectedStructureHive:()=> 'h',honeyPairSaving:false,save:async()=>{called++;return true},render(){},alert(){}};
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.logAudit=()=>{throw new Error('audit unavailable')};
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ assert.equal(await loadFunction('toggleHoneyPair',deps)(),false);
+ assert.equal(called,0,'never try saving after audit failure');
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+});
+test('winter and summer transitions restore layout and history on rejected IndexedDB save',async()=>{
+ for(const mode of ['winter','summer']){
+  const currentMode=mode==='winter'?'summer':'winter';
+  const base={mode:currentMode,installedBoxes:mode==='winter'?[1,2]:[1,3,4],
+   winterOrder:currentMode==='winter'?[1,3,4]:[],
+   honeyBoxInstalled:currentMode==='winter'?[false,false]:[true,true],honeyInstalled:currentMode!=='winter',
+   boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}])),assemblies:[]};
+  const form={modeTransition:{style:{display:'block'}},
+   winterSlot0:{value:'1'},winterSlot1:{value:'3'},winterSlot2:{value:'4'}};
+  const deps={S:{layouts:{h:base},auditLog:[]},pendingAssemblyMode:mode,
+   selectedStructureHive:()=> 'h', $:id=>form[id],
+   document:{querySelectorAll:()=>[{value:'1'},{value:'3'}],querySelector:()=>({checked:false})},
+   render(){this.rendered=(this.rendered||0)+1},alert(){},
+   save:async()=>false};
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.rememberCurrentAssembly=l=>l.assemblies.push({mode:l.mode,installedBoxes:l.installedBoxes.slice()});
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction(mode==='winter'?'commitWinter':'commitSummer',deps)(),false);
+  assert.deepEqual(deps.S.layouts,old.layouts,'discard uncommitted physical and assembly history');
+  assert.deepEqual(deps.S.auditLog,[]);
+  assert.equal(form.modeTransition.style.display,'block','do not announce completed mode change before save');
+  assert.equal(deps.pendingAssemblyMode,mode);
+ }
+});
+test('physical assembly transition commits once after a successful save',async()=>{
+ let saves=0;
+ const layout={mode:'summer',installedBoxes:[1,2],winterOrder:[],honeyBoxInstalled:[true,true],
+  honeyInstalled:true,boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}])),assemblies:[]};
+ const form={modeTransition:{style:{display:'block'}},winterSlot0:{value:'1'},winterSlot1:{value:'3'},winterSlot2:{value:'4'}};
+ const deps={S:{layouts:{h:layout},auditLog:[]},pendingAssemblyMode:'winter',
+  selectedStructureHive:()=> 'h',$:id=>form[id],render(){},alert(){},
+  save:async()=>{saves++;return true}};
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.rememberCurrentAssembly=l=>l.assemblies.push({mode:l.mode,installedBoxes:l.installedBoxes.slice()});
+ deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+ deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ assert.equal(await loadFunction('commitWinter',deps)(),true);
+ assert.equal(saves,1);assert.equal(deps.S.layouts.h.mode,'winter');
+ assert.deepEqual(deps.S.layouts.h.installedBoxes,[1,3,4]);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+ assert.equal(deps.S.auditLog.length,1);assert.equal(deps.S.layouts.h.assemblies.length,1);
+ assert.equal(form.modeTransition.style.display,'none');
+ assert.equal(deps.pendingAssemblyMode,null);
+});
+
+test('Done button keeps hive assembly editable and unconfirmed when persistence fails',async()=>{
+ for(const outcome of ['false','exception','success']){
+  const layout={mode:'summer',installedBoxes:[1],winterOrder:[],
+   honeyBoxInstalled:[false,false],honeyInstalled:false,setupComplete:false,setupEditing:true,assemblies:[],
+   boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}]))};
+  const deps={S:{layouts:{h:layout},auditLog:[],meta:{}},pendingAssemblyMode:'summer',
+   assemblyEditSnapshot:null,selectedStructureHive:()=> 'h',
+   profileForHive:()=>({family:'farrar'}),render(){this.rendered=(this.rendered||0)+1},
+   renderStructure(){this.structureDrawn=(this.structureDrawn||0)+1},
+   alert(message){this.warnings=(this.warnings||[]).concat(message)},
+   save:async()=>{if(outcome==='exception')throw new Error('test storage interruption');return outcome==='success'}};
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction('finishAssemblySetup',deps)(),outcome==='success');
+  if(outcome==='success'){
+   assert.equal(deps.S.layouts.h.setupComplete,true);
+   assert.equal(deps.S.layouts.h.setupEditing,false);
+   assert.equal(deps.S.auditLog.length,1);
+   assert.equal(deps.pendingAssemblyMode,null);
+   assert.equal(deps.structureDrawn,1);
+  }else{
+   assert.deepEqual(deps.S.layouts,old.layouts,'never acknowledge completion when write did not commit');
+   assert.deepEqual(deps.S.auditLog,old.auditLog,'no fabricated audit after failed write');
+   assert.equal(deps.pendingAssemblyMode,'summer','preserve unsaved editing workflow');
+   assert.equal(deps.S.layouts.h.setupEditing,true);
+   assert.equal(deps.rendered,1);
+  }
+ }
+});
+
+test('inventory persistence rollback survives rejected promise and preserves existing physical items',async()=>{
+ for(const outcome of ['false','exception','success']){
+  const before={equipmentInventory:{bodies:{old:{id:'old',kind:'brood',storageLocation:'Склад',condition:'good'}},events:[]},meta:{}};
+  const deps={S:structuredClone(before),warnings:[],renders:0,inventoryRenders:0,reconciliationRenders:0,
+   save:async()=>{if(outcome==='exception')throw new Error('test storage interruption');return outcome==='success'},
+   render(){this.renders++},renderEquipmentInventory(){this.inventoryRenders++},
+   renderEquipmentReconciliation(){this.reconciliationRenders++},
+   alert(message){this.warnings.push(message)}
+  };
+  deps.S.equipmentInventory.bodies.new={id:'new',kind:'honey',storageLocation:'QA-СКЛАД'};
+  const result=await loadFunction('saveInventoryChange',deps)(structuredClone(before));
+  assert.equal(result,outcome==='success');
+  if(outcome==='success'){
+   assert.equal(deps.S.equipmentInventory.bodies.new.id,'new');
+   assert.equal(deps.inventoryRenders,1);assert.equal(deps.reconciliationRenders,1);
+   assert.equal(deps.renders,0);
+  }else{
+   assert.deepEqual(deps.S.equipmentInventory,before.equipmentInventory,
+     'failure must never retain an uncommitted physical item or event');
+   assert.equal(deps.renders,1);
+   assert.equal(deps.inventoryRenders,0);
+   assert.equal(deps.reconciliationRenders,0);
+   assert.equal(deps.warnings.length,1);
+  }
+ }
+});
+
+test('honey extraction is atomic across frames, physical pair, journal and audit on failed save',async()=>{
+ for(const failure of ['false','exception','success']){
+  const frames={H1:[{frameId:'fr-1',status:'sealed',history:[]}],H2:[{frameId:'fr-2',status:'nectar',history:[]}]};
+  const base={hives:[{id:'h',number:1}],layouts:{h:{mode:'summer',honeyBoxInstalled:[true,true],
+   honeyInstalled:true,honeyFrames:frames}},records:[],extractions:[],auditLog:[],meta:{}};
+  const nodes={extractDate:{value:'2026-11-25'},extractDlg:{closed:false,close(){this.closed=true}}};
+  const deps={S:structuredClone(base),messages:[],renders:0,saveCalls:0,
+   $:id=>nodes[id],document:{
+    querySelectorAll:()=>[{dataset:{hive:'h'}}],
+    querySelector:selector=>selector.startsWith('.extract-pair')?{checked:true}:
+      selector.startsWith('.extract-kg')?{value:'2.5'}:null
+   },
+   PasekaSeasonPlanning:{parseDate:value=>value==='2026-11-25'?new Date('2026-11-25'):null},
+   PasekaLabels:{appendFrameEvent:(frame,type,details,at)=>frame.history.push({type,details,at})},
+   today:()=> '2026-11-27',hname:()=> 'Улей 1',
+   frameLocationName:(key,hiveId)=>{assert.equal(hiveId,'h','never treat Array.map index as hive ID');return key},uid:(()=>{let n=0;return()=> 'test-'+(++n)})(),
+   save:async()=>{deps.saveCalls++;if(failure==='exception')throw new Error('test interrupted IndexedDB');return failure==='success'},
+   alert(message){this.messages.push(message)},render(){this.renders++}
+  };
+  deps.layoutFor=id=>deps.S.layouts[id];deps.frameArray=(layout,key,hiveId)=>{assert.equal(hiveId,'h');return layout.honeyFrames[key]};
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  assert.equal(await loadFunction('saveExtractionOnce',deps)(),failure==='success');
+  assert.equal(deps.saveCalls,1);
+  if(failure==='success'){
+   assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+   assert.equal(deps.S.layouts.h.honeyFrames.H1[0].status,'extracted');
+   assert.equal(deps.S.layouts.h.honeyFrames.H2[0].status,'extracted');
+   assert.equal(deps.S.layouts.h.honeyFrames.H1[0].history.length,1);
+   assert.equal(deps.S.extractions.length,1);
+   assert.equal(deps.S.records.length,1);
+   assert.equal(deps.S.auditLog.length,1);
+   assert.equal(nodes.extractDlg.closed,true);
+  }else{
+   assert.deepEqual(deps.S.layouts,base.layouts,'pair and frame history must revert on failed commit');
+   assert.deepEqual(deps.S.extractions,[]);
+   assert.deepEqual(deps.S.records,[]);
+   assert.deepEqual(deps.S.auditLog,[]);
+   assert.equal(nodes.extractDlg.closed,false,'keep editable form after failure');
+   assert.equal(deps.messages.length,1);
+   assert.equal(deps.renders,1);
+  }
+ }
+});
+test('honey extraction rejects invalid/future date and never touches state',async()=>{
+ const state={records:[],extractions:[],layouts:{},auditLog:[]};
+ for(const date of ['2099-12-31','2026-02-30','']){
+  let saves=0;
+  const deps={S:state,$:()=>({value:date}),
+   PasekaSeasonPlanning:{parseDate:value=>value==='2026-02-30'?null:new Date(value)},
+   today:()=> '2026-11-27',save:async()=>{saves++},alert(){}};
+  await loadFunction('saveExtractionOnce',deps)();
+  assert.equal(saves,0);
+  assert.deepEqual(state.records,[]);
+ }
+});
+
+test('rendering extraction history never passes Array.map index as hive ID',()=>{
+ const from=html.indexOf('function renderHiveExtractionActions(){'),to=html.indexOf('\nlet returningHoney',from);
+ assert.ok(from>=0&&to>from,'render function is isolated without following top-level declarations');
+ const source=html.slice(from,to);
+ assert.doesNotMatch(source,/\.map\(frameLocationName\)/);
+ assert.match(source,/x\.item\.boxes\.map\(key=>frameLocationName\(key,x\.item\.hiveId\)\)/);
+ const host={innerHTML:''};
+ const state={extractions:[{id:'ext',date:'2026-11-25',items:[{hiveId:'h',kilograms:2,boxes:['H1','H2'],returnedAt:null}]}]};
+ const fn=new Function('$','S','selectedHiveId','frameLocationName','safe','isSectionalHive',source+';return renderHiveExtractionActions');
+ fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String,loadFunction('isSectionalHive',{S:state}))();
+ assert.match(host.innerHTML,/Корпуса после откачки/);
+ assert.match(host.innerHTML,/H1, H2/);
+});
+
+test('queen registration allocates immutable decimal number and replacement obtains a new number',()=>{
+ const apply=loadFunction('applyQueenChange');let seq=0;const makeId=()=> 'queen-numeric-'+(++seq);
+ const s={families:[{id:'f',hive:'h'}],queens:[],queenEvents:[]};
+ const q=apply(s,{familyId:'f',date:null},makeId).queen;
+ assert.equal(q.code,'М-1');assert.equal(s.meta.nextQueenNumber,2);
+ const before=JSON.stringify(s);assert.throws(()=>apply(s,{familyId:'f',queenId:q.id,code:'М-2'},makeId),/нельзя менять/);assert.equal(JSON.stringify(s),before);
+ const replacement=apply(s,{familyId:'f',date:null},makeId).queen;
+ assert.equal(replacement.code,'М-2');assert.equal(s.queens[0].code,'М-1');
+ assert.throws(()=>apply(s,{familyId:'f',code:'М-1'},makeId),/зарезервирован/);
+});
+
+test('B07 guarded atomic IndexedDB write aborts when memory changed just before put, preserving both records',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'sectional-guard-'+(++indexedDbTestSequence));
+ try{
+  const prior={meta:{revisionId:'r0',schemaVersion:15},value:'main-before'};
+  const backup={at:'2026-11-27T10:00:00.000Z',state:{meta:{revisionId:'r-1',schemaVersion:15},value:'backup-before'}};
+  await seedIndexedDb(db,[['main',prior,'state'],['backup',backup,'previous']]);
+  const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const next={meta:{revisionId:'r1',schemaVersion:15},value:'next'};
+  let checked=0;
+  await assert.rejects(write(next,'r0',()=>{checked++;return false}),/Состояние страницы изменилось/);
+  assert.equal(checked,1);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),prior);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),backup);
+  assert.deepEqual(await write(next,'r0',()=>true),prior);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),next);
+  assert.deepEqual((await readIndexedDb(db,'backup','previous')).state,prior);
+ }finally{db.close();}
+});
+
+
+test('B07 frame registry renders historical physical locations without synthesizing a Farrar layout',()=>{
+ const S={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],layouts:{},equipmentLabels:{bodies:{honey1:'ААХ',b2:'ААБ'}}};
+ const fail=()=>{throw Error('legacy layout access forbidden')};
+ const render=loadFunction('frameLocationName',{S,corpusLabelCode:fail,isHoneyBoxKey:fail});
+ assert.equal(render('honey:honey1','h1'),'Медовый корпус К-ААХ');
+ assert.equal(render('brood:left:b2','h1'),'Гнездовой корпус К-ААБ · секция А');
+ assert.match(render('honey:historical-id','h1'),/historical-id/);
+ assert.match(render('undefined','h1'),/место не уточнено/);
+ assert.deepEqual(S.layouts,{});
+ const details=loadFunction('inventoryEventDetails',{S,hname:id=>'Улей '+id,frameLocationName:fail});
+ assert.equal(details({type:'placed',to:{type:'sectional',hiveId:'h1',bodyRole:'honey'}}),'Улей h1 · общий медовый ярус');
 });

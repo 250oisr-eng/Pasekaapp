@@ -6,6 +6,7 @@ on:
     paths:
       - 'index.html'
       - 'js/**'
+      - 'cloudflare/**'
       - 'tests/**'
       - 'manifest.webmanifest'
       - 'sw.js'
@@ -14,12 +15,17 @@ on:
       - 'capacitor.config.json'
       - 'android/**'
       - 'scripts/prepare-web.mjs'
+      - 'scripts/prepare-android-daily-archives.mjs'
+      - 'android-native/**'
       - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/audit-android-debug-artifact.mjs'
+      - 'diagnostics/android-debug-artifact/**'
       - '.github/workflows/android-debug.yml'
   pull_request:
     paths:
       - 'index.html'
       - 'js/**'
+      - 'cloudflare/**'
       - 'tests/**'
       - 'manifest.webmanifest'
       - 'sw.js'
@@ -28,7 +34,11 @@ on:
       - 'capacitor.config.json'
       - 'android/**'
       - 'scripts/prepare-web.mjs'
+      - 'scripts/prepare-android-daily-archives.mjs'
+      - 'android-native/**'
       - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/audit-android-debug-artifact.mjs'
+      - 'diagnostics/android-debug-artifact/**'
       - '.github/workflows/android-debug.yml'
 
 concurrency:
@@ -53,7 +63,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             npm-${{ runner.os }}-
       - name: Set up Java
@@ -83,7 +93,7 @@ jobs:
       - name: Install Android SDK packages
         run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Run regression tests
         run: npm test
       - name: Prepare web assets
@@ -94,6 +104,8 @@ jobs:
         run: npx cap sync android
       - name: Use Android 15-compatible Gradle toolchain
         run: node scripts/patch-android-gradle.mjs
+      - name: Install native daily archive scheduler
+        run: node scripts/prepare-android-daily-archives.mjs android
       - name: Require Android 15 or newer
         shell: bash
         run: |
@@ -124,10 +136,21 @@ jobs:
             gradle-${{ runner.os }}-
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify debug APK bytes, signer and explicit B05 no-upgrade marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/audit-android-debug-artifact.mjs \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" \
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: paseka-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/DEBUG-ONLY-provenance.json
+            diagnostics/android-debug-artifact/NOT_FOR_ONEPLUS.txt
           if-no-files-found: error
           retention-days: 14

@@ -42,6 +42,58 @@ async function verifyToken(token) {
   if (!ok || !claims.sub) throw new Error('Подпись JWT недействительна');
   return claims.sub;
 }
+async function readBoundedBody(request, maxBytes) {
+  const declaredLength = request.headers.get('content-length');
+  if (declaredLength !== null) {
+    if (!/^\d+$/.test(declaredLength)) {
+      const error = new Error('Invalid Content-Length');
+      error.code = 'INVALID_CONTENT_LENGTH';
+      throw error;
+    }
+    const length = Number(declaredLength);
+    if (!Number.isSafeInteger(length)) {
+      const error = new Error('Invalid Content-Length');
+      error.code = 'INVALID_CONTENT_LENGTH';
+      throw error;
+    }
+    if (length > maxBytes) {
+      const error = new Error('Request body is too large');
+      error.code = 'BODY_TOO_LARGE';
+      throw error;
+    }
+  }
+
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const size = value?.byteLength;
+      if (!Number.isSafeInteger(size) || size < 0 || size > maxBytes - total) {
+        try { await reader.cancel(); } catch {}
+        const error = new Error('Request body is too large');
+        error.code = 'BODY_TOO_LARGE';
+        throw error;
+      }
+      total += size;
+      chunks.push(value);
+    }
+  } finally {
+    try { reader.releaseLock(); } catch {}
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+}
+
 function allowedRate(userId) {
   const now = Date.now(), old = RATE.get(userId) || [];
   const recent = old.filter(t => now-t < 60000);
@@ -75,10 +127,13 @@ export default {
     if (!allowedRate(userId)) return json({error:'Слишком много запросов. Подожди минуту и попробуй снова.'},429,origin);
     let body;
     try {
-      const raw = await request.text();
+      const raw = await readBoundedBody(request, 270000);
       if (raw.length > 90000) return json({error:'Слишком большой запрос. Сократи историю или данные журнала.'},413,origin);
       body = JSON.parse(raw);
-    } catch { return json({error:'Некорректный JSON запроса.'},400,origin); }
+    } catch (error) {
+      if (error?.code === 'BODY_TOO_LARGE') return json({error:'Слишком большой запрос. Сократи историю или данные журнала.'},413,origin);
+      return json({error:'Некорректный JSON запроса.'},400,origin);
+    }
     const question = typeof body.question === 'string' ? body.question.trim().slice(0,4000) : '';
     if (!question) return json({error:'Напиши вопрос для ИИ.'},400,origin);
     const context = JSON.stringify(body.context || {}).slice(0,24000);

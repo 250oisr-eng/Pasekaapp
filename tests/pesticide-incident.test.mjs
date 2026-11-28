@@ -16,6 +16,21 @@ test('whole-apiary scope snapshots all existing hive IDs; unknown scope remains 
  const all=build({...base,scope:'whole_apiary',hiveIds:[]});assert.deepEqual(all.affectedHiveIds,['h1','h2']);
  const unknown=build({...base,scope:'unknown',hiveIds:[]});assert.deepEqual(unknown.affectedHiveIds,[]);
 });
+test('GPS accuracy and capture time are validated and normalized with coordinates',()=>{
+ const captured='2026-08-12T14:30:15.123Z';
+ const row=build({...base,latitude:'53.1',longitude:'45.2',locationAccuracyM:'18',gpsCapturedAt:captured});
+ assert.equal(row.locationAccuracyM,18);assert.equal(row.gpsCapturedAt,captured);
+ assert.equal(build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:''}).gpsCapturedAt,null);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',locationAccuracyM:'-1'}),/точность GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',locationAccuracyM:'18.5'}),/точность GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',locationAccuracyM:'100001'}),/точность GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'yesterday'}),/время фиксации GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-02-30T14:30:15.000Z'}),/время фиксации GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+99:00'}),/время фиксации GPS/i);
+ assert.equal(api.validGpsTimestamp('2026-08-12T14:30:15+14:00'),true);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+14:01'}),/время фиксации GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+23:59'}),/время фиксации GPS/i);
+});
 test('incident validates date, scope, hive selection, dead count and coordinates',()=>{
  assert.throws(()=>build({...base,observedAt:'2026-02-30T12:00'}),/дату и время/i);
  assert.throws(()=>build({...base,sampleCollectedAt:'2026-02-30T12:00'}),/время отбора пробы/i);
@@ -38,6 +53,8 @@ test('integrity preserves incident references to archived hive snapshots and det
  assert.ok(errors.includes('pesticide_incident_duplicate_id'));
  const corrupt=api.inspectPesticideIncidentIntegrity({meta:{schemaVersion:11},hives:[],pesticideIncidents:[{...row,affectedHiveSnapshots:[],latitude:99,causationStatus:'confirmed'}]}).map(x=>x.code);
  assert.ok(corrupt.includes('pesticide_incident_hive_missing'));assert.ok(corrupt.includes('pesticide_incident_invalid_coordinates'));assert.ok(corrupt.includes('pesticide_incident_causation_overstated'));
+ const badGps=api.inspectPesticideIncidentIntegrity({meta:{schemaVersion:11},hives:[],pesticideIncidents:[{...row,locationAccuracyM:-4,gpsCapturedAt:'yesterday'}]}).map(x=>x.code);
+ assert.ok(badGps.includes('pesticide_incident_invalid_gps_accuracy'));assert.ok(badGps.includes('pesticide_incident_invalid_gps_timestamp'));
 });
 test('incident summary reports counts without estimating cause',()=>{
  const rows=[build(base),build({...base,scope:'unknown',hiveIds:[],sampleId:'S-1'})];
@@ -47,4 +64,76 @@ test('incident summary reports counts without estimating cause',()=>{
 test('incident module is loaded before app and cached offline',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8'),sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.ok(html.indexOf('./js/pesticide-incident.js')<html.indexOf('<script>'));assert.ok(sw.includes('./js/pesticide-incident.js'));
+});
+
+
+test('incident inspector rejects mismatched or duplicate historical hive snapshots without changing records',()=>{
+ const incident=build({...base,hiveIds:['h1','h2']});
+ const archivedHives={meta:{schemaVersion:11},hives:[],pesticideIncidents:[incident]};
+ const before=JSON.stringify(archivedHives);
+ assert.deepEqual(api.inspectPesticideIncidentIntegrity(archivedHives),[],
+  'exact original snapshots must remain valid after hives have been removed from current apiary');
+ assert.equal(JSON.stringify(archivedHives),before);
+ const cases=[
+  [{...incident,affectedHiveIds:['h1','h1']},'pesticide_incident_invalid_or_duplicate_hive_id'],
+  [{...incident,affectedHiveIds:['h1','h2','h3']},'pesticide_incident_snapshot_mismatch'],
+  [{...incident,affectedHiveSnapshots:[incident.affectedHiveSnapshots[0]]},'pesticide_incident_snapshot_mismatch'],
+  [{...incident,affectedHiveSnapshots:[incident.affectedHiveSnapshots[0],incident.affectedHiveSnapshots[0]]},'pesticide_incident_invalid_or_duplicate_hive_snapshot'],
+  [{...incident,affectedHiveSnapshots:[{id:'other',label:'Подмена'}]},'pesticide_incident_snapshot_mismatch'],
+  [{...incident,affectedHiveIds:[null,'h2']},'pesticide_incident_invalid_or_duplicate_hive_id'],
+  [{...incident,affectedHiveSnapshots:[null,...incident.affectedHiveSnapshots]},'pesticide_incident_invalid_or_duplicate_hive_snapshot'],
+ ];
+ for(const [row,expected] of cases){
+  const s={meta:{schemaVersion:11},hives:[],pesticideIncidents:[row]},original=JSON.stringify(s);
+  assert.ok(api.inspectPesticideIncidentIntegrity(s).some(x=>x.code===expected),expected);
+  assert.equal(JSON.stringify(s),original,'Inspection must not rewrite provenance');
+ }
+});
+test('incident inspector blocks numeric-string GPS spoofing and missing status but preserves valid legacy links',()=>{
+ const row=build({...base,latitude:'53.1',longitude:'45.2'});
+ for(const patch of [
+  {latitude:'53.1'}, {longitude:'45.2'},{latitude:Infinity},{longitude:NaN}
+ ]){
+  const errors=api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[{...row,...patch}]}).map(x=>x.code);
+  assert.ok(errors.includes('pesticide_incident_invalid_coordinates'),JSON.stringify(patch));
+ }
+ assert.ok(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[{...row,status:''}]})
+  .some(x=>x.code==='pesticide_incident_invalid_status'));
+ assert.deepEqual(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[row]}),[]);
+});
+
+
+test('incident draft refuses malformed photo lists instead of discarding evidence',()=>{
+ for(const bad of [{corrupted:true},'',{length:1,0:{kind:'image'}},42]){
+  assert.throws(()=>build(base,bad),/список фотографий инцидента повреждён/i);
+ }
+ assert.equal(build(base,null).media.length,0);
+});
+
+test('incident snapshots explicitly selected families and preserves historical association',()=>{
+ const families=[{id:'f1',hive:'h1',name:'Семья 1'},{id:'f2',hive:'h2',name:'Семья 2'}];
+ const create=input=>api.buildPesticideIncidentDraft(input,hives,[],()=> 'family-incident','2026-11-27T10:00:00Z',families);
+ const row=create({...base,familyIds:['f1']});
+ assert.deepEqual(row.affectedFamilySnapshots,[{id:'f1',hiveId:'h1',name:'Семья 1'}]);
+ families[0].hive='h2';families[0].name='Переименована';
+ assert.deepEqual(api.inspectPesticideIncidentIntegrity({hives:[],families:[],pesticideIncidents:[row]}),[]);
+ assert.throws(()=>create({...base,familyIds:['f1']}),/другому улью/);
+ assert.throws(()=>create({...base,familyIds:['f2']}),/другому улью/);
+ assert.throws(()=>create({...base,scope:'unknown',familyIds:['f2']}),/другому улью/);
+ assert.ok(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[{...row,affectedFamilySnapshots:[{id:'f1',hiveId:'h2',name:'Семья 1'}]}]}).some(e=>e.code==='pesticide_incident_invalid_family_snapshots'));
+ const legacy={...row};delete legacy.affectedFamilyIds;delete legacy.affectedFamilySnapshots;
+ assert.deepEqual(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[legacy]}),[]);
+});
+
+test('historical hive snapshot cannot lose its saved label without integrity finding',()=>{
+ const row=build({...base,hiveIds:['h1','h2']});
+ const before=structuredClone(row);
+ for(const label of ['',null,42,'   ']){
+  const broken={...row,affectedHiveSnapshots:row.affectedHiveSnapshots.map((s,i)=>i===0?{...s,label}:s)};
+  const state={meta:{schemaVersion:11},hives:[],pesticideIncidents:[broken]};
+  const frozen=structuredClone(state);
+  assert.ok(api.inspectPesticideIncidentIntegrity(state).some(x=>x.code==='pesticide_incident_invalid_or_duplicate_hive_snapshot'));
+  assert.deepEqual(state,frozen);
+ }
+ assert.deepEqual(row,before);
 });

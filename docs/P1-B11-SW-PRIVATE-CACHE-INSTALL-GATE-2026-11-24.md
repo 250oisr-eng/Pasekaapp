@@ -1,0 +1,26 @@
+# B11 — fail-closed установка Service Worker при private/no-store ответах
+
+Дата: 2026-11-24. База: `main=04fabd9b0ea184b23f5ee8a573f0b4d8a99ba9e1`.
+
+## F0–F2: подтверждённый риск
+
+До исправления `sw.js` версии `paseka-shell-v316` устанавливал весь список `FILES` через `cache.addAll(FILES)`. Собственная функция `cacheableResponse()` (отсекающая `Cache-Control: private/no-store`, неуспешный статус и неподходящий тип ответа) применялась только к динамическому добавлению при fetch, **не к первичной установке кеша**. Поэтому политика приватности shell могла быть обойдена именно при установке или обновлении worker.
+
+## F3: минимальное изменение
+
+- Установка shell теперь последовательно получает каждый URL через `fetch` в пределах `SCOPE`, проверяет `cacheableResponse()` и только затем пишет допустимый ответ в cache.
+- При запретном / ошибочном ответе `install` отклоняется, `skipWaiting()` не вызывается. Старый worker остаётся действующим; новый не объявляется готовым.
+- Кеш обновлён до `paseka-shell-v317`; после штатной активации старые версии `paseka-shell-*` удаляются существующим кодом. Нет изменений IndexedDB, User Media, OP, приложений Android.
+- Новые тесты `tests/service-worker-install-private.test.mjs` запускают **реальный текст `sw.js` в изолированном VM** с имитацией CacheStorage/fetch: `private/no-store` и 404 не активируют worker и не кешируют запрещённый файл; разрешённые shell ресурсы кешируются до `skipWaiting`. Регрессии `tests/regression.test.mjs` обновлены на v317.
+
+## F4–F7: границы безопасности
+
+Это доказательство на эмулированной среде Node, а **не** физический cold-offline, обновление PWA, сохранность браузерных Blob или тест реальной установки OnePlus. Полный B11 остаётся `NOT_VERIFIED` до реального offline/reopen/upgrade и отдельного разрешения на выпуск. Не запускать Pages deployment, устанавливать APK или менять production данные.
+
+**Статус:** `IMPLEMENTED_DRAFT / EXACT_SHA_CI_PENDING`. Если хотя бы один тест FAIL, исправить и повторить проверки; не изменять политику приватности ради зелёного CI.
+
+## F5 — проверка на кодовом SHA
+
+- Code/docs HEAD `ab122276f86f26b83fe7cbc715b1d3c668417996`: [Android CI #45475559444](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559444) **719/719 PASS, BUILD SUCCESSFUL**; [Governance #45475559734](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559734) **SUCCESS**.
+- Три новых негативных и позитивных теста действительно исполняют исходник `sw.js` в VM. Подтверждена область только install-shell. Состояние `READY_FOR_MERGE_REVIEW / NOT_IN_MAIN / PHYSICAL_NOT_VERIFIED`.
+- Новый docs-only HEAD после фиксации этих результатов должен пройти Governance CI; если CI изменит итог — приоритет у live CI. Merge и release остаются запрещёнными без отдельного разрешения.
