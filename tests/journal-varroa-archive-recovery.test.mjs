@@ -8,7 +8,7 @@ function region(start,end){
  assert.ok(a>=0&&z>a,`Production code region missing: ${start}`);
  return html.slice(a,z);
 }
-const observationSource=region('async function saveVarroaObservation(event){','\nfunction openVarroaTreatmentJournal(){');
+const observationSource=region('async function saveVarroaObservation(event){','\nfunction openVarroaTreatmentRecord(button){');
 const renderSource=region('function renderVarroaModule(){','\nasync function saveVarroaObservation(event){');
 const archiveSource=region('const pendingJournalRecordActions=new Set();','\nfunction fillFamilies(');
 
@@ -162,7 +162,7 @@ test('failed archive refresh does not prevent durable rollback',async()=>{
 });
 
 function renderFixture(){
- const elements=Object.fromEntries(['varroaHive','varroaDate','varroaObservationsList','varroaTreatmentsList','varroaTreatmentsCount','varroaCount'].map(id=>[id,{value:'',innerHTML:'',textContent:''}]));
+ const elements=Object.fromEntries(['varroaHive','varroaDate','varroaObservationsList','varroaTreatmentsList','varroaTreatmentsCount','varroaCount','varroaHistoryScope'].map(id=>[id,{value:'',innerHTML:'',textContent:''}]));
  elements.varroaHive.value='h1';
  const state={hives:[{id:'h1',number:1},{id:'h2',number:2}],records:[],varroaObservations:[
   {id:'obs1',hiveId:'h1',type:'adult_bee_sample',date:'2026-11-23',mitesPer100Bees:2,method:'alcohol_wash',beesCount:100,mitesCount:2,notes:'Hive 1'},
@@ -180,7 +180,11 @@ test('Varroa observations only show selected hive, while preserving all underlyi
  f.elements.varroaHive.value='h2';f.render();
  assert.match(f.elements.varroaObservationsList.innerHTML,/Hive 2/);
  assert.doesNotMatch(f.elements.varroaObservationsList.innerHTML,/Hive 1/);
- assert.equal(f.state.varroaObservations.length,2);
+ f.state.varroaObservations.push({id:'obs3',hiveId:'gone',hiveLabelAtTime:'Улей №3',type:'sticky_board',date:'2026-11-23',notes:'Historical'});
+ f.elements.varroaHistoryScope.value='all';f.render();
+ assert.match(f.elements.varroaObservationsList.innerHTML,/Historical/);
+ assert.match(f.elements.varroaObservationsList.innerHTML,/Архивный улей/);
+ assert.equal(f.state.varroaObservations.length,3);
 });
 
 test('committed Varroa observation keeps current hive selected after form reset',async()=>{
