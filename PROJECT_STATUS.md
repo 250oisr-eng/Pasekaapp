@@ -1,6 +1,5 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**28.11.2026 · [#647 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/647)** `31fdfe86`: повседневный учёт, офлайн-экспорт, изолированный OP02, runtime assets и npm lock; exact HEAD `8a221bc7`, Node 1153/1153, Fast/Android/Chromium/3 QA/Gov 7/7 PASS. Дерево merge совпало с проверенным HEAD. 100/100 pinned deps reachable. [Аудит](docs/PR-BRANCH-DEPENDENCY-AUDIT-2026-11-28.md). Без удаления веток, релиза или активации B07.
 
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
@@ -11,6 +10,10 @@
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
 ## План работ и журнал
+
+**#671 IN_MAIN:** CSV медоносов (все отфильтрованные наблюдения, без фото/GPS/медиа), squash `0f80d7d787de763a67c9a56eae65e5e39203e76d`, кодовый CI Node/Android/Chromium/Governance/Workers PASS. **#672 Draft:** обновление Service Worker `v329 → v330` из-за cache-first изменённых JS. Code/test `08ad0998` Node/Android/Governance/Workers PASS; docs-only SHA требует проверки; OnePlus OFFLINE NOT_TESTED. Без публикации.
+
+
 
 **28.11.2026 · семь PR IN_MAIN:** #666 B07 synthetic archive (`e94111aa`), #661 инвентарь (`1370d443`), #659 медоносы (`f5bdd8bd`), #658 Varroa (`876286a8`), #634 инциденты (`1c6c50d0`), #668 CSV-журнал (`b56c1944`), #669 полная история корпуса (`6a8c419a`). Все ветки прошли Node/Android/Governance и применимые Chromium/Workers на точном HEAD перед squash. Итоговый main `6a8c419a1b3ad64d38bb63104760061ea3a6bbca`: post-merge CI на `6a8c419a`: Node/Android/Chromium/Governance/Workers SUCCESS. Публикация НЕ выполнялась, B07 profile BLOCKED, OnePlus real restore NOT_TESTED.
 

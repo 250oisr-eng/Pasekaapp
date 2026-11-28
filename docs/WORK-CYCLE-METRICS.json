@@ -2598,5 +2598,25 @@
       "Workers Builds: pasekaapp",
       "Verify Pages source is GitHub Actions (read-only)"
     ]
+  },
+  "plantCsv20261128": {
+    "pr": 671,
+    "status": "IN_MAIN",
+    "mainSha": "0f80d7d787de763a67c9a56eae65e5e39203e76d",
+    "exactPrCi": "PASS",
+    "device": "NOT_TESTED",
+    "release": false
+  },
+  "pwaShellV33020261128": {
+    "pr": 672,
+    "status": "IMPLEMENTED_DRAFT",
+    "codeSha": "08ad0998a650f9dfbbd31742a99dcebe92c603ca",
+    "oldShellVersion": 329,
+    "newShellVersion": 330,
+    "node": "PASS",
+    "android": "PASS",
+    "governance": "PASS",
+    "device": "NOT_TESTED",
+    "productionRelease": false
   }
 }
