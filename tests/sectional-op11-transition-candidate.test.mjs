@@ -6,7 +6,7 @@ import {readFile} from 'node:fs/promises';
 // and item-ledger fields that the existing production validators require.
 const appWindow={};
 for(const name of ['sectional-physical-layout.js','sectional-op11-preview.js',
- 'family-lineage.js','equipment-items.js','sectional-op11-transition-candidate.js']){
+ 'equipment-labels.js','family-lineage.js','equipment-items.js','sectional-op11-transition-candidate.js']){
  const source=await readFile(new URL('../js/'+name,import.meta.url),'utf8');
  new Function('window',source)(appWindow);
 }

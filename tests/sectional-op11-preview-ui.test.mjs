@@ -138,7 +138,7 @@ test('B07 OP11 panel exists only in selected sectional hive and requires loaded 
  assert.match(html,/const SECTIONAL_HONEY_QA_WRITE_ENABLED=false/);
 });
 test('B07 OP11 offline shell keeps both new modules and never caches user records',()=>{
- assert.match(sw,/const CACHE='paseka-shell-v328'/);
+ assert.match(sw,/const CACHE='paseka-shell-v333'/);
  assert.match(sw,/\.\/js\/sectional-op11-preview\.js/);
  assert.match(sw,/\.\/js\/sectional-op11-preview-ui\.js/);
  assert.doesNotMatch(sw,/\.\/api\/private-video/);
