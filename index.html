@@ -1892,6 +1892,7 @@ function frameRegistryEventText(ev){
  return String(ev.action||'Событие');
 }
 function inventoryHistoryRowsHtml(body,offset,limit){
+ if(body?.events!=null&&!Array.isArray(body.events))return '<p class="muted">Журнал корпуса повреждён — проверь инвентарь.</p>';
  const source=Array.isArray(body?.events)?body.events:[];
  return source.slice().reverse().slice(offset,offset+limit).map(ev=>{
   if(!ev||typeof ev!=='object'||Array.isArray(ev))return '<p class="muted">Повреждённая запись истории — проверь инвентарь.</p>';
