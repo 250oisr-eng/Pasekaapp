@@ -157,7 +157,9 @@ test('queen registry renders chronological event timelines, unknown dates and pr
  const escapeHtml=value=>String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
  const render=loadFunction('renderQueenRegistry',{
   $:id=>id==='queenRegistryList'?host:null,
+  queenRegistryFamily:loadFunction('queenRegistryFamily'),
   S:{
+   hives:[{id:'h1'}],
    families:[{id:'f1',name:'Семья 1',hive:'h1',currentQueenId:'q2'}],
    queens:[
     {id:'q1',familyId:'f1',code:'Q-OLD',status:'replaced',createdAt:'2026-05-01T00:00:00Z'},
@@ -3656,7 +3658,7 @@ test('service worker caches accessory inventory module for offline operation',as
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/p0-source-inventory\.js/);
- assert.match(sw,/paseka-shell-v327/);
+ assert.match(sw,/paseka-shell-v332/);
 });
 
 
@@ -3782,7 +3784,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v327/);
+  assert.match(source,/paseka-shell-v332/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
@@ -4087,6 +4089,17 @@ test('rendering extraction history never passes Array.map index as hive ID',()=>
  fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String,loadFunction('isSectionalHive',{S:state}))();
  assert.match(host.innerHTML,/Корпуса после откачки/);
  assert.match(host.innerHTML,/H1, H2/);
+});
+
+test('queen registration allocates immutable decimal number and replacement obtains a new number',()=>{
+ const apply=loadFunction('applyQueenChange');let seq=0;const makeId=()=> 'queen-numeric-'+(++seq);
+ const s={families:[{id:'f',hive:'h'}],queens:[],queenEvents:[]};
+ const q=apply(s,{familyId:'f',date:null},makeId).queen;
+ assert.equal(q.code,'М-1');assert.equal(s.meta.nextQueenNumber,2);
+ const before=JSON.stringify(s);assert.throws(()=>apply(s,{familyId:'f',queenId:q.id,code:'М-2'},makeId),/нельзя менять/);assert.equal(JSON.stringify(s),before);
+ const replacement=apply(s,{familyId:'f',date:null},makeId).queen;
+ assert.equal(replacement.code,'М-2');assert.equal(s.queens[0].code,'М-1');
+ assert.throws(()=>apply(s,{familyId:'f',code:'М-1'},makeId),/зарезервирован/);
 });
 
 test('B07 guarded atomic IndexedDB write aborts when memory changed just before put, preserving both records',async()=>{

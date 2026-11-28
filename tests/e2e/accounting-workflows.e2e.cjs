@@ -58,14 +58,28 @@ async function journey(browser,origin){
   assert.equal(await page.evaluate(()=>S.hives.length),0,'fresh disposable database');
   await openPrimary(page,'hives');
   await page.locator('[data-action="open-new-hive"]').click();
+  await page.setViewportSize({width:390,height:360});
+  await page.locator('#hiveDesc').fill('QA keyboard geometry');
+  const confirmButton=await page.locator('#hiveForm button.primary').boundingBox();
+  assert.ok(confirmButton&&confirmButton.y>=0&&confirmButton.y+confirmButton.height<=360,'confirmation visible in shortened viewport');
   await page.locator('#hiveForm button.primary').click();
+  await page.setViewportSize({width:390,height:844});
   await page.locator('#hiveDlg').waitFor({state:'hidden'});
-  await page.locator('#selectedHivePanel').getByRole('button',{name:'＋ Семья'}).click();
-  await page.locator('#familyOrigin').selectOption('family');
+  assert.equal(await page.locator('#hiveOnboarding').isVisible(),true);
+  await page.locator('#hiveOnboarding').getByRole('button',{name:'Готовая семья'}).click();
+  assert.equal(await page.locator('#familyOrigin').inputValue(),'family');
   await page.locator('#familyForm button.primary').click();
   await page.locator('#familyDlg').waitFor({state:'hidden'});
   const ids=await page.evaluate(()=>({h:S.hives[0].id,f:S.families[0].id}));
   assert.ok(ids.h&&ids.f);
+  await openPrimary(page,'home');
+  await page.locator('[data-overview-kind="families"]').click();
+  assert.equal(await page.locator('#apiaryOverviewContent .apiary-overview-row').count(),1);
+  await page.locator('#apiaryOverviewDlg').getByRole('button',{name:'Закрыть',exact:true}).click();
+  await page.locator('[data-overview-kind="stale"]').click();
+  assert.equal(await page.locator('#apiaryOverviewContent .apiary-overview-row').count(),1);
+  await page.locator('#apiaryOverviewContent .apiary-overview-row').click();
+  assert.equal(await page.locator('#hiveDetail').isVisible(),true);
   // Biological-first cards and technical configuration remain reachable during setup.
   const familyCard=page.locator('[data-family-card="'+ids.f+'"]');
   assert.match(await familyCard.textContent(),/Нет однозначно привязанного осмотра/);
@@ -73,19 +87,22 @@ async function journey(browser,origin){
   await familyCard.getByRole('button',{name:'Осмотр этой семьи',exact:true}).click();
   assert.equal(await page.locator('#rfamily').inputValue(),ids.f);
   assert.equal(await page.locator('#roccupancy').inputValue(),'');
+  const photo=await page.getByRole('button',{name:'Снять фото',exact:true}).boundingBox(),video=await page.getByRole('button',{name:'Снять видео',exact:true}).boundingBox();
+  assert.ok(photo&&video&&photo.width===video.width&&photo.height===video.height,'matched camera icon targets');
   await page.locator('#recordDlg').getByRole('button',{name:'Отмена',exact:true}).click();
   assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),familyDraftBefore);
   assert.equal(await page.locator('#hiveTechnicalView').evaluate(x=>x.open),true,'unfinished assembly stays accessible');
   // Queen: actual UI form first registration, negative future replacement, valid replacement.
   await page.evaluate(()=>openQueenForm(S.families[0].id));
-  await page.locator('#queenCodeInput').fill('QA-Q-OLD');
+  assert.equal(await page.locator('#queenCodeInput').evaluate(el=>el.readOnly),true,'new queen serial is automatic');
   await page.locator('#queenEventDate').fill('2026-11-12');
   await page.locator('#queenForm button.primary').click();
   await page.locator('#queenDlg').waitFor({state:'hidden'});
   assert.equal(await page.evaluate(()=>S.queens.length),1);
+  const oldQueenCode=await page.evaluate(()=>S.queens[0].code);assert.match(oldQueenCode,/^М-[1-9][0-9]*$/u);
   await page.evaluate(()=>openQueenForm(S.families[0].id));
   await page.locator('#queenReplacementBtn').click();
-  await page.locator('#queenCodeInput').fill('QA-Q-NEW');
+  assert.equal(await page.locator('#queenCodeInput').evaluate(el=>el.readOnly),true,'replacement receives its own automatic serial');
   await page.locator('#queenEventDate').fill('2099-12-31');
   await page.locator('#queenForm button.primary').click();
   assert.equal(await page.locator('#queenDlg').isVisible(),true,'invalid future date must leave draft open');
@@ -95,6 +112,7 @@ async function journey(browser,origin){
   await page.locator('#queenForm button.primary').click();
   await page.locator('#queenDlg').waitFor({state:'hidden'});
   assert.equal(await page.evaluate(()=>S.queens.filter(q=>q.status==='replaced').length),1);
+  const queenCodes=await page.evaluate(()=>S.queens.map(q=>({code:q.code,status:q.status})));assert.equal(queenCodes.find(q=>q.status==='replaced').code,oldQueenCode);const replacement=queenCodes.find(q=>q.status!=='replaced').code;assert.match(replacement,/^М-[1-9][0-9]*$/u);assert.notEqual(replacement,oldQueenCode);
   // Direct hive action opens an empty draft bound to the selected hive; cancel never writes.
   const beforeQuick=await page.evaluate(()=>JSON.stringify(S.records));
   for(const [width,height] of [[320,640],[390,844],[844,390]]){

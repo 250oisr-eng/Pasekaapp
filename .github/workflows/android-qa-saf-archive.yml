@@ -57,7 +57,7 @@ jobs:
       - name: Install Android SDK
         run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Run existing full regression suite and QA isolation tests
         run: npm test
       - name: Prepare embedded web files
