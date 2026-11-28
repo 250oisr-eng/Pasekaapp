@@ -317,3 +317,27 @@ test('legacy body references with unknown physical specification are warnings, n
  assert.ok(findings.some(x=>x.code==='registered_body_spec_unknown'&&x.details.bodyId==='b1'&&x.severity==='warning'));
  assert.equal(JSON.stringify(s),before);
 });
+
+test('maintenance rejects ambiguous physical placement without changing notes, condition or journals',()=>{
+ const s=fixture();
+ I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile:s.hives[0].profile},labels,makeId,now);
+ s.layouts.h2.corpusIds['2']='b1';
+ const before=structuredClone(s);
+ for(const condition of ['repair','retired']){
+  const result=I.updateDetails(s,'b1',{condition,storageLocation:'Мастерская',notes:'Осмотр'},now);
+  assert.equal(result.error,'duplicate_mapping');
+  assert.deepEqual(s,before);
+ }
+ s.layouts.h2.corpusIds['2']='b4';
+ s.layouts.h1.installedBoxes=[2];
+ assert.equal(I.updateDetails(s,'b1',{condition:'repair',storageLocation:'Мастерская',notes:'Осмотр'},now).ok,true);
+ assert.equal(s.equipmentInventory.bodies.b1.events.at(-1).toCondition,'repair');
+});
+
+test('a blank storage label cannot replace a known workshop during maintenance',()=>{
+ const s=fixture();
+ const {body}=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Мастерская'},labels,makeId,now);
+ const before=structuredClone(s);
+ assert.equal(I.updateDetails(s,body.id,{condition:'repair',storageLocation:'   '},now).error,'invalid_details');
+ assert.deepEqual(s,before);
+});

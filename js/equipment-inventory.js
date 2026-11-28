@@ -79,6 +79,7 @@ function updateDetailsUnsafe(state,bodyId,patch,now,getProfile){
  const notes=String(patch?.notes??body.notes??''),storageLocation=String(patch?.storageLocation??body.storageLocation??'');
  if(notes.length>500||storageLocation.length>120)return {ok:false,error:'invalid_details'};
  const loc=locateBody(state,bodyId,getProfile),installed=loc?.type==='hive'||loc?.type==='sectional';
+ if(loc?.type==='error')return {ok:false,error:loc.code};
  if(patch?.condition!=null){
   if(!conditions.has(patch.condition))return {ok:false,error:'invalid_condition'};
   if(patch.condition==='retired'&&installed)return {ok:false,error:'cannot_retire_installed'};
@@ -86,7 +87,7 @@ function updateDetailsUnsafe(state,bodyId,patch,now,getProfile){
   if(loc?.type==='sectional'&&patch.condition!=='good')return {ok:false,error:'sectional_body_not_usable'};
  }
  const before=body.condition;
- if(loc?.type==='storage'&&!storageLocation)return {ok:false,error:'invalid_details'};
+ if(loc?.type==='storage'&&!storageLocation.trim())return {ok:false,error:'invalid_details'};
  body.notes=notes;body.storageLocation=installed?'':storageLocation;
  if(patch?.condition!=null)body.condition=patch.condition;
  body.updatedAt=now||new Date().toISOString();

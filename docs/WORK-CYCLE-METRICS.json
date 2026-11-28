@@ -2120,5 +2120,11 @@
     "governance": "FAIL",
     "android": "FAIL_SAME_GOVERNANCE_TEST",
     "browser": "PENDING"
+  },
+  "inventoryMaintenanceLocation20261128": {
+    "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "stage": "IMPLEMENTED_DRAFT",
+    "inventoryTestsPassed": 58,
+    "physicalDeviceVerified": false
   }
 }
