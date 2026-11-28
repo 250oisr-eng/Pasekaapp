@@ -1,4 +1,19 @@
 {
+  "b07StockGeometryGate20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "c0bbdac225f6770b03d15b0cc4c9e825716a8da4",
+    "scope": "sectional stock honey kind and 180 mm frame height fail closed",
+    "regressionAdded": 1,
+    "fullNodeTests": null,
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "sectionalProfileActivated": false,
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0
+  },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 638,
