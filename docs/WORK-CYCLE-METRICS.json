@@ -1,4 +1,25 @@
 {
+  "b07Op11ReadOnlyPreflight20261128": {
+    "stage": "READY_FOR_MERGE_REVIEW_DRAFT",
+    "pr": 663,
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "aed986e30be221918b21b99764f645c65da8bc6e",
+    "contract": "source-bound OP11 original 3 upper bodies, registered closure accessories and unknown queen",
+    "nodeTests": {"total":1108,"passed":1108,"failed":0,"run":46110700487},
+    "earlierFailedTestRun": 46110558095,
+    "earlierFailure": "negative fixture lacked modify(state), corrected in current codeSha",
+    "androidRun": 46110700487,
+    "governanceRun": 46110700437,
+    "ci": "NODE_ANDROID_GOVERNANCE_PASS",
+    "device": "NOT_TESTED",
+    "userFacingUI": false,
+    "physicalOperationCommitted": false,
+    "sectionalProfileActivated": false,
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0
+  },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 638,
