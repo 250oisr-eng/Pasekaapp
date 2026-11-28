@@ -1,0 +1,74 @@
+name: Research compact bee detector and dataset metadata
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'tools/run_public_bee_center_pilot.py'
+      - 'tests/test_public_bee_center_pilot.py'
+      - '.github/workflows/research-public-bee-center.yml'
+permissions:
+  contents: read
+jobs:
+  compact-cpu:
+    if: github.head_ref == 'research/video-public-model-pilot-20261128' && github.event.action == 'labeled' && github.event.label.name == 'research-replay-bee-center'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      OMP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned CPU dependencies
+        run: |
+          python -m pip install --disable-pip-version-check torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check Pillow==12.0.0 numpy==2.2.6 scipy==1.15.3 onnx==1.18.0 onnxruntime==1.22.1
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            test -r /etc/apt/sources.list.d/ubuntu.sources
+            opts=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-)
+            sudo apt-get "${opts[@]}" update -qq
+            sudo apt-get "${opts[@]}" install -y --no-install-recommends ffmpeg
+          fi
+      - name: Compact detector regression tests
+        run: python -m unittest discover -s tests -p 'test_public_bee_center_pilot.py' -v
+      - name: Train scratch model on verified public pixels, evaluate and export ONNX
+        run: python tools/run_public_bee_center_pilot.py "${RUNNER_TEMP}/bee-center-result"
+      - name: Preserve only public experimental ONNX and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-bee-center-research
+          path: |
+            ${{ runner.temp }}/bee-center-result/report.json
+            ${{ runner.temp }}/bee-center-result/experimental_bee_center.onnx
+          retention-days: 7
+          if-no-files-found: warn
+  metadata-only:
+    if: github.head_ref == 'research/video-public-model-pilot-20261128' && github.event.action == 'labeled' && github.event.label.name == 'research-replay-bee-center'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Inspect exact publisher record, without downloading data
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          for name,url in [('zenodo','https://zenodo.org/api/records/14929559'),('datacite','https://api.datacite.org/dois/10.5281/zenodo.14929559')]:
+              try:
+                  req=urllib.request.Request(url,headers={'Accept':'application/json','User-Agent':'Paseka-public-research/1.0'})
+                  with urllib.request.urlopen(req,timeout=25) as r:
+                      raw=r.read(2*1024*1024+1)
+                  if len(raw)>2*1024*1024: raise ValueError('metadata too large')
+                  d=json.loads(raw)
+                  if name=='zenodo':
+                      m=d['metadata']
+                      report={'doi':d.get('doi') or m.get('doi'),'title':m.get('title'),'license':m.get('license'),'access':m.get('access_right'),'files':[{k:f.get(k) for k in ('key','size','checksum')} for f in d.get('files',[])]}
+                  else:
+                      m=d['data']['attributes']
+                      report={'doi':m.get('doi'),'titles':m.get('titles'),'rightsList':m.get('rightsList'),'relatedIdentifiers':m.get('relatedIdentifiers')}
+                  print('PUBLIC_BEE_DATASET_METADATA',name,json.dumps(report,ensure_ascii=True))
+              except Exception as e:
+                  print('PUBLIC_BEE_DATASET_METADATA_UNAVAILABLE',name,type(e).__name__,str(e)[:200])
+          PY

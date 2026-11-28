@@ -1,0 +1,44 @@
+name: Research external bee image comparison
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'tools/probe_public_bee_external.py'
+      - 'tests/test_public_bee_external.py'
+      - '.github/workflows/research-public-bee-external.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  external-onnx:
+    if: github.head_ref == 'research/video-public-model-pilot-20261128' && github.event.action == 'labeled' && github.event.label.name == 'research-replay-bee-external'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch already measured experimental ONNX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: public-bee-center-research
+          run-id: 46074461207
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/frozen-bee
+      - name: Install pinned CPU dependencies
+        run: python -m pip install --disable-pip-version-check Pillow==12.0.0 numpy==2.2.6 scipy==1.15.3 onnxruntime==1.22.1
+      - name: External annotation and model output tests
+        run: python -m unittest discover -s tests -p 'test_public_bee_external.py' -v
+      - name: Bounded public archive and frozen ONNX comparison
+        run: python tools/probe_public_bee_external.py "${RUNNER_TEMP}/frozen-bee/experimental_bee_center.onnx" "${RUNNER_TEMP}/external-bee/report.json"
+      - name: Preserve only comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-bee-external-report
+          path: ${{ runner.temp }}/external-bee/report.json
+          retention-days: 7
+          if-no-files-found: warn

@@ -1,0 +1,23 @@
+name: Research bounded Zenodo bee archive probe
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'tools/probe_public_bee_zenodo_zip.py'
+      - 'tests/test_public_bee_zenodo_zip.py'
+      - '.github/workflows/research-public-bee-zenodo-range.yml'
+permissions:
+  contents: read
+jobs:
+  public-range-probe:
+    if: github.head_ref == 'research/video-public-model-pilot-20261128' && github.event.action == 'labeled' && github.event.label.name == 'research-replay-bee-zenodo-range'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test range caps and ZIP safeguards
+        run: python3 -m unittest discover -s tests -p 'test_public_bee_zenodo_zip.py' -v
+      - name: Inspect bounded public ZIP ranges (never full download)
+        run: python3 tools/probe_public_bee_zenodo_zip.py

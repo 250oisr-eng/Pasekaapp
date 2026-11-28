@@ -2559,5 +2559,495 @@
     "physicalDeviceVerified": false,
     "releaseAuthorized": false,
     "activationAuthorized": false
+  },
+  "publicBeePilot20261128": {
+    "stage": "ONNX_PRIORITY_RECONCILED_WITH_MAIN",
+    "pr": 655,
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
+    "inputCodeSha": "8daea4898a5c5b8e4358c24754aecef0e580f77f",
+    "inputRun": 46072648209,
+    "inputConclusion": "success",
+    "targetedTestsPassed": 6,
+    "weightsBytes": 121926336,
+    "tensors": 465,
+    "videoBytes": 128747654,
+    "trackBytes": 4817427,
+    "annotatedFrames": 6000,
+    "referenceBoxes": 127452,
+    "namedSourcePairs": 5,
+    "experimentRun": 46073407228,
+    "experimentConclusion": "success",
+    "detectorMetrics": {
+      "scope": "tile-level author annotation agreement",
+      "reference": 55,
+      "proposalMatched": 55,
+      "score50": {
+        "tp": 53,
+        "fp": 1534,
+        "fn": 2,
+        "precision": 0.03339634530560807,
+        "recall": 0.9636363636363636,
+        "f1": 0.06455542021924482
+      },
+      "score80": {
+        "tp": 48,
+        "fp": 592,
+        "fn": 7,
+        "precision": 0.075,
+        "recall": 0.8727272727272727,
+        "f1": 0.1381294964028777
+      }
+    },
+    "device": "NOT_TESTED",
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "roiTrialCodeSha": "3bc4c2ca923b6e998659b7e16502f78c142be33e",
+    "roiTrialRun": 46073802221,
+    "roiTrialConclusion": "DEPENDENCY_APT_403_TESTS_SKIPPED",
+    "roiMetrics": {
+      "selected": "qa",
+      "threshold": 0.65,
+      "julyA": {
+        "tp": 48,
+        "fp": 225,
+        "fn": 7,
+        "precision": 0.17582417582417584,
+        "recall": 0.8727272727272727,
+        "f1": 0.2926829268292683
+      },
+      "julyB": {
+        "tp": 93,
+        "fp": 582,
+        "fn": 85,
+        "precision": 0.13777777777777778,
+        "recall": 0.5224719101123596,
+        "f1": 0.21805392731535755
+      },
+      "tracking": {
+        "frames": 12,
+        "switches": 20,
+        "transitions": 62
+      },
+      "artifactId": 15234467516
+    },
+    "roiRetryCodeSha": "07327a675e89ecb8919dffe33d8108c4746df781",
+    "roiRetryRun": 46074002841,
+    "roiRetryConclusion": "success",
+    "roiTestsPassed": 4,
+    "compactCodeSha": "2de6f7faf25a1528a87a02d8fd634347319a04bf",
+    "compactRun": 46074461207,
+    "compactConclusion": "success",
+    "zenodo": {
+      "versionDoi": "10.5281/zenodo.14929560",
+      "license": "CC BY 4.0",
+      "archiveBytes": 11909319247,
+      "publisherMd5": "1750347f386c8c7bef7a5c8d53a2be72",
+      "metadataRun": 46074461207,
+      "trainingAdmission": false,
+      "fullArchiveVerified": false,
+      "rangeCodeSha": "bd40a53a3d2086713747b97b6d67d72fc4629a93",
+      "rangeRun": 46074646852,
+      "rangeDirectoryConclusion": "success",
+      "rangeBytesRead": 3755671,
+      "entries": 33646,
+      "trainImages": 8807,
+      "valImages": 2201,
+      "backgroundImages": 609,
+      "firstParserPairs": 0,
+      "dualSchemeParserFixed": true,
+      "knownDateOverlapRisk": true,
+      "dualPairRun": 46074758978,
+      "pairedBothSchemes": 11008,
+      "knownDateOverlapImages": 8032,
+      "unknownSourceNameImages": 2976,
+      "groupsInBothPublisherSplits": 9,
+      "nonoverlapNamedGroups": 0,
+      "unknownDateTokens": {
+        "20180814": 886,
+        "20230711": 2090
+      }
+    },
+    "compactMetrics": {
+      "testsPassed": 3,
+      "parameters": 38781,
+      "onnxBytes": 157897,
+      "cpuTileMs": 4.8921431,
+      "onnxSha256": "34eea8b0b045cc657e33a7ca353054863cdad4aa55e9bead49011b023acb0e21",
+      "julyA": {
+        "tp": 1,
+        "fp": 2,
+        "fn": 54
+      },
+      "julyB": {
+        "tp": 2,
+        "fp": 15,
+        "fn": 162
+      },
+      "artifactId": 15233613906
+    },
+    "groupedTrial": {
+      "run": 46075148819,
+      "codeSha": "fb47ebd617dada5d2b67d0f49e28d960d7158513",
+      "conclusion": "success",
+      "rangeBytes": 17614076,
+      "rangeRequests": 103,
+      "sampleImages": 16,
+      "steps": 480,
+      "threshold": 0.2,
+      "calibrationF1": 0.06060606060606061,
+      "julyA": {
+        "tp": 11,
+        "fp": 47,
+        "fn": 44,
+        "recall": 0.2,
+        "precision": 0.1896551724137931
+      },
+      "julyB": {
+        "tp": 43,
+        "fp": 90,
+        "fn": 121,
+        "recall": 0.2621951219512195,
+        "precision": 0.3233082706766917
+      },
+      "onnxBytes": 157897,
+      "onnxSha256": "29e5a667761b47adfa7620c5e33e6300a0a9ada5c1170d7868229310e8bcc8da",
+      "cpuTileMs": 2.3915023,
+      "artifactId": 15234189502
+    },
+    "external": {
+      "run": 46075523191,
+      "codeSha": "4e438653dbae39461b5a0259508443fe9ecc19af",
+      "testsPassed": 3,
+      "archiveBytes": 2076021293,
+      "rangeBytes": 2642553,
+      "jpegPairs": 3752,
+      "xmlFiles": 4993,
+      "successfulSamples": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 8,
+      "conclusion": "partial_decode_failure",
+      "productAdmission": false,
+      "retry": {
+        "run": 46075671433,
+        "codeSha": "2fd34cf799202a53097d2b8a1977e1bdf7da3133",
+        "testsPassed": 4,
+        "rangeBytes": 5907822,
+        "rangeRequests": 39,
+        "pairs": 4993,
+        "jpg": 3752,
+        "png": 1241,
+        "successfulSamples": 5,
+        "failedSamples": 1,
+        "tp": 0,
+        "fp": 12,
+        "fn": 12,
+        "conclusion": "PARTIAL_EXTERNAL_COMPARISON_NOT_ACCEPTED"
+      }
+    },
+    "fullCycle": {
+      "run": 46076231183,
+      "codeSha": "06e210507e4646497c9feb7de797287f43de087e",
+      "conclusion": "success",
+      "testsPassed": 5,
+      "elapsedSec": 265.242487235,
+      "fitImages": 69,
+      "lilaFitImages": 15,
+      "steps": 600,
+      "referenceJuly": 747,
+      "plain": {
+        "tp": 181,
+        "fp": 461,
+        "fn": 566
+      },
+      "overlap": {
+        "tp": 265,
+        "fp": 557,
+        "fn": 482
+      },
+      "tracking": {
+        "baselineSwitches": 9,
+        "memorySwitches": 14,
+        "transitions": 197,
+        "baselineWrongRecent": 3,
+        "memoryWrongRecent": 6
+      },
+      "external": {
+        "tp": 0,
+        "fp": 113,
+        "fn": 12,
+        "validImages": 5,
+        "failedImages": 1
+      },
+      "oldDate": {
+        "tp": 2,
+        "fp": 15,
+        "fn": 127,
+        "groupedTp": 24
+      },
+      "onnxBytes": 157897,
+      "onnxSha256": "529d03720effdfc772d83c52cea907457d554cb3442f14b5a5e098399b886394",
+      "cpuTileMs": 2.1154487,
+      "overlapPipelineMs": 61.4101964,
+      "artifactId": 15235816016,
+      "productAdmission": false
+    },
+    "transferTrial": {
+      "run": 46110268302,
+      "codeSha": "a576c09de2c885d4f937dee0b7e5bf84c9120437",
+      "conclusion": "success",
+      "testsPassed": 5,
+      "fitImages": 41,
+      "steps": 400,
+      "threshold": 0.99,
+      "refine": true,
+      "calibrationMacroF1": 0.4040906578220011,
+      "externalFixed": {
+        "tp": 7,
+        "fp": 45,
+        "fn": 5
+      },
+      "externalFresh": {
+        "tp": 172,
+        "fp": 845,
+        "fn": 168
+      },
+      "oldDate": {
+        "tp": 89,
+        "fp": 91,
+        "fn": 40
+      },
+      "julyROI": {
+        "tp": 141,
+        "fp": 214,
+        "fn": 37
+      },
+      "headSha256": "c1d5eb5e4d85bce1969786bf9aa8d70dbd26480a2a4974107c5338873a4a4e1c",
+      "artifactId": 15249707798,
+      "productAdmission": false
+    },
+    "nativeTrial": {
+      "run": 46110789704,
+      "codeSha": "d5e61d182bf06a07c200649fae76cbb2dc421716",
+      "testsPassed": 3,
+      "conclusion": "HTTP429_BEFORE_TRAINING",
+      "rangeBytes": 11593207,
+      "requests": 74,
+      "failedSamples": 16,
+      "retry": {
+        "run": 46116554558,
+        "codeSha": "55840687c457d692ea751da3469e2d2a72b9056d",
+        "testsPassed": 4,
+        "conclusion": "TECHNICAL_PASS_QUALITY_REJECTED",
+        "fitImages": 15,
+        "steps": 96,
+        "totalParameters": 30143478,
+        "trainableParameters": 3332006,
+        "changedTensors": 34,
+        "frozenParametersUnchanged": true,
+        "calibrationMacroF1": 0,
+        "threshold": 0.95,
+        "externalFixed": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 12
+        },
+        "externalNamed": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 340
+        },
+        "julyROI": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 178
+        },
+        "deltaSha256": "25f0ece79ef0dacde6e7501c1ebb671bab4333edb844da2758b7c0347f4f188c",
+        "artifactId": 15251434694
+      },
+      "historicalResearchWorkflowsOptIn": 9,
+      "corrective": {
+        "run": 46117679978,
+        "codeSha": "1ea3f34558b89e4e2321ab94de9bf858b436d28f",
+        "conclusion": "success",
+        "testsPassed": 6,
+        "fitImages": 15,
+        "steps": 320,
+        "trainableParameters": 1604709,
+        "totalParameters": 30444168,
+        "changedTensors": 34,
+        "frozenParametersUnchanged": true,
+        "threshold": 0.8,
+        "calibrationMacroF1": 0.6257530120481928,
+        "externalFixed": {
+          "tp": 7,
+          "fp": 9,
+          "fn": 5
+        },
+        "externalNamed": {
+          "tp": 152,
+          "fp": 199,
+          "fn": 188
+        },
+        "julyROI": {
+          "tp": 137,
+          "fp": 69,
+          "fn": 41
+        },
+        "deltaBytes": 6422772,
+        "deltaSha256": "200367277181fbb29dbb530bb7df5f0eff97684ed25eee3b86520d08fa1ca999",
+        "artifactId": 15251858751,
+        "productAdmission": false
+      }
+    },
+    "frozenTrial": {
+      "run": 46121293618,
+      "codeSha": "cc16fc1a79c17aec6e416b6cf6eee200030d6203",
+      "testsPassed": 4,
+      "conclusion": "PARTIAL_B_MEASURED_A_SOURCE_REJECTED",
+      "original12": {
+        "tp": 137,
+        "fp": 69,
+        "fn": 41
+      },
+      "julyB": {
+        "frames": 48,
+        "baseline": {
+          "tp": 510,
+          "fp": 324,
+          "fn": 237,
+          "tiles": 1008,
+          "msPerFrame": 5057.481679208329
+        },
+        "reduced": {
+          "tp": 532,
+          "fp": 255,
+          "fn": 215,
+          "tiles": 480,
+          "msPerFrame": 2388.2927411666683
+        },
+        "speedup": 2.117613805055479,
+        "tracking": {
+          "baselineSwitches": 23,
+          "motionSwitches": 32,
+          "transitions": 434
+        }
+      },
+      "artifactId": 15253913663,
+      "julyARetry": {
+        "run": 46129548587,
+        "codeSha": "19f824d5da58c9b210f26c1d7e43f356ca974970",
+        "conclusion": "success",
+        "testsPassed": 6,
+        "frames": 24,
+        "baseline": {
+          "tp": 302,
+          "fp": 87,
+          "fn": 51,
+          "tiles": 504,
+          "msPerFrame": 4971.241774374998
+        },
+        "reduced": {
+          "tp": 300,
+          "fp": 38,
+          "fn": 53,
+          "tiles": 240,
+          "msPerFrame": 2381.1945290416716
+        },
+        "speedup": 2.087709220622017,
+        "tracking": {
+          "baselineSwitches": 2,
+          "motionSwitches": 4,
+          "transitions": 265
+        },
+        "artifactId": 15256419178
+      },
+      "productAdmission": false,
+      "combined": {
+        "frames": 72,
+        "gt": 1100,
+        "baseline": {
+          "tp": 812,
+          "fp": 411,
+          "fn": 288,
+          "tiles": 1512
+        },
+        "reduced": {
+          "tp": 832,
+          "fp": 293,
+          "fn": 268,
+          "tiles": 720
+        },
+        "researchCandidate": true,
+        "productAdmission": false
+      }
+    },
+    "onnxTrial": {
+      "run": 46130641128,
+      "codeSha": "dea7f37959e08263bfaf1d80c09c6c8422d00df1",
+      "testsPassed": 4,
+      "conclusion": "HTTP502_BEFORE_EXPORT",
+      "deltaPreserved": true,
+      "artifactId": 15257755499,
+      "retry": {
+        "run": 46130912621,
+        "codeSha": "8b1edba19edb08e4be43a043397e083e28fd40f6",
+        "testsPassed": 4,
+        "conclusion": "UNSUPPORTED_ANTIALIASED_BICUBIC",
+        "artifactId": 15257735886,
+        "corrective": "fixed_position_original_eager_scoped_export"
+      }
+    },
+    "crossingTrial": {
+      "run": 46130912739,
+      "codeSha": "8b1edba19edb08e4be43a043397e083e28fd40f6",
+      "testsPassed": 6,
+      "conclusion": "EXECUTION_SUCCESS_PROXY_INSUFFICIENT",
+      "artifactId": 15257453751,
+      "frames": 11929,
+      "referenceObservations": 199629,
+      "geometricReferenceEvents": {
+        "a": 332,
+        "b": 228
+      },
+      "decimationRecall": {
+        "a": [
+          0.9036144578313253,
+          0.8162650602409639,
+          0.7590361445783133
+        ],
+        "b": [
+          0.8026315789473685,
+          0.5745614035087719,
+          0.4298245614035088
+        ]
+      },
+      "actualFrames": 64,
+      "actualProxy": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 4
+      },
+      "physicalDirectionTruth": false
+    },
+    "eventTrial": {
+      "state": "implemented_pending_actual_run",
+      "windows": 12,
+      "frames": 384,
+      "high": 0.8,
+      "low": 0.5,
+      "physicalDirectionTruth": false,
+      "representativeEventSample": false
+    },
+    "reconciliation": {
+      "main": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
+      "priorResearchHead": "52542ba7a66328c338131b279e03b9af6084cc90",
+      "priorBase": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "priorResearchChecksAbsentDueToConflict": true,
+      "eventTrialDeferred": true
+    }
   }
 }

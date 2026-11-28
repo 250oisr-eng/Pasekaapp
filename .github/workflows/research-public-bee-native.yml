@@ -1,0 +1,50 @@
+name: Research native RF-DETR adaptation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'tools/run_public_bee_native_pilot.py'
+      - 'tests/test_public_bee_native_pilot.py'
+      - '.github/workflows/research-public-bee-native.yml'
+permissions:
+  contents: read
+jobs:
+  native-cpu:
+    if: github.head_ref == 'research/video-public-model-pilot-20261128' && github.event.action == 'labeled' && github.event.label.name == 'research-replay-bee-native'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      OMP_NUM_THREADS: '4'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      HF_HUB_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned CPU dependencies
+        run: |
+          python -m pip install --disable-pip-version-check torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check transformers==5.11.0 Pillow==12.0.0 numpy==2.2.6 scipy==1.15.3 onnxruntime==1.22.1
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            test -r /etc/apt/sources.list.d/ubuntu.sources
+            opts=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-)
+            sudo apt-get "${opts[@]}" update -qq
+            sudo apt-get "${opts[@]}" install -y --no-install-recommends ffmpeg
+          fi
+      - name: Matching loss and trainable boundary tests
+        run: python -m unittest discover -s tests -p 'test_public_bee_native_pilot.py' -v
+      - name: Adapt native detector heads and final decoder
+        run: python -u tools/run_public_bee_native_pilot.py "${RUNNER_TEMP}/bee-native"
+      - name: Preserve only experimental delta and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-bee-native-research
+          path: |
+            ${{ runner.temp }}/bee-native/report.json
+            ${{ runner.temp }}/bee-native/experimental_native_delta.safetensors
+          retention-days: 7
+          if-no-files-found: warn
