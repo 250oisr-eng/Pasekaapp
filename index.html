@@ -5040,7 +5040,7 @@ function buildPlantObservationDraft(input,catalog,makeId,now){
 }
 function filterPlantObservationHistory(rows,query,phase,year){
  const value=String(query||'').trim().toLocaleLowerCase('ru-RU');
- return rows.filter(item=>item&&(!value||[item.plantName,item.locationLabel,item.note].filter(Boolean).join(' ').toLocaleLowerCase('ru-RU').includes(value))&&
+ return rows.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)&&(!value||[item.plantName,item.locationLabel,item.note].filter(Boolean).join(' ').toLocaleLowerCase('ru-RU').includes(value))&&
   (phase==='all'||(item.phase||'unknown')===phase)&&(!year||String(item.observedAt||'').startsWith(year+'-')))
   .sort((a,b)=>String(b.observedAt||'').localeCompare(String(a.observedAt||'')));
 }
