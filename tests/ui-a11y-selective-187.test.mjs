@@ -10,7 +10,7 @@ test('new-hive dialog and both controls have explicit accessible names', () => {
   assert.match(hive, /<dialog id="hiveDlg" aria-labelledby="hiveDialogTitle"><h2 id="hiveDialogTitle">Новый улей<\/h2>/);
   assert.match(hive, /<label for="newHiveMode">Первоначальная комплектация<\/label><select id="newHiveMode">/);
   assert.match(hive, /<label for="hiveDesc">Примечание об улье \(необязательно\)<\/label><textarea id="hiveDesc"/);
-  assert.match(hive, /<button class="primary">Создать и настроить корпуса<\/button>/);
+  assert.match(hive, /<button type="submit" class="primary">Создать и настроить корпуса<\/button>/);
   assert.match(hive, /<button type="button" onclick="hiveDlg\.close\(\)">Отмена<\/button>/);
   assert.match(html, /#hiveDlg button\{min-height:44px\}/);
 });
