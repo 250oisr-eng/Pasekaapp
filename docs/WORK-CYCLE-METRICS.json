@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "GROUPED_MODEL_MEASURED_EXTERNAL_PARTIAL_REJECTED",
+    "stage": "FULL_CYCLE_MEASURED_COMPACT_REJECTED_TRANSFER_TRIAL",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -186,7 +186,55 @@
         "fn": 12,
         "conclusion": "PARTIAL_EXTERNAL_COMPARISON_NOT_ACCEPTED"
       }
-    }
+    },
+    "fullCycle": {
+      "run": 46076231183,
+      "codeSha": "06e210507e4646497c9feb7de797287f43de087e",
+      "conclusion": "success",
+      "testsPassed": 5,
+      "elapsedSec": 265.242487235,
+      "fitImages": 69,
+      "lilaFitImages": 15,
+      "steps": 600,
+      "referenceJuly": 747,
+      "plain": {
+        "tp": 181,
+        "fp": 461,
+        "fn": 566
+      },
+      "overlap": {
+        "tp": 265,
+        "fp": 557,
+        "fn": 482
+      },
+      "tracking": {
+        "baselineSwitches": 9,
+        "memorySwitches": 14,
+        "transitions": 197,
+        "baselineWrongRecent": 3,
+        "memoryWrongRecent": 6
+      },
+      "external": {
+        "tp": 0,
+        "fp": 113,
+        "fn": 12,
+        "validImages": 5,
+        "failedImages": 1
+      },
+      "oldDate": {
+        "tp": 2,
+        "fp": 15,
+        "fn": 127,
+        "groupedTp": 24
+      },
+      "onnxBytes": 157897,
+      "onnxSha256": "529d03720effdfc772d83c52cea907457d554cb3442f14b5a5e098399b886394",
+      "cpuTileMs": 2.1154487,
+      "overlapPipelineMs": 61.4101964,
+      "artifactId": 15235816016,
+      "productAdmission": false
+    },
+    "transferTrial": "implemented_not_verified"
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
