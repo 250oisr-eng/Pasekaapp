@@ -278,6 +278,25 @@ const measure=()=> {
       console.log(JSON.stringify({scenario:'global-search-reset',width,
         source:'Chromium-disposable-synthetic',realAndroid:'NOT_TESTED'}));
     }
+    // Real document navigation: old startup discarded the hash.
+    await page.goto(origin+'/index.html?deep-link-test=1#journal',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertInterior('journal');
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertInterior('journal');
+    await primary.locator('button[data-tab="planning"]').click();await assertInterior('planning');
+    await page.locator('#planning [data-subtab="forage"]').click();await assertInterior('forage');
+    await back.click();await assertInterior('planning');
+    await back.click();await assertInterior('journal');
+    await back.click();await assertHome();
+    assert.equal(new URL(page.url()).search,'?deep-link-test=1');
+    await page.goto(origin+'/index.html?deep-link-test=2#hiveDetail',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertInterior('hives');assert.equal(new URL(page.url()).hash,'#hives');
+    await page.goto(origin+'/index.html?deep-link-test=3#globalSearch',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertHome();assert.equal(new URL(page.url()).hash,'');
+    await page.goto(origin+'/index.html?deep-link-test=4#ai',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);await assertInterior('ai');
+    assert.equal(await page.evaluate(()=>aiInitPromise===null),true,'URL restore must not initiate external auth');
+    await back.click();await assertHome();
     assert.deepEqual(errors,[],'unexpected JS errors or dialogs');
     assert.deepEqual(failures,[],'nav geometry regression across supported viewports');
   }finally{if(context)await context.close();if(browser)await browser.close();
