@@ -1,0 +1,22 @@
+{
+  "model": "vosk-model-small-ru-0.22",
+  "officialUrl": "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip",
+  "license": "Apache-2.0",
+  "licenseSource": "https://alphacephei.com/vosk/models",
+  "sha256": "961d5ff98a17f4aa6de69864d0aa71fa5bac682301d2b5d17a3f24c5c99a46d4",
+  "digestEvidence": [
+    "https://huggingface.co/rhasspy/vosk-models/blob/e7ac2109d134b5f2404ba95389b2fb51916d4cab/ru/vosk-model-small-ru-0.22.zip",
+    "https://huggingface.co/localstack/vosk-models/blob/main/vosk-model-small-ru-0.22.zip"
+  ],
+  "maxArchiveBytes": 104857600,
+  "maxExpandedBytes": 262144000,
+  "maxEntries": 20000,
+  "requiredFiles": [
+    "am/final.mdl",
+    "conf/mfcc.conf",
+    "conf/model.conf",
+    "graph/HCLr.fst",
+    "graph/Gr.fst"
+  ],
+  "sourceStatus": "CANDIDATE_SHA_FROM_TWO_MIRRORS_OFFICIAL_BYTES_REQUIRE_CI"
+}

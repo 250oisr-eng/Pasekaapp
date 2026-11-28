@@ -1,0 +1,41 @@
+name: Voice model source proof (no deployment)
+on:
+  pull_request:
+    paths:
+      - 'android-native/voice-model-source.json'
+      - 'scripts/verify-voice-model.py'
+      - 'tests/voice_model_source_test.py'
+      - '.github/workflows/voice-model-proof.yml'
+permissions:
+  contents: read
+concurrency:
+  group: voice-model-proof-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Run negative verifier tests
+        run: python3 -m unittest discover -s tests -p voice_model_source_test.py -v
+      - name: Download exact official ZIP over HTTPS (no redirect, no user data)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent --proto '=https' --connect-timeout 20 --max-time 120 --max-filesize 104857600 --output "$RUNNER_TEMP/vosk-model.zip" 'https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip'
+      - name: Verify pinned SHA, small Russian model graph and ZIP CRC
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/verify-voice-model.py "$RUNNER_TEMP/vosk-model.zip" | tee voice-model-proof.json
+      - name: Upload metadata proof only, never model or audio
+        uses: actions/upload-artifact@v4
+        with:
+          name: voice-model-source-proof
+          path: voice-model-proof.json
+          if-no-files-found: error
+          retention-days: 7
