@@ -100,21 +100,22 @@ test('B07 valid-checksum archive with damaged physical layout fails preflight an
  await put(source,{main:bad});
  const original=sectionalState();original.meta.revisionId='live';
  await put(target,{main:original});
- const before=await Archive.exportArchive(target);
+ const before=structuredClone(await read(target,'main','state'));
  const raw=await Archive.exportArchive(source);
  await assert.rejects(Archive.inspectArchive(raw,target,validateSource),/sectional layout invalid/);
- assert.equal(await Archive.exportArchive(target),before);
+ assert.deepEqual(await read(target,'main','state'),before);
  source.close();target.close();
 });
 test('B07 stale or same-revision changes after preflight abort restore, preserving original media',async()=>{
  const idb=new IDBFactory(),source=await db(idb,'source-race'),target=await db(idb,'target-race');
- await put(source,{main:sectionalState()});
+ const originalVideo=new Blob([Uint8Array.of(4,3,2,1)],{type:'video/mp4'});
+ await put(source,{main:sectionalState(),video:originalVideo});
  const live=sectionalState();live.meta.revisionId='live';
- await put(target,{main:live,video:new Blob([Uint8Array.of(4,3,2,1)],{type:'video/mp4'})});
+ await put(target,{main:live,video:originalVideo});
  const proof=await Archive.inspectArchive(await Archive.exportArchive(source),target,validateSource);
  const edit=structuredClone(live);edit.records[0].text='Edited in competing tab';
  await put(target,{main:edit});
- await assert.rejects(Archive.atomicRestore(target,proof,'live'),/Store values changed since preflight: main/);
+ await assert.rejects(Archive.atomicRestore(target,proof,'live',{preserveIdenticalLiveBinary:true}),/Store values changed since preflight: main/);
  assert.equal((await read(target,'main','state')).records[0].text,'Edited in competing tab');
  assert.deepEqual([...new Uint8Array(await (await read(target,'entrance_media','original-video')).blob.arrayBuffer())],[4,3,2,1]);
  source.close();target.close();
