@@ -319,3 +319,25 @@ test('runtime CAS writes detached full harvest to isolated IndexedDB, rejects st
   assert.equal((await commit(candidate,base)).ok,false);assert.equal((await read(db)).extractions.length,1);
  }finally{db.close();}
 });
+
+test('B07 stock regroup excludes unknown or incompatible honey geometry without mutating state',()=>{
+ const p=setupFour(),source=p.fixture.state;
+ const removed=extract(p,source);
+ assert.equal(removed.ok,true,JSON.stringify(removed));
+ assert.ok(Stock.available(removed.draft,Inventory).some(row=>row.id==='honey1'),'confirmed 180 mm stock body should be available');
+ for(const [caseName,mutate] of [
+  ['wrong frame height',body=>{body.spec.frame.heightMm=195;}],
+  ['missing frame height',body=>{delete body.spec.frame.heightMm;}],
+  ['wrong specification kind',body=>{body.spec.kind='brood';}]
+ ]){
+  const state=structuredClone(removed.draft),body=state.equipmentInventory.bodies.honey1;
+  mutate(body);
+  const before=structuredClone(state);
+  assert.equal(Stock.available(state,Inventory).some(row=>row.id==='honey1'),false,caseName);
+  const result=Stock.prepare(state,{
+   userConfirmed:true,expectedRevisionId:'r0',occurredAt:date(19),bodyIds:['honey1','honey3']
+  },p.deps);
+  assert.equal(result.ok,false,caseName+' must reject regroup');
+  assert.deepEqual(state,before,caseName+' must not change source or history');
+ }
+});
