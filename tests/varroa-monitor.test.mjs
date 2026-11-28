@@ -76,3 +76,13 @@ test('a family sample retains its historical association without attributing a h
  assert.deepEqual(api.inspectVarroaIntegrity({hives:[],families,varroaObservations:[row]}),[]);
  assert.ok(api.inspectVarroaIntegrity({hives,varroaObservations:[{...row,familySnapshotAtTime:{...row.familySnapshotAtTime,hiveId:'h2'}}]}).some(x=>x.code==='varroa_invalid_family_snapshot'));
 });
+
+test('sample counts reject arrays, objects and booleans rather than coercing them to numbers',()=>{
+ const base={type:'adult_bee_sample',hiveId:'h1',date:'2026-08-10',method:'other',beesCount:100,mitesCount:2};
+ for(const value of [[100],{valueOf:()=>100},true,false]){
+  assert.throws(()=>make({...base,beesCount:value}),/Количество пчёл/);
+  assert.throws(()=>make({...base,mitesCount:value}),/Количество клещей/);
+  assert.throws(()=>make({type:'sticky_board',hiveId:'h1',date:'2026-08-10',mitesCount:2,exposureHours:value}),/Период наблюдения/);
+ }
+ assert.equal(make({...base,beesCount:'100',mitesCount:'2'}).mitesPer100Bees,2);
+});
