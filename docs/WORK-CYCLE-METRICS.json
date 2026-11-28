@@ -2535,7 +2535,14 @@
       46132385418
     ],
     "chromiumSectional": "PASS_SYNTHETIC_4_0_2",
-    "mergeAuthorized": true
+    "mergeAuthorized": true,
+    "mainCI": "PASS",
+    "mainRuns": [
+      46132518745,
+      46132518708,
+      46132518707,
+      46132518767
+    ]
   },
   "numericMarking20261127": {
     "stage": "IMPLEMENTED_DRAFT",
@@ -2550,15 +2557,35 @@
     "measuredSavings": null
   },
   "numericMarkingReconciliation20261128": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "IN_MAIN",
     "pr": 651,
     "baseSha": "a7fcf2f15fc38d2a932f1493844e620b9049dcdf",
     "previousHead": "74094c2bca4d79f9cbe54d6ee2b7d8913af92b76",
-    "ci": "PENDING",
+    "ci": "PASS",
     "scope": "numeric/legacy code, exact search, stable family and queen numbers, preserve UX/accounting/sectional UI, SW v329",
     "physicalDeviceVerified": false,
     "releaseAuthorized": false,
-    "activationAuthorized": false
+    "activationAuthorized": false,
+    "verifiedHead": "15b9fa88ee0f42ff19ba911a8b0a9260cdae629a",
+    "mainSha": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
+    "treeIdentical": true,
+    "nodeTests": {
+      "passed": 1177,
+      "total": 1177,
+      "failed": 0,
+      "run": 46132660746
+    },
+    "runs": [
+      46132663376,
+      46132663324,
+      46132663317,
+      46132660807,
+      46132660746,
+      46132660790
+    ],
+    "chromiumSectional": "PASS_SYNTHETIC_4_0_2",
+    "mergeAuthorized": true,
+    "mainCI": "PASS"
   },
   "inventoryReconciled20261128": {
     "pr": 661,
@@ -2620,5 +2647,111 @@
     "productionRelease": false,
     "mainSha": "35eb9603befc64289cc95964f5b5046b61ed10c7",
     "postMergeCi": "PASS"
+  },
+  "integrationQueue20261128": {
+    "stage": "PARTIAL_IN_MAIN",
+    "mainSha": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
+    "merged": [
+      649,
+      647,
+      652,
+      648,
+      651
+    ],
+    "superseded": [
+      {
+        "pr": 633,
+        "by": 647,
+        "proof": "byte-identical CSV export code, documentation and two original test suites"
+      }
+    ],
+    "qaOnly": [
+      650
+    ],
+    "historicalSelectivePort": [
+      453
+    ],
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "activationAuthorized": false
+  },
+  "uxRouteAndDevice20261128": {
+    "stage": "IN_MAIN",
+    "runtimeBase": "00b82f0457c3c5a5da5e4edeba27f886e3dd13a8",
+    "routePr": 674,
+    "routeHead": "6cc4ff97082c6ff0fd5cffaa145bc624ea6ee2bb",
+    "nodeTests": {
+      "passed": 1210,
+      "total": 1210,
+      "failed": 0,
+      "run": 46142035806
+    },
+    "governance": "PASS",
+    "fullCI": "PASS",
+    "qaPr": 650,
+    "qaHead": "5a5053176b324b3d6a3ff940cf15bd1ab718d230",
+    "qaInitialBuild": {
+      "run": 46141755217,
+      "conclusion": "failure",
+      "cause": "Maven HTTP 429",
+      "retry": "PASS",
+      "artifactId": 15262586053,
+      "superseded": true
+    },
+    "qaPackage": "ru.paseka.journal.qa.ux20261128",
+    "physicalDevice": "NOT_TESTED",
+    "productionRelease": false,
+    "measuredSavings": null,
+    "mainSha": "12436a769f9774af86e83936a36662d9a2b9d85b",
+    "postMergeCI": "PENDING",
+    "qaFinalHead": "d94e629b50758ab46725a803c7ba8a779fa53641",
+    "qaFinalRuntime": "12436a769f9774af86e83936a36662d9a2b9d85b",
+    "qaFinalPackage": "ru.paseka.journal.qa.ux20261128final",
+    "qaFinalBuild": "PENDING"
+  },
+  "fourWorkstreams20261128": {
+    "sourceMainSha": "12436a769f9774af86e83936a36662d9a2b9d85b",
+    "stage": "IMPLEMENTED_DRAFT",
+    "verifiedCandidates": [
+      {
+        "pr": 635,
+        "sha": "e12ce8a7ad5f7a936c6f27b916353cc093701f39",
+        "checks": 8
+      },
+      {
+        "pr": 641,
+        "sha": "53498918c5d817fd96afa0d281e34140e4f41012",
+        "checks": 6
+      },
+      {
+        "pr": 657,
+        "sha": "fab6fc02c077b21e678333608ae8a0b9410cfd69",
+        "checks": 7
+      },
+      {
+        "pr": 663,
+        "sha": "fdec0aaa5c9c5ee2c6ede8a1a61adde49b943adf",
+        "checks": 7,
+        "nodeTests": 1257
+      },
+      {
+        "pr": 644,
+        "sha": "18696819bbc469b4c5b1a40ceb372701e355927d",
+        "checks": 9,
+        "nodeTests": 1309,
+        "qaOnly": true
+      }
+    ],
+    "selectivePort": {
+      "pr": 453,
+      "sha": "77ccad2e18e800aa32f4f9524292518c69abdb1b",
+      "status": "Node PASS; remaining exact CI pending at record time"
+    },
+    "device": "NOT_TESTED",
+    "independentRestore": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "productionChanges": false,
+    "releaseAuthorized": false,
+    "mergeAuthorized": false
   }
 }
