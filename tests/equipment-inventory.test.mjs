@@ -373,3 +373,13 @@ test('legacy registered body with missing dimensions can be enriched only at its
  assert.deepEqual(s,duplicate);
  assert.notDeepEqual(s,after);
 });
+
+test('registration rejects a damaged registered body ID without overwriting its provenance',()=>{
+ const s=fixture(),profile=s.hives[0].profile;
+ assert.equal(I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile},labels,makeId,now).ok,true);
+ s.equipmentInventory.bodies.b1.id='incorrect-id';
+ const before=structuredClone(s);
+ const result=I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile},labels,makeId,now);
+ assert.equal(result.error,'invalid_registered_body_identity');
+ assert.deepEqual(s,before);
+});
