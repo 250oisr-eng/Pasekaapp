@@ -2560,19 +2560,14 @@
     "releaseAuthorized": false,
     "activationAuthorized": false
   },
-  "inventoryMaintenanceLocation20261128": {
-    "baseSha": "085293cc4fd4317e396d5dd945edf1ddbebe59a7",
-    "sourceHead": "6f6967f871f044fe17147b1b9bc9cb9331b580b5",
-    "stage": "IMPLEMENTED_DRAFT",
-    "historicalNodeTestsPassed": 1103,
-    "newTests": 4,
-    "additionalCodeSha": "73df120983767ae7671446aec0f2acd43bd1f7ca",
-    "nodeCodeSha": "ca8861ea7365b415785f710c9bd6377f31b78ac5",
-    "nodeStatus": "PASS",
-    "fiveParallelDrafts": {"inventory":661,"archive":666,"flowering":659,"varroa":658,"incidents":634},
-    "additionalIdentityRegression": true,
-    "governanceStatus": "PASS",
-    "exactHeadCi": "PENDING",
-    "physicalDeviceVerified": false
+  "inventoryReconciled20261128": {
+    "pr": 661,
+    "sourceHead": "754051fbd65b3580d5b9be7b15deafbcccf6ba69",
+    "mainBase": "e94111aa034e1d8870ea60590f1c8fa3539c1bf6",
+    "stage": "RECONCILED_REVIEW",
+    "node": "PENDING",
+    "android": "PENDING",
+    "physicalDevice": "NOT_TESTED",
+    "release": false
   }
 }
