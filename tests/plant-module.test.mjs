@@ -38,3 +38,12 @@ test('flowering observation history reaches older records and applies search, ph
  assert.equal(filter(observations,'','finished','').length,0);
  assert.equal(JSON.stringify(observations),before);
 });
+
+test('flowering history skips corrupted non-object records without modifying source',()=>{
+ const filter=loadFunction('filterPlantObservationHistory');
+ const rows=[null,'legacy garbage',17,[],{id:'safe',plantName:'Клевер',observedAt:'2026-08-11',phase:'mass'}];
+ const before=JSON.stringify(rows);
+ assert.deepEqual(filter(rows,'','all','').map(x=>x.id),['safe']);
+ assert.deepEqual(filter(rows,'клевер','mass','2026').map(x=>x.id),['safe']);
+ assert.equal(JSON.stringify(rows),before);
+});
