@@ -37,7 +37,7 @@ test('deadout differential does not turn a single visual sign into a definitive 
 test('deadout workflow is wired into the smartphone UI, local schema and offline cache',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
- assert.match(html,/data-tab="deadout"/);
+ assert.match(html,/data-subtab="deadout"/);
  assert.match(html,/id="deadoutForm"/);
  assert.match(html,/capture="environment"/);
  assert.match(html,/PasekaDeadout\.buildDeadoutReviewDraft/);
@@ -83,4 +83,25 @@ test('mortality review rejects duplicate hive identifiers before any observation
  assert.equal(JSON.stringify(duplicates),before);
  const unique=deadout.buildDeadoutReviewDraft(base,hives,[],()=> 'safe','2027-03-10T10:00:00Z');
  assert.equal(unique.hiveNumberAtTime,1);
+});
+
+test('deadout preserves explicit family and hive snapshots without mutating the apiary',()=>{
+ const hives=[{id:'h1',number:null},{id:'h2',number:2}];
+ const families=[{id:'f1',hive:'h1',name:'Семья 1'},{id:'f2',hive:'h2',name:'Семья 2'}];
+ const before=JSON.stringify({hives,families});
+ const draft=input=>deadout.buildDeadoutReviewDraft(input,hives,[],()=> 'd','now',families);
+ const row=draft({...base,familyId:'f1'});
+ assert.equal(row.hiveNumberAtTime,null);
+ assert.deepEqual(row.hiveSnapshotAtTime,{id:'h1',number:null});
+ assert.deepEqual(row.familySnapshotAtTime,{id:'f1',hiveId:'h1',name:'Семья 1'});
+ assert.equal(row.diagnosis,null);
+ assert.equal(JSON.stringify({hives,families}),before);
+ assert.deepEqual(deadout.inspectDeadoutIntegrity({hives:[],families:[],deadoutReviews:[row]}),[]);
+ assert.throws(()=>draft({...base,familyId:'f2'}),/другому улью/);
+ families.push({...families[0]});
+ assert.throws(()=>draft({...base,familyId:'f1'}),/недоступна/);
+ assert.ok(deadout.inspectDeadoutIntegrity({hives,deadoutReviews:[{...row,familySnapshotAtTime:{...row.familySnapshotAtTime,hiveId:'h2'}}]}).some(e=>e.code==='deadout_invalid_family_snapshot'));
+ const legacy=deadout.buildDeadoutReviewDraft(base,[{id:'h1',number:1}],[],()=> 'old','now');
+ delete legacy.hiveSnapshotAtTime;delete legacy.familyId;delete legacy.familySnapshotAtTime;
+ assert.deepEqual(deadout.inspectDeadoutIntegrity({hives:[],deadoutReviews:[legacy]}),[]);
 });

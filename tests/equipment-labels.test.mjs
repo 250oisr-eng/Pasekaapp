@@ -42,7 +42,8 @@ test('frame registry resolves installed sectional brood frames to their owning h
 function makeLayoutFor(state){
  const start=html.indexOf('function layoutFor(hid){'),end=html.indexOf('\nfunction selectedStructureHive()',start);
  assert.ok(start>=0&&end>start,'layoutFor must remain extractable for regression testing');
- const source=html.slice(start,end);
+ const from=html.indexOf('function isSectionalHive('),to=html.indexOf('\nfunction sectionalLayoutForRead(',from);
+ assert.ok(from>=0&&to>from);const source=html.slice(from,to)+'\n'+html.slice(start,end);
  let sequence=0;
  return new Function('S','profileForHive','frameCapacity','framePrefix','uid','PasekaLabels',source+';return layoutFor;')(
   state,()=>null,key=>String(key).startsWith('H')?10:6,(key,hiveId)=>String(hiveId)+'-'+String(key)+'-',()=> 'body-'+(++sequence),L

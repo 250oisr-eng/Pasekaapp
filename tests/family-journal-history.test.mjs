@@ -18,21 +18,27 @@ test('family history follows its ID across hives and preserves archived observat
  assert.deepEqual(history(rows,''),[]);
  assert.deepEqual(rows,before);
 });
-test('hive summary compares only inspections of the same identified family',()=>{
- const start=html.indexOf('function renderFamilyHealthSummary()');
- const fn=html.slice(start,html.indexOf('function recordFamilyHtml(',start));
- const host={};
+test('family card compares only date-separated inspections of the same identified family in the current hive',()=>{
+ const source=html.slice(html.indexOf('function hiveObservationDate('),html.indexOf('function hiveTechnicalProjection('));
+ const snapshot=new Function(source+';return familyObservationSnapshot')();
+ const families=[{id:'a',hive:'h'},{id:'b',hive:'h'}];
  const records=[
-  {hive:'h',family:'a',type:'Осмотр',date:'2026-05-03',occupancy:3},
-  {hive:'h',family:'b',type:'Осмотр',date:'2026-05-02',occupancy:6},
-  {hive:'h',family:'a',type:'Осмотр',date:'2026-05-01',occupancy:1}
+  {id:'a1',hive:'h',family:'a',type:'Осмотр',date:'2026-05-03',occupancy:3},
+  {id:'b1',hive:'h',family:'b',type:'Осмотр',date:'2026-05-02',occupancy:6},
+  {id:'a0',hive:'h',family:'a',type:'Осмотр',date:'2026-05-01',occupancy:1},
+  {id:'old-hive',hive:'other',family:'a',type:'Осмотр',date:'2026-05-04',occupancy:99},
+  {id:'archived',hive:'h',family:'a',type:'Осмотр',date:'2026-05-05',occupancy:99,archivedAt:'2026-05-06'},
+  {id:'conflict',hive:'h',family:'a',familySnapshotAtTime:{id:'b'},type:'Осмотр',date:'2026-05-06',occupancy:99}
  ];
- const render=new Function('$','selectedHiveId','S','journalBroodCapacity','safe',fn+';renderFamilyHealthSummary()');
- render(()=>host,'h',{records},()=>null,String);
- assert.match(host.innerHTML,/рамок \(\+2\)/);
+ const before=structuredClone(records);
+ assert.equal(snapshot(records,families,'h','a').metrics[0].delta,2);
+ assert.equal(snapshot(records,families,'h','b').metrics[0].delta,null);
+ assert.equal(snapshot(records,families,'h','a').date,'2026-05-03');
+ assert.equal(snapshot(records,families,'h','a').metrics[1].value,null);
+ assert.equal(snapshot(records,[...families,{id:'a',hive:'h'}],'h','a'),null);
  records[0].family='';
- render(()=>host,'h',{records},()=>null,String);
- assert.doesNotMatch(host.innerHTML,/рамок \([+-]/);
+ assert.equal(snapshot(records,families,'h','a').metrics[0].delta,null);
+ records[0].family='a';assert.deepEqual(records,before);
 });
 
 test('family card opens only a unique, live, correctly linked record, never arbitrary duplicate IDs',()=>{
