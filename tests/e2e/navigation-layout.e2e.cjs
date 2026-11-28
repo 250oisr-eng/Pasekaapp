@@ -188,15 +188,19 @@ const measure=()=> {
     assert.ok(fieldGeometry.buttons.every(b=>b.width>=55.5&&b.height>=55.5&&b.hit),'field mode 56px targets');
     assert.ok(fieldGeometry.mainPaddingBottom>=fieldGeometry.nav.height);
     await page.setViewportSize({width:390,height:844});
+    assert.deepEqual(await page.getByRole('combobox',{name:'Сезон пасеки'}).locator('option').allTextContents(),['Автоматически по календарю','Весна-лето','Осень','Зимовка']);
+    await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('spring-summer');
+    const springMenu=await page.locator('#workspaceSeasonMenu button').allTextContents();
     await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('winter');
-    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
+    assert.notDeepEqual(await page.locator('#workspaceSeasonMenu button').allTextContents(),springMenu);
+    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зимовка');
     await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('night');
     assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'night');
     // Preferences and theme persist through a reload; verify every primary/secondary route.
     await page.reload({waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>startupWriteGate.ready===true);
     assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'night');
-    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
+    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зимовка');
     for(const tab of ['hives','journal','planning','settings','ai']){
       await primary.locator('button[data-tab="'+tab+'"]').click();
       await assertInterior(tab);
