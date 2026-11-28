@@ -234,3 +234,21 @@ test('daily export rejects oversized snapshots before encoding and preserves sou
   assert.ok((await archive.exportArchive(f.db,{maxBytes:daily.MAX_BYTES})).includes('paseka-idb-full-v1'));
  }finally{f.close();}
 });
+
+test('B01 ZIP size cap includes both headers and filenames, without a 256 MiB fixture',async()=>{
+ // Exercise the unmodified packer logic under a smaller byte cap so this
+ // boundary proof is quick and does not allocate hundreds of megabytes.
+ const reduced=dailyCode.replace('const MAX_BYTES=256*1024*1024;','const MAX_BYTES=4096;');
+ assert.notEqual(reduced,dailyCode,'test must override the intended size cap');
+ const sandbox={crypto:webcrypto};
+ new Function('window',reduced)(sandbox);
+ const packer=sandbox.PasekaDailyArchives;
+ const nameSize=new TextEncoder().encode('paseka-full-idb.json').length;
+ const overhead=30+nameSize+46+nameSize+22;
+ const payload='x'.repeat(packer.MAX_BYTES-overhead);
+ const zipped=packer.encodeZip(payload);
+ assert.equal(zipped.size,packer.MAX_BYTES,'exact-fit ZIP must remain within the configured cap');
+ assert.equal(await packer.decodeZip(zipped),payload);
+ assert.throws(()=>packer.encodeZip(payload+'x'),/Размер архива превышает безопасный предел/);
+ assert.equal(zipped.size,packer.MAX_BYTES,'rejected oversize cannot alter existing ZIP Blob');
+});
