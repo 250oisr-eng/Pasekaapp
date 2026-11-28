@@ -1,4 +1,21 @@
 {
+  "b01Zip32ExactCap20261128": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 657,
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "84ac628bf17060f586335e6328d31bd1d08e19d8",
+    "regressionAdded": 1,
+    "nodeTests": null,
+    "android": "NOT_VERIFIED",
+    "chromium": "NOT_TESTED",
+    "device": "NOT_TESTED",
+    "ci": "NOT_VERIFIED",
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
+  },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 638,
