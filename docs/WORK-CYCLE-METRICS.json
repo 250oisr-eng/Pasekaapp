@@ -55,6 +55,7 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
+  "varroaFamilyHistory20261128":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
   "upcomingHomeTasks20261127": {
     "browserViewports": 2,
     "device": "NOT_TESTED",

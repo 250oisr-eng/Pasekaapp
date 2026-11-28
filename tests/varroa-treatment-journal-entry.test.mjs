@@ -80,8 +80,8 @@ test('Varroa treatment history filters by selected hive and excludes other event
   ]
  };
  const safe=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
- const render=new Function('S','$','ruPlural','hname','safe','today','selectedHiveId',renderSource+';return renderVarroaModule')(
-  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,safe,()=> '2026-11-23','h1'
+ const render=new Function('S','$','ruPlural','hname','safe','today','selectedHiveId','recordFamilyHtml','recordExtraHtml',renderSource+';return renderVarroaModule')(
+  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,safe,()=> '2026-11-23','h1',()=>'',()=>''
  );
  render();
  assert.match(elements.varroaTreatmentsCount.textContent,/^1 обработка/);
@@ -104,8 +104,8 @@ test('treatment history safely escapes user-provided text',()=>{
  elements.varroaHive.value='h1';
  const safe=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
  const state={hives:[{id:'h1'}],varroaObservations:[],records:[{id:'t',type:'Обработка',hive:'h1',date:'2026-11-22',treatmentProduct:'<img src=x onerror=alert(1)>',text:'<script>bad()</script>'}]};
- const render=new Function('S','$','ruPlural','hname','safe','today','selectedHiveId',renderSource+';return renderVarroaModule')(
-  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,safe,()=> '2026-11-23','h1'
+ const render=new Function('S','$','ruPlural','hname','safe','today','selectedHiveId','recordFamilyHtml','recordExtraHtml',renderSource+';return renderVarroaModule')(
+  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,safe,()=> '2026-11-23','h1',()=>'',()=>''
  );
  render();
  assert.doesNotMatch(elements.varroaTreatmentsList.innerHTML,/<img|<script>/i);
@@ -128,11 +128,23 @@ test('old backups without records array display an empty treatment history witho
  elements.varroaHive.value='h1';
  const state={hives:[{id:'h1'}],varroaObservations:[],records:null};
  const render=new Function('S','$','ruPlural','hname','safe','today','selectedHiveId',source+';return renderVarroaModule')(
-  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,value=>String(value??''),()=> '2026-11-23','h1'
+  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,value=>String(value??''),()=> '2026-11-23','h1',()=>'',()=>''
  );
  assert.doesNotThrow(render);
  assert.match(elements.varroaTreatmentsCount.textContent,/^0 обработок/);
  assert.match(elements.varroaTreatmentsList.innerHTML,/Записанных обработок для выбранного улья нет/);
  assert.match(elements.varroaObservationsList.innerHTML,/Измерений пока нет/);
  assert.equal(state.records,null,'render must not silently migrate or modify historical state');
+});
+
+test('treatment history opens only a unique active record for its saved hive',()=>{
+ const start=html.indexOf('function openVarroaTreatmentRecord('),end=html.indexOf('function openVarroaTreatmentJournal(',start);
+ const calls=[],alerts=[],record={id:'r',hive:'h',type:'Обработка'},S={hives:[{id:'h'}],records:[record]};
+ const open=new Function('S','renderVarroaModule','alert','editRecord',html.slice(start,end)+';return openVarroaTreatmentRecord')(S,()=>{},message=>alerts.push(message),id=>calls.push(id));
+ const button={dataset:{recordId:'r',hiveId:'h'}};
+ open(button);assert.deepEqual(calls,['r']);
+ record.archivedAt='2026-11-27';open(button);
+ delete record.archivedAt;record.hive='other';open(button);
+ record.hive='h';S.records.push({...record});open(button);
+ assert.equal(alerts.length,3);assert.deepEqual(calls,['r']);
 });

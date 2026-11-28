@@ -8,15 +8,24 @@ function validDate(value){
  const [y,m,d]=value.split('-').map(Number),date=new Date(Date.UTC(y,m-1,d));
  return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d;
 }
-function buildVarroaObservation(input,hives,makeId,now){
+function buildVarroaObservation(input,hives,makeId,now,families=[]){
  const type=String(input?.type||''),hiveId=String(input?.hiveId||''),date=String(input?.date||'');
  if(!TYPES.includes(type))throw new Error('Выбери тип наблюдения.');
- if(!Array.isArray(hives)||!hives.some(h=>h?.id===hiveId))throw new Error('Выбери существующий улей.');
+ if(!hiveId||!Array.isArray(hives)||hives.filter(h=>h?.id===hiveId).length!==1)throw new Error('Выбери существующий улей.');
  if(!validDate(date))throw new Error('Укажи корректную дату наблюдения.');
  const notes=String(input.notes||'').trim();
  if(notes.length>2000)throw new Error('Примечание не должно превышать 2000 символов.');
  const hive=hives.find(item=>item?.id===hiveId),hiveNumber=Number.isInteger(Number(hive?.number))&&Number(hive.number)>0?Number(hive.number):null;
- const base={id:makeId(),type,hiveId,hiveNumberAtTime:hiveNumber,hiveLabelAtTime:hiveNumber?'Улей №'+hiveNumber:'Улей',date,notes,createdAt:now,updatedAt:now,source:'manual'};
+ const familyId=input.familyId||null;
+ let familySnapshotAtTime=null;
+ if(familyId!==null){
+  const matches=(Array.isArray(families)?families:[]).filter(f=>f?.id===familyId);
+  if(type!=='adult_bee_sample'||typeof familyId!=='string'||matches.length!==1||matches[0].hive!==hiveId)throw new Error('Семья пробы не установлена однозначно в выбранном улье.');
+  const name=String(matches[0].name||matches[0].code||'').trim();
+  if(name.length>200)throw new Error('Название семьи слишком длинное.');
+  familySnapshotAtTime={id:familyId,hiveId,name};
+ }
+ const base={id:makeId(),type,hiveId,familyId,familySnapshotAtTime,hiveNumberAtTime:hiveNumber,hiveLabelAtTime:hiveNumber?'Улей №'+hiveNumber:'Улей',date,notes,createdAt:now,updatedAt:now,source:'manual'};
  if(type==='adult_bee_sample'){
   const method=String(input.method||'');
   if(!METHODS.includes(method))throw new Error('Выбери способ отбора пробы.');
@@ -39,6 +48,10 @@ function inspectVarroaIntegrity(state){
   if(ids.has(row.id)){add('varroa_duplicate_id',{id:row.id});continue}ids.add(row.id);
   if(!TYPES.includes(row.type))add('varroa_invalid_type',{id:row.id,type:row.type??null});
   if(!hives.has(row.hiveId)&&!(typeof row.hiveLabelAtTime==='string'&&row.hiveLabelAtTime.trim()))add('varroa_hive_missing',{id:row.id,hiveId:row.hiveId??null});
+  if(row.familyId!=null||row.familySnapshotAtTime!=null){
+   const f=row.familySnapshotAtTime;
+   if(row.type!=='adult_bee_sample'||typeof row.familyId!=='string'||!row.familyId.trim()||!f||f.id!==row.familyId||f.hiveId!==row.hiveId||typeof f.name!=='string')add('varroa_invalid_family_snapshot',{id:row.id});
+  }
   if(!validDate(row.date))add('varroa_invalid_date',{id:row.id,date:row.date??null});
   if(typeof row.notes!=='string'||row.notes.length>2000)add('varroa_invalid_notes',{id:row.id});
   if(row.type==='adult_bee_sample'){
