@@ -31,8 +31,10 @@ function inspect(state,request){
  if(new Set(familyIds).size!==3)return reject('op13_three_distinct_families_required');
  const families=familyIds.map(fid=>rows(state.families).find(f=>f?.id===fid&&f.hive===request.hiveId&&f.recordStatus!=='historical'));
  if(families.some(f=>!f))return reject('op13_active_family_missing');
- const event=rows(state.familyEvents).filter(e=>e?.operationId==='OP-12'&&
+ const history=rows(state.familyEvents).filter(e=>e?.operationId==='OP-12'&&
   e.type==='alternative_wintering_configured'&&e.hiveId===request.hiveId);
+ // Multi-year apiaries may have several OP12 cycles. Do not silently use the oldest.
+ const event=id(request.techProcessId)?history.filter(e=>e.techProcessId===request.techProcessId):history;
  if(event.length!==1)return reject('op13_unique_confirmed_op12_evidence_required');
  const original=event[0],byPosition=new Map(rows(original.layout).map(row=>[row?.position,row]));
  if(byPosition.size!==3||order.some((position,i)=>byPosition.get(position)?.bodyCount!==sourceCounts[i]||
@@ -56,6 +58,12 @@ function inspect(state,request){
 function preview(state,request){
  const source=inspect(state,request);
  if(!source.ok)return source;
+ if(request.firstFlightDate!=null){
+  const value=request.firstFlightDate;
+  if(typeof value!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)||
+     new Date(value+'T00:00:00.000Z').toISOString().slice(0,10)!==value)
+   return reject('op13_first_flight_date_invalid');
+ }
  if(!obj(request.bottomAssignments))return reject('op13_two_bottom_assignments_required');
  const expected=source.source.smallFamilies.map(f=>f.familyId),provided=Object.keys(request.bottomAssignments);
  if(provided.length!==2||expected.some(fid=>!id(request.bottomAssignments[fid]))||
@@ -79,7 +87,7 @@ function preview(state,request){
  }));
  return {
   ok:true,readOnly:true,readyForPersistence:false,completionRecorded:false,
-  operationId:'OP-13',hiveId:request.hiveId,sourceRevisionId:source.sourceRevisionId,
+  operationId:'OP-13',hiveId:request.hiveId,techProcessId:source.techProcessId,sourceRevisionId:source.sourceRevisionId,
   strongFamilyId:source.source.strongFamilyId,strongFamilyBodyIds:[...source.source.strongBodyIds],
   moves:plans,diaphragmItemIdsToRemove:[...source.source.diaphragmItemIds],
   firstFlightDate:typeof request.firstFlightDate==='string'?request.firstFlightDate:null,
