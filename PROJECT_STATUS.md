@@ -4,7 +4,7 @@
 
 **UX:** #643 IN_MAIN 1085/1085; #646 owner DEVICE_USER_REPORTED_PASS 9/11, TalkBack/production unchanged NOT_TESTED. #648 исправления 1096/1096, Android/Chromium PASS; #650 separate QA built. **[#649 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/649):** OP07/08, склад, UI, IndexedDB; source 1101/1101, Android/Chromium/Governance PASS; exact-main CI not claimed. Profile gate closed, B07 BLOCKED. Detailed history in journal/metrics. No release.
 
-**B07 Draft** `fix/b07-stock-geometry-gate-20261128`: unknown/wrong 180 mm stock blocked; test added, CI pending, activation BLOCKED. **B01 #657 Draft:** ZIP cap, 1102/1102 Node, Android/QA/Governance PASS; no merge/release.
+**B07 [#660 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/660):** 180 mm stock gate; Node 1102/1102, Android/Governance PASS at `21038f56`; activation BLOCKED. **B01 #657 Draft:** ZIP cap, 1102/1102 Node, Android/QA/Governance PASS; no merge/release.
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
