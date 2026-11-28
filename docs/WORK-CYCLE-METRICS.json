@@ -3,19 +3,19 @@
     "stage": "CI_VERIFIED_READONLY_UI_DRAFT",
     "pr": 663,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "3a044227797577e90ac18a29d3c932d3875aa0f3",
+    "codeSha": "426f67836dcb4315b67942dfe18b4f425cb73ffd",
     "contract": "read-only OP11 UI for selected sectional hive: manual original upper bodies, real accessories, ventilation and unknown queen",
     "nodeTests": {
       "total": 1113,
       "passed": 1113,
       "failed": 0,
       "skipped": 0,
-      "run": 46118027514
+      "run": 46121697920
     },
     "earlierFailedTestRun": 46110558095,
     "earlierFailure": "negative fixture lacked modify(state), corrected in current codeSha",
-    "androidRun": 46118027514,
-    "governanceRun": 46118027461,
+    "androidRun": 46121697920,
+    "governanceRun": 46121697981,
     "ci": "NODE_ANDROID_BROWSER_GOVERNANCE_PASS",
     "device": "NOT_TESTED",
     "userFacingUI": true,
@@ -27,11 +27,55 @@
     "completedVerifiedUserScenarios": 0,
     "additionalFailedTestRun": 46117946261,
     "additionalFailedReason": "ventilation select not included in submitted controls, corrected on codeSha",
-    "browserE2eRun": 46118027507,
-    "browserOp11PhysicalFixture": "NOT_TESTED",
+    "browserE2eRun": 46121697916,
+    "browserOp11PhysicalFixture": "SYNTHETIC_CHROMIUM_READONLY_OP11_FORM_NO_IDB_OR_BACKUP_WRITE_PASS",
     "offlineOnePlus": "NOT_TESTED",
     "userFacingScope": "sectional-hive read-only QA preview, no B07 profile activation",
-    "offlineCacheVersion": 328
+    "offlineCacheVersion": 328,
+    "realOnePlusOp11": "NOT_TESTED",
+    "browserE2eNotes": "OP11 form selects 3 registered upper bodies, 4 plugs, feeder and ventilation; verifies S/readMain/readAutoBackup unchanged"
+  },
+  "b07Op12LineageLower20261128": {
+    "stage": "CI_VERIFIED_NARROW_LINEAGE_GUARD_DRAFT",
+    "pr": 664,
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "dd00929a62d2b13682efd86dbf755396ae0e0e43",
+    "nodeTests": {
+      "total": 1101,
+      "passed": 1101,
+      "failed": 0,
+      "skipped": 0,
+      "run": 46121414541
+    },
+    "androidRun": 46121414541,
+    "governanceRun": 46121414565,
+    "source": "DOCX paras 64-70; strongest lower family 2 bodies, upper one each",
+    "scope": "lineage history event, direct creation and OP12 operation evidence only",
+    "actualSectionalMove": false,
+    "productionMutation": false,
+    "profileActivated": false,
+    "releaseAuthorized": false
+  },
+  "b07Op13ReadOnlySpring20261128": {
+    "stage": "CI_VERIFIED_READONLY_DOMAIN_DRAFT",
+    "pr": 665,
+    "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "0c5f9a681613eca0dbbeee81fba166562b43afca",
+    "nodeTests": {
+      "total": 1109,
+      "passed": 1109,
+      "failed": 0,
+      "skipped": 0,
+      "run": 46121776951
+    },
+    "androidRun": 46121776951,
+    "governanceRun": 46121776985,
+    "source": "DOCX paras 73-77; one-body spring transfers to two independent bottoms; 1.5 months guidance only",
+    "scope": "read-only OP13 check; no UI; no IndexedDB write or physical completion",
+    "blockedWriteEngine": "Existing recordPlacementChanged requires 2 destination bodies in immediate OP13 move; incompatible with source sequencing",
+    "actualMove": false,
+    "profileActivated": false,
+    "releaseAuthorized": false
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
