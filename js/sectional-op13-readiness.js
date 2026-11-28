@@ -106,5 +106,64 @@ function preview(state,request){
   ]
  };
 }
-window.PasekaSectionalOP13Readiness=Object.freeze({inspect,preview});
+// DOCX 75–79 is a different branch: if the beekeeper chooses EARLY honey,
+// a spare brood body is provided to EACH relocated smaller family so that
+// technical passages can be arranged. Do not silently add those boxes during
+// the ordinary one-body relocation of DOCX 73–75.
+function previewEarlyHoneySetup(state,request){
+ if(request?.scenario!=='EARLY_HONEY')return reject('op13_early_honey_explicit_scenario_required');
+ const separated=preview(state,request);
+ if(!separated.ok)return separated;
+ if(!obj(request.expansionBodyIds))return reject('op13_early_honey_expansion_bodies_required');
+ const ids=separated.moves.map(row=>row.familyId),provided=Object.keys(request.expansionBodyIds);
+ if(provided.length!==2||provided.some(fid=>!ids.includes(fid))||
+   ids.some(fid=>!id(request.expansionBodyIds[fid])))
+  return reject('op13_early_honey_expansion_assignments_incomplete');
+ const secondIds=ids.map(fid=>request.expansionBodyIds[fid]);
+ if(new Set(secondIds).size!==2)return reject('op13_early_honey_body_reused');
+ const installed=new Set(rows(state.sectionalLayouts).flatMap(layout=>
+  rows(layout?.sections).flatMap(section=>rows(section?.broodBodyIds))
+   .concat(rows(layout?.honeyStack?.bodyIds))));
+ const oldLayouts=obj(state.layouts)?Object.values(state.layouts):[];
+ for(const layout of oldLayouts)for(const bodyId of Object.values(obj(layout?.corpusIds)?layout.corpusIds:{}))
+  if(id(bodyId))installed.add(bodyId);
+ for(const bodyId of secondIds){
+  const body=state.equipmentInventory?.bodies?.[bodyId];
+  if(!obj(body)||body.id!==bodyId||body.kind!=='brood'||body.condition!=='good'||
+     body.spec?.profileId!==PROFILE||body.spec?.framesPerBox!==6||
+     body.spec?.frame?.heightMm!==180||
+     !Array.isArray(body.frames)||body.frames.length!==6||
+     body.frames.some(frame=>!obj(frame)||(frame.history!=null&&!Array.isArray(frame.history)))||
+     !id(body.storageLocation)||installed.has(bodyId))
+   return reject('op13_early_honey_spare_brood_body_not_verified',{bodyId});
+ }
+ if(!obj(request.emptyBodyObserved)||ids.some(fid=>request.emptyBodyObserved[fid]!==true))
+  return reject('op13_early_honey_empty_body_observation_required');
+ // A planned connection is not a validated physical connection. Exact
+ // opening/diaphragm movements and queen isolation still need local guards.
+ return {
+  ok:true,readOnly:true,readyForPersistence:false,completionRecorded:false,
+  operationId:'OP-14',scenario:'EARLY_HONEY',sourceOperationId:'OP-13',
+  hiveId:separated.hiveId,sourceRevisionId:separated.sourceRevisionId,
+  techProcessId:separated.techProcessId,
+  oneBodyMoves:separated.moves.map(row=>structuredClone(row)),
+  proposedSecondBroodBodies:separated.moves.map(row=>({
+   familyId:row.familyId,retainedBodyId:row.retainedBodyId,
+   separateBottomItemId:row.toBottomItemId,
+   spareBodyId:request.expansionBodyIds[row.familyId],bodyCountIfConfirmed:2
+  })),
+  connectedTechnicalOpeningsVerified:false,
+  honeyQueenExcludersInstalled:false,honeyBodyCountInstalled:0,
+  physicalExpansionConfirmed:false,
+  remainingGates:[
+   'beekeepers_confirmation_of_two_empty_compatible_brood_bodies',
+   'separate_bottoms_and_family_moves',
+   'remove_two_winter_mesh_diaphragms',
+   'validate_and_confirm_four_technical_openings_and_queen_barriers',
+   'paired_covers_and_top_risers',
+   'independent_atomic_OP14_transitions_and_backup_restore'
+  ]
+ };
+}
+window.PasekaSectionalOP13Readiness=Object.freeze({inspect,preview,previewEarlyHoneySetup});
 })();
